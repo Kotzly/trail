@@ -36,16 +36,7 @@ function makeTree(root: NavigationNodeJSON | null, nodeCount: number): Navigatio
 
 const DEFAULT_SETTINGS: Settings = {
   theme: "system",
-  customTheme: {
-    enabled: false,
-    dots: [],
-    harmony: "floating",
-    lightness: 0.5,
-    opacity: 1,
-    texture: 0,
-    customColors: [],
-    accentColor: null,
-  },
+  themePreset: "default",
   layout: {
     mode: "tree",
     tree: { verticalGapScale: 1, horizontalGapScale: 1, hideRoot: false },

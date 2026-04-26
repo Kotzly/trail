@@ -6,7 +6,6 @@ import { notifyTreeUpdate } from "../notifications.js";
 import { getActiveTab } from "../../tabs/lifecycle.js";
 import { tempSelectionManager } from "../../services/temporary-selection.js";
 import { syncOpenTabs } from "../../tabs/sync-open-tabs.js";
-import { getEditorState } from "./editor-handlers.js";
 import { browser } from "@shared/platform/webext.js";
 import { markNodeVisited } from "../../state/node-recency.js";
 
@@ -28,16 +27,6 @@ export const navigationHandlers = defineRpcHandlers({
     const tree = await treeStorage.getOrCreateTree();
     const node = tree.findNodeById(message.nodeId);
     if (!node) throw new Error("Node not found");
-
-    if (getEditorState().active) {
-      tree.setCurrentById(message.nodeId);
-      treeStorage.cacheTree(tree);
-      await notifyTreeUpdate(tree, "set-current", {
-        focusNodeId: message.nodeId,
-        mode: "force",
-      });
-      return;
-    }
 
     if (tabManager.openNodes().size === 0) {
       await syncOpenTabs();
@@ -101,10 +90,6 @@ export const navigationHandlers = defineRpcHandlers({
   },
 
   async [RPC_METHOD.PREVIEW_NODE](message) {
-    if (getEditorState().active) {
-      return;
-    }
-
     const tree = await treeStorage.getOrCreateTree();
     const node = tree.findNodeById(message.nodeId);
     if (!node) throw new Error("Node not found");
@@ -175,16 +160,6 @@ export const navigationHandlers = defineRpcHandlers({
     const node = tree.findNodeById(message.nodeId);
     if (!node) throw new Error("Node not found");
 
-    if (getEditorState().active) {
-      tree.setCurrentById(message.nodeId);
-      treeStorage.cacheTree(tree);
-      await notifyTreeUpdate(tree, "set-current", {
-        focusNodeId: message.nodeId,
-        mode: "force",
-      });
-      return;
-    }
-
     if (tabManager.openNodes().size === 0) {
       await syncOpenTabs();
     }
@@ -223,10 +198,6 @@ export const navigationHandlers = defineRpcHandlers({
   },
 
   async [RPC_METHOD.OPEN_IN_NEW_TAB](message) {
-    if (getEditorState().active) {
-      return;
-    }
-
     const tree = await treeStorage.getOrCreateTree();
     const node = tree.findNodeById(message.nodeId);
     if (!node) throw new Error("Node not found");

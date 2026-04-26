@@ -1,6 +1,5 @@
 import type { SendMessageOptions } from "@webext-core/messaging";
 import type {
-  EditorModeState,
   TitleOrFaviconChangedInput,
   TreeUpdatedInput,
   TreesSnapshot,
@@ -19,7 +18,6 @@ export const EXTENSION_MESSAGE = {
   SYNC_CONFLICT: "event/sync-conflict",
   SYNC_CONFLICT_RESOLVED: "event/sync-conflict-resolved",
   AUTH_STATE: "event/auth-state",
-  SITE_EDITOR_MODE_EXITED: "site/editor-mode-exited",
   CONTENT_BRIDGE_ERROR: "event/content-bridge-error",
 } as const;
 
@@ -66,32 +64,20 @@ export interface ExtensionProtocolMap {
   [EXTENSION_MESSAGE.SYNC_CONFLICT](data: SyncConflictEvent): void;
   [EXTENSION_MESSAGE.SYNC_CONFLICT_RESOLVED](data: SyncConflictResolvedEvent): void;
   [EXTENSION_MESSAGE.AUTH_STATE](data: AuthStateEvent): void;
-  [EXTENSION_MESSAGE.SITE_EDITOR_MODE_EXITED](data: { editorMode: false }): void;
   [EXTENSION_MESSAGE.CONTENT_BRIDGE_ERROR](data: ContentBridgeErrorEvent): void;
 }
 
 export const WEBSITE_MESSAGE = {
   PING: "site/ping",
   OPEN_PANEL: "site/open-panel",
-  ENTER_EDITOR_MODE: "site/enter-editor-mode",
-  EXIT_EDITOR_MODE: "site/exit-editor-mode",
-  SAVE_EDITOR_MODE: "site/save-editor-mode",
-  CANCEL_EDITOR_MODE: "site/cancel-editor-mode",
-  EDITOR_MODE_EXITED: "site/editor-mode-exited",
 } as const;
 
 export interface WebsiteProtocolMap {
   [WEBSITE_MESSAGE.PING](): {
     version: string;
     authenticated: boolean;
-    editorMode: boolean;
   };
   [WEBSITE_MESSAGE.OPEN_PANEL](): void;
-  [WEBSITE_MESSAGE.ENTER_EDITOR_MODE](data: { treeId: string }): EditorModeState;
-  [WEBSITE_MESSAGE.EXIT_EDITOR_MODE](): EditorModeState;
-  [WEBSITE_MESSAGE.SAVE_EDITOR_MODE](): void;
-  [WEBSITE_MESSAGE.CANCEL_EDITOR_MODE](): void;
-  [WEBSITE_MESSAGE.EDITOR_MODE_EXITED](data: { editorMode: false }): void;
 }
 
 export type ExtensionMessageTarget = number | SendMessageOptions;

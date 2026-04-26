@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import { i18n } from "#i18n";
 import { browser } from "@shared/platform/webext.js";
 import { Icons } from "./Icon.js";
 import { Button } from "@ui/components/ui/button";
@@ -15,14 +16,15 @@ export default function SettingsDropdown() {
   }, []);
 
   return (
-    <ButtonTooltip label="Settings" keys={SETTINGS_KEYS}>
+    <ButtonTooltip label={i18n.t("sidepanel.settingsPopover.label")} keys={SETTINGS_KEYS}>
       <Button
         id="settingsBtn"
-        variant="outline"
+        variant="secondary"
         size="icon"
         type="button"
-        aria-label="Settings"
+        aria-label={i18n.t("sidepanel.settingsPopover.label")}
         onClick={handleGearClick}
+        className="press-feedback"
       >
         <Icons.Settings />
       </Button>

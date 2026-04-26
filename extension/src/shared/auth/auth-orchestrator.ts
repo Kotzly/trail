@@ -40,9 +40,21 @@
 
 import type { AuthError, Session } from "@supabase/supabase-js";
 import { getSupabaseClient, isSupabaseConfigured } from "@shared/lib/supabase.js";
-import { authIdentityItem, deviceIdItem, type AuthIdentity } from "@shared/config/storage-items.js";
+import {
+  authIdentityItem,
+  deviceIdItem,
+  provisionedUsersItem,
+  type AuthIdentity,
+} from "@shared/config/storage-items.js";
 import { captureError, captureEvent, resetTelemetryIdentity } from "@shared/lib/observability.js";
 import { createLogger } from "@shared/lib/logger.js";
+
+/**
+ * How often `devices.last_seen_at` is refreshed once the user has been
+ * provisioned. Prevents every surface mount (settings open, sidepanel
+ * remount, token refresh) from upserting the row.
+ */
+const DEVICE_REFRESH_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
 const log = createLogger("auth");
 
@@ -145,10 +157,30 @@ async function ensurePublicUser(identity: AuthIdentity): Promise<void> {
  * the extension tries to write trails. Order matters: `devices` and
  * every other public table have a FK to `public.users(id)`, so the
  * user row has to exist first.
+ *
+ * Throttled via `provisionedUsersItem`: once a user has been seen on
+ * this device, the `users` upsert and `sync_public_user_from_auth` RPC
+ * are skipped on subsequent `initAuth()` runs. The `devices` upsert is
+ * refreshed on a daily cadence so `last_seen_at` stays roughly fresh
+ * without spamming the backend on every surface mount.
  */
 async function provisionSignedInUser(identity: AuthIdentity): Promise<void> {
+  const cache = await provisionedUsersItem.getValue();
+  const entry = cache[identity.userId];
+  const now = Date.now();
+
+  if (entry) {
+    if (now - entry.deviceLastSeenAt < DEVICE_REFRESH_INTERVAL_MS) return;
+    await ensureDeviceRegistered(identity.userId);
+    cache[identity.userId] = { ...entry, deviceLastSeenAt: now };
+    await provisionedUsersItem.setValue(cache);
+    return;
+  }
+
   await ensurePublicUser(identity);
   await ensureDeviceRegistered(identity.userId);
+  cache[identity.userId] = { provisionedAt: now, deviceLastSeenAt: now };
+  await provisionedUsersItem.setValue(cache);
 }
 
 /**
@@ -876,6 +908,10 @@ export async function signOut(): Promise<void> {
     captureError(error, { kind: "auth_signout" });
   }
   await authIdentityItem.setValue(null);
+  // Drop provisioning cache so a re-sign-in (possibly as a different
+  // user, possibly after a server-side account deletion) runs the full
+  // ensurePublicUser path again.
+  await provisionedUsersItem.setValue({});
   captureEvent("auth_signout");
   await resetTelemetryIdentity();
   notify({ status: "signed-out" });

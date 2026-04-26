@@ -6,14 +6,10 @@ import { navigateTo } from "../../api/tree.js";
 import { getTabsForNodeMessage } from "../../api/tabs.js";
 import {
   bulkCloseTabs,
-  bulkDeleteNodes,
-  bulkDeleteRecursive,
   bulkPin,
   bulkUnpin,
   closeTab,
   deleteChildren,
-  deleteNode,
-  deleteWithChildren,
   fireAndForget,
   openInNewTab,
   toggleMute,
@@ -22,11 +18,7 @@ import {
 import { useStore } from "../state/store.js";
 import { useOverlayEffects } from "../state/overlay-effects.js";
 import { Icons } from "./Icon.js";
-import {
-  countOpenTabsForDelete,
-  formatTabsClosed,
-  getIncludedRootId,
-} from "../shared/delete-tree.js";
+import { useDeleteFlow } from "../hooks/useDeleteFlow.js";
 import { Button } from "@ui/components/ui/button";
 import { ButtonGroup } from "@ui/components/ui/button-group";
 import {
@@ -44,6 +36,8 @@ import { toast } from "sonner";
 import { i18n } from "#i18n";
 import { browser, type Tab } from "@shared/platform/webext.js";
 import { showOperationError } from "../shared/show-operation-error.js";
+import { compileCollapselist } from "@shared/lib/url-blocklist.js";
+import { computeChainFoldInfo } from "@features/graph/fold-chains.js";
 
 export default function ContextMenus() {
   const contextMenu = useStore((state) => state.contextMenu);
@@ -56,10 +50,40 @@ export default function ContextMenus() {
   if (contextMenu.type === "node") {
     const node = tree?.findNodeById(contextMenu.nodeId);
     if (!node) return null;
-    return <NodeContextMenu nodeId={contextMenu.nodeId} position={contextMenu.position} />;
+    return (
+      <NodeContextMenu
+        key={`${contextMenu.nodeId}-${contextMenu.position.x}-${contextMenu.position.y}`}
+        nodeId={contextMenu.nodeId}
+        position={contextMenu.position}
+      />
+    );
   }
 
-  return <BulkContextMenu nodeIds={contextMenu.nodeIds} position={contextMenu.position} />;
+  return (
+    <BulkContextMenu
+      key={`bulk-${contextMenu.nodeIds.join(",")}-${contextMenu.position.x}-${contextMenu.position.y}`}
+      nodeIds={contextMenu.nodeIds}
+      position={contextMenu.position}
+    />
+  );
+}
+
+/**
+ * Right-click opens the menu via `contextmenu`, then the browser delivers
+ * `pointerup` to whatever lies under the cursor — usually a menu item. Radix's
+ * `MenuItem` interprets a pointerup it didn't see a matching pointerdown for
+ * as a synthetic click and fires `onSelect`, which dismisses the menu and may
+ * trigger an action. We swallow the first pointerup with `preventDefault()` so
+ * `composeEventHandlers` skips Radix's internal handler.
+ */
+function useSwallowFirstPointerUp() {
+  const armedRef = useRef(true);
+  return useCallback((event: React.PointerEvent) => {
+    if (armedRef.current) {
+      armedRef.current = false;
+      event.preventDefault();
+    }
+  }, []);
 }
 
 type VirtualTriggerProps = { position: { x: number; y: number } };
@@ -85,71 +109,39 @@ function MenuShortcut({ keys }: { keys: readonly ShortcutKey[] }) {
   );
 }
 
-type DestructiveItemProps = {
+/**
+ * Plain destructive menu item: single click → action fires, toast with
+ * Undo handles obvious mistakes. The two-step "armed/confirm" pattern
+ * was removed (it required two clicks for every delete and made
+ * deletion feel onerous; toast-Undo gives the same safety with less
+ * friction).
+ */
+type DestructiveActionItemProps = {
   label: string;
-  confirmLabel: string;
-  confirmDescription?: string | null;
-  pending: boolean;
-  onArm: () => void;
-  onConfirm: () => void;
+  description?: string | null;
+  onAction: () => void;
   icon?: React.ReactNode;
   shortcut?: readonly ShortcutKey[];
 };
 
-/**
- * Two-step destructive menu item. Shift-click (or Shift+Space/Enter) skips
- * the confirmation step for power users.
- */
-function DestructiveItem({
+function DestructiveActionItem({
   label,
-  confirmLabel,
-  confirmDescription,
-  pending,
-  onArm,
-  onConfirm,
+  description,
+  onAction,
   icon,
   shortcut,
-}: DestructiveItemProps) {
-  const shiftRef = useRef(false);
-
-  if (pending) {
-    return (
-      <DropdownMenuItem
-        variant="destructive"
-        className={confirmDescription ? "items-start py-1.5" : undefined}
-        onSelect={() => onConfirm()}
-      >
-        <Icons.Trash2 className={confirmDescription ? "mt-0.5" : undefined} />
-        <span className="flex min-w-0 flex-col gap-0.5 leading-tight">
-          <span>{confirmLabel}</span>
-          {confirmDescription && (
-            <span className="text-[11px] opacity-75">{confirmDescription}</span>
-          )}
-        </span>
-      </DropdownMenuItem>
-    );
-  }
-
+}: DestructiveActionItemProps) {
   return (
     <DropdownMenuItem
       variant="destructive"
-      onPointerDown={(event) => {
-        shiftRef.current = event.shiftKey;
-      }}
-      onKeyDown={(event) => {
-        shiftRef.current = event.shiftKey;
-      }}
-      onSelect={(event) => {
-        if (shiftRef.current) {
-          onConfirm();
-          return;
-        }
-        event.preventDefault();
-        onArm();
-      }}
+      className={description ? "items-start py-1.5" : undefined}
+      onSelect={() => onAction()}
     >
-      {icon ?? <Icons.Trash2 />}
-      {label}
+      {icon ?? <Icons.Trash2 className={description ? "mt-0.5" : undefined} />}
+      <span className="flex min-w-0 flex-col gap-0.5 leading-tight">
+        <span>{label}</span>
+        {description && <span className="text-[11px] opacity-75">{description}</span>}
+      </span>
       {shortcut && <MenuShortcut keys={shortcut} />}
     </DropdownMenuItem>
   );
@@ -178,7 +170,7 @@ function TabRow({ tab, onActivate, onMute, onClose }: TabRowProps) {
     >
       {tab.url && (
         <img
-          className="size-4 shrink-0 rounded-sm"
+          className="size-4 shrink-0"
           src={getFaviconUrl(tab.url as Url)}
           alt=""
           loading="lazy"
@@ -202,18 +194,19 @@ function TabRow({ tab, onActivate, onMute, onClose }: TabRowProps) {
             e.stopPropagation();
             onMute();
           }}
+          className="press-feedback"
         >
           {muted ? <Icons.VolumeX /> : <Icons.Volume2 />}
         </Button>
         <Button
-          variant="ghost"
+          variant="destructive"
           size="icon-xs"
-          className="text-destructive hover:text-destructive hover:bg-destructive/10"
           aria-label={i18n.t("menus.closeTab")}
           onClick={(e) => {
             e.stopPropagation();
             onClose();
           }}
+          className="press-feedback"
         >
           <Icons.X />
         </Button>
@@ -228,17 +221,17 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
   const closeContextMenu = useStore((state) => state.closeContextMenu);
   const setHoverNodeId = useStore((state) => state.setHoverNodeId);
   const tree = useStore((state) => state.tree);
-  const nodeTabCounts = useStore((state) => state.nodeTabCounts);
-  const openDeleteTreeConfirm = useStore((state) => state.openDeleteTreeConfirm);
+  const treeJSON = useStore((state) => state.treeJSON);
   const collapsedNodeIds = useStore((state) => state.graph.collapsedNodeIds);
-  const editorActive = useStore((state) => state.editorMode.active);
+  const unfoldedChainIds = useStore((state) => state.graph.unfoldedChainIds);
+  const settings = useStore((state) => state.settings);
   const collapseNodes = useStore((state) => state.collapseNodes);
   const expandNodes = useStore((state) => state.expandNodes);
+  const toggleChainUnfolded = useStore((state) => state.toggleChainUnfolded);
+  const trees = useStore((state) => state.trees);
+  const { request: requestDelete } = useDeleteFlow();
   const node = tree?.findNodeById(nodeId);
   const [tabs, setTabs] = useState<Tab[]>([]);
-  const [pendingDelete, setPendingDelete] = useState<"node" | "children" | "subtree" | null>(null);
-  const [pendingCloseAllTabs, setPendingCloseAllTabs] = useState(false);
-  const closeAllShiftRef = useRef(false);
   const { copy: copyToClipboard } = useClipboard();
 
   useEffect(() => {
@@ -263,6 +256,24 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
     [closeContextMenu, setHoverNodeId],
   );
 
+  // Chain-fold info for the right-clicked node. Recomputed on each
+  // open from the live store; cheap (one tree walk + regex tests) and
+  // saves having to thread fold state through context-menu props.
+  const collapselist = settings?.privacy.collapselist;
+  const chainState = useMemo(() => {
+    if (!treeJSON || !collapselist || collapselist.length === 0) {
+      return { foldedCount: 0, isUnfolded: false };
+    }
+    const matcher = compileCollapselist(collapselist);
+    const info = computeChainFoldInfo(treeJSON, matcher, unfoldedChainIds);
+    return {
+      foldedCount: info.tipFoldCounts.get(nodeId) ?? 0,
+      isUnfolded: info.unfoldedTipIds.has(nodeId),
+    };
+  }, [treeJSON, collapselist, unfoldedChainIds, nodeId]);
+
+  const swallowFirstPointerUp = useSwallowFirstPointerUp();
+
   if (!node) return null;
 
   const hasOpenTab = tabs.length > 0;
@@ -271,142 +282,98 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
   const isRoot = node.isRoot();
   const isCollapsed = collapsedNodeIds.has(nodeId);
 
-  const ids = [nodeId];
-  const tabsClosedForNode = formatTabsClosed(
-    countOpenTabsForDelete(tree, ids, nodeTabCounts, "self"),
-  );
-  const tabsClosedForChildren = formatTabsClosed(
-    countOpenTabsForDelete(tree, ids, nodeTabCounts, "children"),
-  );
-  const tabsClosedForSubtree = formatTabsClosed(
-    countOpenTabsForDelete(tree, ids, nodeTabCounts, "subtree"),
-  );
-
-  const confirmCloseAllTabs = () => {
+  const closeAllTabsForNode = () => {
     fireAndForget(bulkCloseTabs([nodeId]), "bulk close tabs");
     setTabs([]);
-    setPendingCloseAllTabs(false);
   };
 
   return (
-    <DropdownMenu
-      key={`${position.x}-${position.y}`}
-      open
-      modal={false}
-      onOpenChange={onOpenChange}
-    >
+    <DropdownMenu open modal={false} onOpenChange={onOpenChange}>
       <VirtualTrigger position={position} />
       <DropdownMenuContent
         align="start"
         side="bottom"
         sideOffset={0}
         collisionPadding={8}
-        className="**:data-[slot$=-item]:hover:bg-foreground/10 **:data-[slot$=-trigger]:hover:bg-foreground/10 w-auto min-w-48"
+        onPointerUpCapture={swallowFirstPointerUp}
+        className="**:data-[slot$=-item]:hover:bg-foreground/10 **:data-[slot$=-trigger]:hover:bg-foreground/10 w-auto min-w-48 data-closed:duration-[80ms] data-closed:ease-(--ease-out) data-open:duration-[100ms] data-open:ease-(--ease-out)"
       >
-        {!editorActive && (
-          <>
-            <DropdownMenuItem
-              onSelect={async () => {
-                try {
-                  await navigateTo(node);
-                } catch (error) {
-                  showOperationError(i18n.t("menus.openPageOp"), error);
-                }
-              }}
-            >
-              <Icons.ArrowRight />
-              {i18n.t("menus.openInThisTab")}
-              <MenuShortcut keys={["enter"]} />
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onSelect={() => fireAndForget(openInNewTab(nodeId), "open in new tab")}
-            >
-              <Icons.ExternalLink />
-              {i18n.t("menus.openInNewTab")}
-              <MenuShortcut keys={["meta", "enter"]} />
-            </DropdownMenuItem>
+        <DropdownMenuItem
+          onSelect={async () => {
+            try {
+              await navigateTo(node);
+            } catch (error) {
+              showOperationError(i18n.t("menus.openPageOp"), error);
+            }
+          }}
+        >
+          <Icons.ArrowRight />
+          {i18n.t("menus.openInThisTab")}
+          <MenuShortcut keys={["enter"]} />
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => fireAndForget(openInNewTab(nodeId), "open in new tab")}>
+          <Icons.ExternalLink />
+          {i18n.t("menus.openInNewTab")}
+          <MenuShortcut keys={["meta", "enter"]} />
+        </DropdownMenuItem>
 
-            {hasOpenTab && (
-              <>
-                <DropdownMenuSeparator />
-                <DropdownMenuLabel>
-                  {tabs.length === 1
-                    ? i18n.t("menus.openTabsOne", [String(tabs.length)])
-                    : i18n.t("menus.openTabsMany", [String(tabs.length)])}
-                </DropdownMenuLabel>
-                <ScrollArea
-                  className="max-h-[200px]"
-                  onMouseEnter={() => setHoverNodeId(nodeId)}
-                  onMouseLeave={() => setHoverNodeId(null)}
-                >
-                  {tabs.map((tab) => (
-                    <TabRow
-                      key={tab.id}
-                      tab={tab}
-                      onActivate={() => {
-                        if (tab.id)
-                          browser.tabs
-                            .update(tab.id, { active: true })
-                            .catch((error) => console.error("Failed to focus tab:", error));
-                      }}
-                      onMute={() => {
-                        if (!tab.id) return;
-                        fireAndForget(toggleMute(nodeId, tab.id as TabId), "toggle mute");
-                        setTabs((prev) =>
-                          prev.map((item) =>
-                            item.id === tab.id
-                              ? {
-                                  ...item,
-                                  mutedInfo: {
-                                    ...item.mutedInfo,
-                                    muted: !item.mutedInfo?.muted,
-                                  },
-                                }
-                              : item,
-                          ),
-                        );
-                      }}
-                      onClose={() => {
-                        if (!tab.id) return;
-                        fireAndForget(closeTab(nodeId, tab.id as TabId), "close tab");
-                        setTabs((prev) => prev.filter((item) => item.id !== tab.id));
-                      }}
-                    />
-                  ))}
-                </ScrollArea>
-                {tabs.length > 1 &&
-                  (pendingCloseAllTabs ? (
-                    <DropdownMenuItem variant="destructive" onSelect={confirmCloseAllTabs}>
-                      <Icons.X />
-                      {i18n.t("menus.closeAllTabsConfirm")}
-                    </DropdownMenuItem>
-                  ) : (
-                    <DropdownMenuItem
-                      variant="destructive"
-                      onPointerDown={(event) => {
-                        closeAllShiftRef.current = event.shiftKey;
-                      }}
-                      onKeyDown={(event) => {
-                        closeAllShiftRef.current = event.shiftKey;
-                      }}
-                      onSelect={(event) => {
-                        if (closeAllShiftRef.current) {
-                          confirmCloseAllTabs();
-                          return;
-                        }
-                        event.preventDefault();
-                        setPendingCloseAllTabs(true);
-                      }}
-                    >
-                      <Icons.X />
-                      {i18n.t("menus.closeAllTabs")}
-                    </DropdownMenuItem>
-                  ))}
-              </>
-            )}
+        {hasOpenTab && (
+          <>
             <DropdownMenuSeparator />
+            <DropdownMenuLabel>
+              {tabs.length === 1
+                ? i18n.t("menus.openTabsOne", [String(tabs.length)])
+                : i18n.t("menus.openTabsMany", [String(tabs.length)])}
+            </DropdownMenuLabel>
+            <ScrollArea
+              className="max-h-[200px]"
+              onMouseEnter={() => setHoverNodeId(nodeId)}
+              onMouseLeave={() => setHoverNodeId(null)}
+            >
+              {tabs.map((tab) => (
+                <TabRow
+                  key={tab.id}
+                  tab={tab}
+                  onActivate={() => {
+                    if (tab.id)
+                      browser.tabs
+                        .update(tab.id, { active: true })
+                        .catch((error) => console.error("Failed to focus tab:", error));
+                  }}
+                  onMute={() => {
+                    if (!tab.id) return;
+                    fireAndForget(toggleMute(nodeId, tab.id as TabId), "toggle mute");
+                    setTabs((prev) =>
+                      prev.map((item) =>
+                        item.id === tab.id
+                          ? {
+                              ...item,
+                              mutedInfo: {
+                                ...item.mutedInfo,
+                                muted: !item.mutedInfo?.muted,
+                              },
+                            }
+                          : item,
+                      ),
+                    );
+                  }}
+                  onClose={() => {
+                    if (!tab.id) return;
+                    fireAndForget(closeTab(nodeId, tab.id as TabId), "close tab");
+                    setTabs((prev) => prev.filter((item) => item.id !== tab.id));
+                  }}
+                />
+              ))}
+            </ScrollArea>
+            {tabs.length > 1 && (
+              <DropdownMenuItem variant="destructive" onSelect={closeAllTabsForNode}>
+                <Icons.X />
+                {i18n.t("menus.closeAllTabs")}
+              </DropdownMenuItem>
+            )}
           </>
         )}
+        <DropdownMenuSeparator />
 
         <DropdownMenuItem onSelect={() => fireAndForget(togglePin(nodeId), "toggle pin")}>
           {node.data.pinned ? <Icons.PinOff /> : <Icons.Pin />}
@@ -427,7 +394,20 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
           </DropdownMenuItem>
         )}
 
-        <DropdownMenuItem onSelect={() => useStore.getState().openRenameDialog(nodeId)}>
+        {chainState.foldedCount > 0 && (
+          <DropdownMenuItem onSelect={() => toggleChainUnfolded(nodeId)}>
+            <Icons.UnfoldVertical />
+            {i18n.t("menus.unfoldChain", [String(chainState.foldedCount)])}
+          </DropdownMenuItem>
+        )}
+        {chainState.isUnfolded && (
+          <DropdownMenuItem onSelect={() => toggleChainUnfolded(nodeId)}>
+            <Icons.FoldVertical />
+            {i18n.t("menus.refoldChain")}
+          </DropdownMenuItem>
+        )}
+
+        <DropdownMenuItem onSelect={() => useStore.getState().startInlineRename(nodeId)}>
           <Icons.Pencil />
           {i18n.t("menus.rename")}
           <MenuShortcut keys={["F2"]} />
@@ -459,45 +439,49 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
         <DropdownMenuSeparator />
 
         {isRoot ? (
-          <DestructiveItem
+          <DestructiveActionItem
             label={i18n.t("menus.deleteTree")}
-            confirmLabel={i18n.t("menus.deleteTreeConfirm")}
-            confirmDescription={tabsClosedForSubtree}
-            pending={pendingDelete === "subtree"}
-            onArm={() => openDeleteTreeConfirm(nodeId)}
-            onConfirm={() => openDeleteTreeConfirm(nodeId)}
+            onAction={() => {
+              const treeId = trees.active?.id;
+              if (!treeId) return;
+              void requestDelete({ kind: "tree", treeId }, { source: "context" });
+            }}
           />
         ) : (
           <>
-            <DestructiveItem
-              label={i18n.t("menus.deleteNode")}
-              confirmLabel={i18n.t("menus.deleteNodeConfirm")}
-              confirmDescription={tabsClosedForNode}
-              pending={pendingDelete === "node"}
-              onArm={() => setPendingDelete("node")}
-              onConfirm={() => fireAndForget(deleteNode(nodeId), "delete node")}
-              shortcut={["delete"]}
-            />
-            {hasChildren && (
-              <>
-                <DestructiveItem
-                  label={i18n.t("menus.deleteChildren")}
-                  confirmLabel={i18n.t("menus.deleteChildrenConfirm")}
-                  confirmDescription={tabsClosedForChildren}
-                  pending={pendingDelete === "children"}
-                  onArm={() => setPendingDelete("children")}
-                  onConfirm={() => fireAndForget(deleteChildren(nodeId), "delete children")}
-                />
-                <DestructiveItem
-                  label={i18n.t("menus.deleteSubtree")}
-                  confirmLabel={i18n.t("menus.deleteSubtreeConfirm")}
-                  confirmDescription={tabsClosedForSubtree}
-                  pending={pendingDelete === "subtree"}
-                  onArm={() => setPendingDelete("subtree")}
-                  onConfirm={() => fireAndForget(deleteWithChildren(nodeId), "delete subtree")}
-                  shortcut={["shift", "delete"]}
-                />
-              </>
+            {/* Collapsed-aware: a collapsed node represents itself + all
+                hidden descendants. Showing only "Delete subtree" (with
+                count) prevents the user from accidentally orphaning N
+                hidden children with a misleading "Delete node" click. */}
+            {!isCollapsed && (
+              <DestructiveActionItem
+                label={i18n.t("menus.deleteNode")}
+                onAction={() =>
+                  void requestDelete(
+                    { kind: "node", nodeIds: [nodeId], recursive: false },
+                    { source: "context" },
+                  )
+                }
+                shortcut={["delete"]}
+              />
+            )}
+            {hasChildren && !isCollapsed && (
+              <DestructiveActionItem
+                label={i18n.t("menus.deleteChildren")}
+                onAction={() => fireAndForget(deleteChildren(nodeId), "delete children")}
+              />
+            )}
+            {(hasChildren || isCollapsed) && (
+              <DestructiveActionItem
+                label={i18n.t("menus.deleteSubtree")}
+                onAction={() =>
+                  void requestDelete(
+                    { kind: "node", nodeIds: [nodeId], recursive: true },
+                    { source: "context" },
+                  )
+                }
+                shortcut={["shift", "delete"]}
+              />
             )}
           </>
         )}
@@ -512,18 +496,11 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
   const closeContextMenu = useStore((state) => state.closeContextMenu);
   const clearSelection = useStore((state) => state.clearSelection);
   const tree = useStore((state) => state.tree);
-  const nodeTabCounts = useStore((state) => state.nodeTabCounts);
-  const openDeleteTreeConfirm = useStore((state) => state.openDeleteTreeConfirm);
   const collapsedNodeIds = useStore((state) => state.graph.collapsedNodeIds);
-  const editorActive = useStore((state) => state.editorMode.active);
   const collapseNodes = useStore((state) => state.collapseNodes);
   const expandNodes = useStore((state) => state.expandNodes);
-  const [pendingDelete, setPendingDelete] = useState<"nodes" | "recursive" | null>(null);
+  const { request: requestDelete } = useDeleteFlow();
   const { copy: copyToClipboard } = useClipboard();
-
-  useEffect(() => {
-    setPendingDelete(null);
-  }, [nodeIds, position]);
 
   const selectedNodes = useMemo(() => {
     if (!tree) return [];
@@ -553,42 +530,23 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
     [closeContextMenu],
   );
 
-  const confirmDeleteNodes = () => {
-    fireAndForget(bulkDeleteNodes(nodeIds), "bulk delete nodes");
-    clearSelection();
-  };
+  // Show "Delete nodes" only when none of the selected are collapsed.
+  // A collapsed node forces recursive (see resolveDeleteTarget) so a
+  // non-recursive item would silently behave as recursive — confusing.
+  const anyCollapsed = nodeIds.some((id) => collapsedNodeIds.has(id));
 
-  const confirmDeleteRecursive = () => {
-    const rootId = getIncludedRootId(tree, nodeIds);
-    if (rootId) {
-      openDeleteTreeConfirm(rootId);
-      return;
-    }
-    fireAndForget(bulkDeleteRecursive(nodeIds), "bulk delete recursive");
-    clearSelection();
-  };
-
-  const tabsClosedForBulkNodes = formatTabsClosed(
-    countOpenTabsForDelete(tree, nodeIds, nodeTabCounts, "self"),
-  );
-  const tabsClosedForBulkRecursive = formatTabsClosed(
-    countOpenTabsForDelete(tree, nodeIds, nodeTabCounts, "subtree"),
-  );
+  const swallowFirstPointerUp = useSwallowFirstPointerUp();
 
   return (
-    <DropdownMenu
-      key={`${position.x}-${position.y}`}
-      open
-      modal={false}
-      onOpenChange={onOpenChange}
-    >
+    <DropdownMenu open modal={false} onOpenChange={onOpenChange}>
       <VirtualTrigger position={position} />
       <DropdownMenuContent
         align="start"
         side="bottom"
         sideOffset={0}
         collisionPadding={8}
-        className="**:data-[slot$=-item]:hover:bg-foreground/10 **:data-[slot$=-trigger]:hover:bg-foreground/10 w-auto max-w-60 min-w-48"
+        onPointerUpCapture={swallowFirstPointerUp}
+        className="**:data-[slot$=-item]:hover:bg-foreground/10 **:data-[slot$=-trigger]:hover:bg-foreground/10 w-auto max-w-60 min-w-48 data-closed:duration-[80ms] data-closed:ease-(--ease-out) data-open:duration-[100ms] data-open:ease-(--ease-out)"
       >
         <DropdownMenuLabel>
           {nodeIds.length === 1
@@ -650,36 +608,32 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
           {i18n.t("menus.copyUrls")}
         </DropdownMenuItem>
 
-        {!editorActive && (
-          <DropdownMenuItem
-            onSelect={() => {
-              fireAndForget(bulkCloseTabs(nodeIds), "bulk close tabs");
-              clearSelection();
-            }}
-          >
-            <Icons.X />
-            {i18n.t("menus.closeSelectedTabs")}
-          </DropdownMenuItem>
-        )}
+        <DropdownMenuItem
+          onSelect={() => {
+            fireAndForget(bulkCloseTabs(nodeIds), "bulk close tabs");
+            clearSelection();
+          }}
+        >
+          <Icons.X />
+          {i18n.t("menus.closeSelectedTabs")}
+        </DropdownMenuItem>
 
         <DropdownMenuSeparator />
 
-        <DestructiveItem
-          label={i18n.t("menus.deleteNodes")}
-          confirmLabel={i18n.t("menus.deleteNodesConfirm")}
-          confirmDescription={tabsClosedForBulkNodes}
-          pending={pendingDelete === "nodes"}
-          onArm={() => setPendingDelete("nodes")}
-          onConfirm={confirmDeleteNodes}
-          shortcut={["delete"]}
-        />
-        <DestructiveItem
+        {!anyCollapsed && (
+          <DestructiveActionItem
+            label={i18n.t("menus.deleteNodes")}
+            onAction={() =>
+              void requestDelete({ kind: "node", nodeIds, recursive: false }, { source: "context" })
+            }
+            shortcut={["delete"]}
+          />
+        )}
+        <DestructiveActionItem
           label={i18n.t("menus.deleteSubtrees")}
-          confirmLabel={i18n.t("menus.deleteSubtreesConfirm")}
-          confirmDescription={tabsClosedForBulkRecursive}
-          pending={pendingDelete === "recursive"}
-          onArm={() => setPendingDelete("recursive")}
-          onConfirm={confirmDeleteRecursive}
+          onAction={() =>
+            void requestDelete({ kind: "node", nodeIds, recursive: true }, { source: "context" })
+          }
           shortcut={["shift", "delete"]}
         />
       </DropdownMenuContent>

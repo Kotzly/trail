@@ -38,7 +38,10 @@ export function ButtonTooltip({ label, keys, side = "bottom", children }: Button
   return (
     <Tooltip>
       <TooltipTrigger asChild>{children}</TooltipTrigger>
-      <TooltipContent side={side}>
+      <TooltipContent
+        side={side}
+        className="data-closed:duration-[80ms] data-closed:ease-(--ease-out) data-open:duration-(--dur-fast) data-open:ease-(--ease-out) data-[state=delayed-open]:duration-(--dur-fast) data-[state=delayed-open]:ease-(--ease-out)"
+      >
         <span>{label}</span>
         {keys && keys.length > 0 && <Shortcut keys={keys} />}
       </TooltipContent>

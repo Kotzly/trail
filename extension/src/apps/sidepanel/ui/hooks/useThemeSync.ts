@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useTheme } from "next-themes";
-import { useStore } from "../state/store.js";
+import type { ThemeId } from "@shared/types/theme.js";
 
 /**
  * Bridges the persisted `settings.theme` (source of truth, synced across
@@ -8,12 +8,10 @@ import { useStore } from "../state/store.js";
  * listener. Fires once settings arrive, and again whenever the user changes
  * their choice in another surface.
  */
-export function useThemeSync(): void {
-  const settings = useStore((s) => s.settings);
-  const { theme, setTheme } = useTheme();
+export function useThemeSync(theme: ThemeId | undefined): void {
+  const { theme: ntTheme, setTheme } = useTheme();
 
   useEffect(() => {
-    const next = settings?.theme;
-    if (next && next !== theme) setTheme(next);
-  }, [settings?.theme, theme, setTheme]);
+    if (theme && theme !== ntTheme) setTheme(theme);
+  }, [theme, ntTheme, setTheme]);
 }

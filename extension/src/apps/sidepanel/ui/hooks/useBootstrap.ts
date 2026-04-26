@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getSettings } from "../../api/settings.js";
 import { getFlags } from "../../api/flags.js";
 import { getTreeState, getTrees } from "../../api/tree.js";
+import { settingsItem } from "@shared/config/storage-items.js";
 import { useStore } from "../state/store.js";
 
 export type BootstrapStatus = "loading" | "degraded" | "ready";
@@ -24,7 +25,6 @@ export function useBootstrap(): {
   retryBootstrap: () => void;
 } {
   const bootstrapGraph = useStore((s) => s.bootstrapGraph);
-  const setEditorMode = useStore((s) => s.setEditorMode);
   const setSettings = useStore((s) => s.setSettings);
   const setFlags = useStore((s) => s.setFlags);
   const setTrees = useStore((s) => s.setTrees);
@@ -65,17 +65,18 @@ export function useBootstrap(): {
       bootstrapGraph(settingsQ.data, treeStateQ.data);
       setFlags(flagsQ.data);
       setSettings(settingsQ.data);
-      if (treeStateQ.data.editorMode?.active) setEditorMode(treeStateQ.data.editorMode);
     }
-  }, [
-    settingsQ.data,
-    treeStateQ.data,
-    flagsQ.data,
-    bootstrapGraph,
-    setFlags,
-    setSettings,
-    setEditorMode,
-  ]);
+  }, [settingsQ.data, treeStateQ.data, flagsQ.data, bootstrapGraph, setFlags, setSettings]);
+
+  // Live-sync settings written from other extension contexts (Settings page,
+  // background out-of-band patches). chrome.storage.onChanged propagates across
+  // contexts; without this watch, the sidepanel would only see settings via the
+  // initial bootstrap query and stale until reload.
+  useEffect(() => {
+    return settingsItem.watch((value) => {
+      if (value) setSettings(value);
+    });
+  }, [setSettings]);
 
   // Deferred: non-blocking fetches after the critical path is ready.
   const enabled = bootstrapStatus === "ready";

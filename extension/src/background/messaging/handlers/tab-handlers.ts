@@ -4,7 +4,6 @@ import { tabManager } from "../../state/tab-manager.js";
 import { notifyTreeUpdate } from "../notifications.js";
 import { treeStorage } from "../../services/tree-storage.js";
 import { type NavigationTree } from "../../state/nav-tree.js";
-import { getEditorState } from "./editor-handlers.js";
 import { browser, type Tab } from "@shared/platform/webext.js";
 import { createLogger } from "@shared/lib/logger.js";
 
@@ -32,10 +31,6 @@ export const tabHandlers = defineRpcHandlers({
   },
 
   async [RPC_METHOD.TOGGLE_MUTE](message) {
-    if (getEditorState().active) {
-      return;
-    }
-
     const { nodeId, tabId } = message;
 
     const tabsForNode = tabManager.tabsByNode(nodeId);
@@ -51,10 +46,6 @@ export const tabHandlers = defineRpcHandlers({
   },
 
   async [RPC_METHOD.CLOSE_TAB](message) {
-    if (getEditorState().active) {
-      return;
-    }
-
     const { nodeId, tabId } = message;
     const tabsForNode = tabManager.tabsByNode(nodeId);
     if (!tabsForNode?.has(tabId)) throw new Error("Tab not found");
@@ -70,10 +61,6 @@ export const tabHandlers = defineRpcHandlers({
   },
 
   async [RPC_METHOD.BULK_CLOSE_TABS](message) {
-    if (getEditorState().active) {
-      return;
-    }
-
     const tree = await treeStorage.getOrCreateTree();
     const { nodeIds } = message;
     nodeIds.forEach(async (nodeId) => {

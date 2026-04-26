@@ -2,8 +2,9 @@ import type { ProxyServiceKey } from "@webext-core/proxy-service";
 import type {
   BeginTempSelectionInput,
   CommandState,
-  EditorModeState,
+  DeleteTreeResponse,
   NodeLayoutInput,
+  RestorableTreeSnapshot,
   TempSelectionSessionId,
   TreeSwitchOrigin,
   TreeUpdatedInput,
@@ -50,7 +51,8 @@ export interface TreeService {
   openTree(input: { treeId: string; origin?: TreeSwitchOrigin }): Promise<void>;
   ensureTreeLoaded(input: { treeId: string }): Promise<boolean>;
   renameTree(input: { treeId: string; label: string }): Promise<void>;
-  deleteTree(input: { treeId: string }): Promise<void>;
+  deleteTree(input: { treeId: string }): Promise<DeleteTreeResponse>;
+  restoreTree(input: { snapshot: RestorableTreeSnapshot }): Promise<void>;
   exportTree(input: { treeId?: string }): Promise<TrailExportBundle>;
   setNodeLayout(input: NodeLayoutInput): Promise<void>;
   setNodeLayoutBatch(input: { layouts: NodeLayoutInput[] }): Promise<void>;
@@ -113,10 +115,6 @@ export interface ActionService {
   bulkDelete(input: { nodeIds: NodeId[] }): Promise<void>;
   bulkDeleteNodes(input: { nodeIds: NodeId[] }): Promise<void>;
   bulkDeleteRecursive(input: { nodeIds: NodeId[] }): Promise<void>;
-  enterEditorMode(input: { treeId: string }): Promise<EditorModeState>;
-  exitEditorMode(): Promise<EditorModeState>;
-  cancelEditorMode(): Promise<EditorModeState>;
-  getEditorModeState(): Promise<EditorModeState>;
 }
 
 export const TREE_SERVICE_KEY = "trail/tree-service" as ProxyServiceKey<TreeService>;

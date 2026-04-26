@@ -6,22 +6,22 @@
 
 import { i18n } from "#i18n";
 import TrailLogo from "@ui/components/trail-logo";
+import { Card, CardDescription, CardHeader, CardTitle } from "@ui/components/ui/card";
 
 export function HookScreen() {
   return (
-    <div className="animate-in fade-in-0 slide-in-from-right-2 flex flex-col items-center gap-6 text-center duration-300">
-      <div className="animate-in fade-in-0 zoom-in-95 relative duration-500">
+    <Card className="animate-in fade-in-0 slide-in-from-right-2 items-center gap-6 border-none bg-transparent py-0 text-center ring-0 duration-300 ease-(--ease-out)">
+      <div className="animate-in fade-in-0 zoom-in-95 relative duration-500 ease-(--ease-out)">
         <TrailLogo animated variant="field" className="trail-logo-hero" label="Trail" />
       </div>
-
-      <div className="animate-in fade-in-0 slide-in-from-bottom-2 fill-mode-both flex flex-col gap-2 duration-500">
-        <h2 className="text-foreground text-2xl leading-tight font-semibold tracking-tight">
+      <CardHeader className="animate-in fade-in-0 slide-in-from-bottom-2 fill-mode-both gap-2 px-0 duration-500 ease-(--ease-out)">
+        <CardTitle className="text-2xl leading-tight font-semibold tracking-tight">
           {i18n.t("onboarding.v2.hook.title")}
-        </h2>
-        <p className="text-muted-foreground mx-auto max-w-[320px] text-[13px] leading-relaxed">
+        </CardTitle>
+        <CardDescription className="mx-auto max-w-[320px] text-[13px] leading-relaxed">
           {i18n.t("onboarding.v2.hook.body")}
-        </p>
-      </div>
-    </div>
+        </CardDescription>
+      </CardHeader>
+    </Card>
   );
 }

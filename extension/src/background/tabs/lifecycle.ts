@@ -16,7 +16,6 @@ import { handleNewTabTab } from "../utils/new-tab.js";
 import { browser, type Browser, type Tab } from "@shared/platform/webext.js";
 import { markNodeVisited } from "../state/node-recency.js";
 import { createLogger } from "@shared/lib/logger.js";
-import { getEditorState, saveEditorMode } from "../messaging/handlers/editor-handlers.js";
 import { settingsManager } from "../services/settings.js";
 import {
   onTabFinished as trackerOnTabFinished,
@@ -203,16 +202,6 @@ async function onTabActivated(activeInfo: Browser.tabs.OnActivatedInfo): Promise
     return;
   }
   if (skipIncognito(tabRead)) return;
-
-  // Auto-exit editor mode when switching tabs (has its own locking)
-  const editorState = getEditorState();
-  if (editorState.active) {
-    try {
-      await saveEditorMode();
-    } catch (e) {
-      log.warn("Auto-exit editor on tab switch failed", { error: String(e) });
-    }
-  }
 
   const broadcast = await withTreeLock(async () => {
     let nodeId = tabManager.nodeByTab(tabId);

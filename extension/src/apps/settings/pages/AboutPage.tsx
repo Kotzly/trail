@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { i18n } from "#i18n";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@ui/components/ui/card";
 import { Button } from "@ui/components/ui/button";
 import TrailLogo from "@ui/components/trail-logo";
@@ -35,14 +36,14 @@ export function AboutPage() {
     // `OnboardingState` are reset automatically without touching
     // this file.
     await onboardingStateItem.setValue(INITIAL_ONBOARDING_STATE);
-    toast.info("Open the Trail sidepanel to see the walkthrough again.");
+    toast.info(i18n.t("settings.about.replayToast"));
   };
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="About Trail"
-        description="Your browsing sessions, reimagined as a graph."
+        title={i18n.t("settings.about.title")}
+        description={i18n.t("settings.about.description")}
       />
 
       <Card>
@@ -50,7 +51,9 @@ export function AboutPage() {
           <TrailLogo className="size-10" label="Trail" />
           <div className="flex flex-col">
             <CardTitle className="text-base">Trail</CardTitle>
-            <CardDescription>Version {MANIFEST_VERSION}</CardDescription>
+            <CardDescription>
+              {i18n.t("settings.about.version", [MANIFEST_VERSION])}
+            </CardDescription>
           </div>
         </CardHeader>
         <CardContent className="flex flex-col gap-2">
@@ -59,25 +62,25 @@ export function AboutPage() {
             className="justify-start"
             onClick={() => openExternal(MARKETING_URLS.homepage)}
           >
-            Homepage →
+            {i18n.t("settings.about.homepage")}
           </Button>
           <Button
             variant="outline"
             className="justify-start"
             onClick={() => openExternal(MARKETING_URLS.changelog)}
           >
-            Changelog →
+            {i18n.t("settings.about.changelog")}
           </Button>
           <Button variant="outline" className="justify-start" onClick={replayOnboarding}>
-            Replay walkthrough
+            {i18n.t("settings.about.replayWalkthrough")}
           </Button>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Feedback</CardTitle>
-          <CardDescription>Tell us what's broken or what you'd like to see.</CardDescription>
+          <CardTitle className="text-base">{i18n.t("settings.about.feedbackTitle")}</CardTitle>
+          <CardDescription>{i18n.t("settings.about.feedbackDescription")}</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-2">
           <Button
@@ -85,21 +88,21 @@ export function AboutPage() {
             className="justify-start"
             onClick={() => setFeedbackKind("bug")}
           >
-            Report a bug
+            {i18n.t("settings.about.reportBug")}
           </Button>
           <Button
             variant="outline"
             className="justify-start"
             onClick={() => setFeedbackKind("feature")}
           >
-            Suggest a feature
+            {i18n.t("settings.about.suggestFeature")}
           </Button>
           <Button
             variant="outline"
             className="justify-start"
             onClick={() => setFeedbackKind("support")}
           >
-            Contact support
+            {i18n.t("settings.about.contactSupport")}
           </Button>
         </CardContent>
       </Card>

@@ -20,8 +20,11 @@ import { i18n } from "#i18n";
 type I18nKey = string;
 type I18nArg = Parameters<typeof i18n.t>[0];
 import { Icons } from "@ui/components/icons";
+import { Avatar, AvatarFallback } from "@ui/components/ui/avatar";
 import { Button } from "@ui/components/ui/button";
+import { Card } from "@ui/components/ui/card";
 import { Kbd, KbdGroup } from "@ui/components/ui/kbd";
+import { Progress } from "@ui/components/ui/progress";
 import { cn } from "@ui/lib/utils";
 import { dismissTour, setOnboardingPhase } from "../../../api/onboarding.js";
 import { useStore } from "../../state/store.js";
@@ -168,19 +171,21 @@ export function TourCoach() {
   ]);
 
   return (
-    <div
+    <Card
       role="region"
       aria-label={i18n.t("onboarding.tour.regionAriaLabel")}
       className={cn(
-        "pointer-events-auto absolute inset-x-3 bottom-3 z-40",
-        "bg-card text-card-foreground ring-foreground/10 rounded-xl shadow-lg ring-1 backdrop-blur",
-        "animate-in slide-in-from-bottom-2 fade-in-0 duration-300",
+        "pointer-events-auto absolute inset-x-3 bottom-3 z-40 gap-0 py-0 backdrop-blur",
+        "shadow-lg",
+        "animate-in slide-in-from-bottom-2 fade-in-0 duration-300 ease-(--ease-out)",
       )}
     >
       <div className="flex items-start gap-3 px-4 pt-3.5 pb-3">
-        <div className="bg-primary/15 text-primary mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full">
-          <Icons.Compass className="size-4" aria-hidden />
-        </div>
+        <Avatar size="sm" className="mt-0.5 size-7">
+          <AvatarFallback className="bg-primary/15 text-primary">
+            <Icons.Compass className="size-4" aria-hidden />
+          </AvatarFallback>
+        </Avatar>
         <div className="min-w-0 flex-1">
           <div className="text-muted-foreground flex items-center gap-1.5 text-[10px] font-medium tracking-wider uppercase">
             <span>{i18n.t("onboarding.tour.badge")}</span>
@@ -192,7 +197,7 @@ export function TourCoach() {
           </h3>
           <p
             key={`body-${stepId}`}
-            className="text-muted-foreground animate-in fade-in-0 mt-1 text-[13px] leading-relaxed duration-200"
+            className="text-muted-foreground animate-in fade-in-0 mt-1 text-[13px] leading-relaxed duration-200 ease-(--ease-out)"
           >
             {i18n.t(content.bodyKey as I18nArg)}
           </p>
@@ -232,23 +237,19 @@ export function TourCoach() {
         </div>
       </div>
       {/* Progress rail */}
-      <div className="bg-border/50 h-0.5 w-full overflow-hidden rounded-b-xl">
-        <div
-          className="bg-primary h-full transition-[width] duration-500 ease-out"
-          style={{ width: `${((tourStepIndex + 1) / TOUR_STEP_COUNT) * 100}%` }}
-        />
-      </div>
+      <Progress value={((tourStepIndex + 1) / TOUR_STEP_COUNT) * 100} className="h-0.5 w-full" />
       {/* Dev-only tail: the celebration ship-out is reachable via
           observer on step 4; leave this on ghost so it's rarely seen. */}
-      <button
+      <Button
         type="button"
+        variant="ghost"
         onClick={() => void handleEnd()}
         className="sr-only"
         aria-label="Force end tour"
       >
         end
-      </button>
-    </div>
+      </Button>
+    </Card>
   );
 }
 

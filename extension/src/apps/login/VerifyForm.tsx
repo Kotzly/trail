@@ -1,3 +1,4 @@
+import { i18n } from "#i18n";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@ui/components/ui/card";
 import { Button } from "@ui/components/ui/button";
 import {
@@ -34,9 +35,10 @@ export function VerifyForm({
   return (
     <Card>
       <CardHeader className="text-center">
-        <CardTitle className="text-xl">Confirm your email</CardTitle>
+        <CardTitle className="text-xl">{i18n.t("login.verify.title")}</CardTitle>
         <CardDescription>
-          We sent a 6-digit code to <strong className="text-foreground">{email}</strong>
+          {i18n.t("login.verify.descriptionPrefix")}{" "}
+          <strong className="text-foreground">{email}</strong>
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -49,7 +51,7 @@ export function VerifyForm({
           <FieldGroup>
             <Field data-invalid={otpError ? true : undefined} className="items-center">
               <FieldLabel htmlFor="otp" className="sr-only">
-                6-digit code
+                {i18n.t("login.verify.codeLabel")}
               </FieldLabel>
               <InputOTP
                 id="otp"
@@ -62,39 +64,61 @@ export function VerifyForm({
                 containerClassName="gap-1"
               >
                 <InputOTPGroup>
-                  <InputOTPSlot index={0} className="size-11 text-base" />
-                  <InputOTPSlot index={1} className="size-11 text-base" />
-                  <InputOTPSlot index={2} className="size-11 text-base" />
-                  <InputOTPSlot index={3} className="size-11 text-base" />
-                  <InputOTPSlot index={4} className="size-11 text-base" />
-                  <InputOTPSlot index={5} className="size-11 text-base" />
+                  <InputOTPSlot
+                    index={0}
+                    className="size-11 text-base transition-[box-shadow,border-color] duration-(--dur-fast) ease-(--ease-out)"
+                  />
+                  <InputOTPSlot
+                    index={1}
+                    className="size-11 text-base transition-[box-shadow,border-color] duration-(--dur-fast) ease-(--ease-out)"
+                  />
+                  <InputOTPSlot
+                    index={2}
+                    className="size-11 text-base transition-[box-shadow,border-color] duration-(--dur-fast) ease-(--ease-out)"
+                  />
+                  <InputOTPSlot
+                    index={3}
+                    className="size-11 text-base transition-[box-shadow,border-color] duration-(--dur-fast) ease-(--ease-out)"
+                  />
+                  <InputOTPSlot
+                    index={4}
+                    className="size-11 text-base transition-[box-shadow,border-color] duration-(--dur-fast) ease-(--ease-out)"
+                  />
+                  <InputOTPSlot
+                    index={5}
+                    className="size-11 text-base transition-[box-shadow,border-color] duration-(--dur-fast) ease-(--ease-out)"
+                  />
                 </InputOTPGroup>
               </InputOTP>
               {otpError ? <FieldError>{otpError}</FieldError> : null}
             </Field>
             <Field>
-              <Button type="submit" disabled={pending}>
+              <Button type="submit" disabled={pending} className="press-feedback">
                 {pending ? <Spinner data-icon="inline-start" /> : null}
-                {pending ? "Verifying…" : "Verify code"}
+                {pending ? i18n.t("login.verify.verifying") : i18n.t("login.verify.verifyCode")}
               </Button>
               <FieldDescription className="text-center">
-                Didn't get it?{" "}
-                <button
+                {i18n.t("login.verify.didntGetIt")}{" "}
+                <Button
+                  variant="link"
+                  size="sm"
                   type="button"
                   onClick={onResend}
                   disabled={pending}
-                  className="underline underline-offset-4 disabled:opacity-50"
+                  className="press-feedback h-auto px-0"
                 >
-                  Resend code
-                </button>
+                  {i18n.t("login.verify.resendCode")}
+                </Button>
                 {" · "}
-                <button
+                <Button
+                  variant="link"
+                  size="sm"
                   type="button"
                   onClick={onChangeEmail}
-                  className="underline underline-offset-4"
+                  className="press-feedback h-auto px-0"
                 >
-                  Use a different email
-                </button>
+                  {i18n.t("login.verify.useDifferentEmail")}
+                </Button>
               </FieldDescription>
             </Field>
           </FieldGroup>

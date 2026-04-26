@@ -6,7 +6,6 @@ import {
   type TreeViewIntent,
   type TreeSwitchOrigin,
 } from "@shared/rpc/contracts.js";
-import { getEditorState } from "./editor-handlers.js";
 import { treeStorage } from "../../services/tree-storage.js";
 import {
   notifyTreeUpdate,
@@ -30,9 +29,11 @@ import { normalizeFaviconUrl, shouldTrackUrl } from "../../utils/url-utils.js";
 import { tempSelectionManager } from "../../services/temporary-selection.js";
 import { loadTree } from "../../services/tree-loader.js";
 import {
+  cancelPendingDelete,
   ensureStoredTreePushed,
   fetchRemoteTreePayload,
   periodicPull,
+  scheduleDelete,
 } from "../../sync/sync-engine.js";
 import { getAuthState } from "@shared/auth/auth-orchestrator.js";
 import { isTreeStub, type NavigationTreeJSON, type TreeMeta } from "@shared/types/tree.js";
@@ -56,8 +57,8 @@ import {
   syncStateItem,
   undoHistoryItem,
   cleanupTombstonesItem,
-  editorStateItem,
   layoutPositionsCacheItem,
+  localDeleteTombstonesItem,
 } from "@shared/config/storage-items.js";
 
 const log = createLogger("tree-handlers");
@@ -129,7 +130,6 @@ function coversAllNodes(
 }
 
 async function buildTreeSnapshot(): Promise<TreeUpdatedInput> {
-  const editorMode = getEditorState();
   const openNodes = Array.from(tabManager.openNodes());
   const nodeRecency: Record<string, number> = {};
   for (const nodeId of openNodes) {
@@ -174,9 +174,6 @@ async function buildTreeSnapshot(): Promise<TreeUpdatedInput> {
     ...(positions ? { positions } : {}),
     commandState: CommandManager.getState(),
   };
-  if (editorMode.active) {
-    snapshot.editorMode = editorMode;
-  }
   return snapshot;
 }
 
@@ -494,7 +491,7 @@ export const treeHandlers = defineRpcHandlers({
       ["openTabs", () => openTabsItem.removeValue()],
       ["undoHistory", () => undoHistoryItem.removeValue()],
       ["cleanupTombstones", () => cleanupTombstonesItem.removeValue()],
-      ["editorState", () => editorStateItem.removeValue()],
+      ["localDeleteTombstones", () => localDeleteTombstonesItem.removeValue()],
       ["layoutPositions", () => layoutPositionsCacheItem.removeValue()],
     ];
     for (const [label, fn] of wipers) {
@@ -674,11 +671,125 @@ export const treeHandlers = defineRpcHandlers({
 
   async [RPC_METHOD.DELETE_TREE](message) {
     const active = await treeStorage.getActiveMeta();
-    if (active.id === message.treeId) throw new Error("Cannot delete active tree");
-    const removed = await treeStorage.deleteTree(message.treeId);
-    if (!removed) throw new Error("Tree not found");
-    await clearOpenTabs(message.treeId);
-    await notifyTreesUpdate(await buildTreesSnapshot());
+    const isActive = active.id === message.treeId;
+
+    // Capture restorable snapshot BEFORE mutating storage. Used by the
+    // toast-Undo flow (RESTORE_TREE) — without this we can't
+    // round-trip the deletion.
+    let snapshotMeta: TreeMeta;
+    let snapshotTree: NavigationTreeJSON;
+    let nodeCountForLog: number;
+    if (isActive) {
+      const tree = await treeStorage.getOrCreateTree();
+      snapshotMeta = { ...active };
+      snapshotTree = NavigationTreeMapper.toJSON(tree);
+      nodeCountForLog = tree.size();
+    } else {
+      const record = await treeStorage.getFullStoredRecord(message.treeId);
+      if (!record) throw new Error("Tree not found");
+      snapshotMeta = {
+        id: record.id,
+        label: record.label,
+        labelSource: record.labelSource,
+        labelUpdatedAt: record.labelUpdatedAt,
+        createdAt: record.createdAt,
+      };
+      snapshotTree = record.tree;
+      nodeCountForLog = record.nodeCount;
+    }
+
+    // Tombstone BEFORE issuing scheduleDelete: a periodic pull arriving
+    // while doDelete is in flight would otherwise re-stub this tree
+    // since the server row's `deleted_at` is still null until the
+    // UPDATE lands. Tombstone-gating in doPull skips tombstoned ids.
+    const tombstones = await localDeleteTombstonesItem.getValue();
+    await localDeleteTombstonesItem.setValue({
+      ...tombstones,
+      [message.treeId]: { deletedAt: Date.now() },
+    });
+
+    if (isActive) {
+      // Reset tab/temp/undo state for the going-away tree before we
+      // create the fresh active. Mirrors RESET_TREE_DATA's ordering.
+      const tabIds = collectTabIdsForNodes(tabManager.openNodes());
+      tabManager.reset();
+      tempSelectionManager.reset();
+      CommandManager.clearHistory();
+
+      // Drop the now-stale active tree blob + meta.
+      await treeStorage.deleteTree(message.treeId);
+
+      // Seed a fresh empty active tree.
+      const freshMeta = treeStorage.createMeta("Untitled", "system");
+      const freshTree = new NavigationTree();
+      await treeStorage.setActiveTree(freshTree, freshMeta);
+      await treeStorage.flushSaveNow();
+
+      // Close browser tabs that were tied to the deleted tree's nodes.
+      if (tabIds.length > 0) {
+        try {
+          await browser.tabs.remove(tabIds);
+        } catch (error) {
+          log.warn("DELETE_TREE: tab removal failed", {
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      }
+      await clearOpenTabs(message.treeId);
+      await notifyTreeUpdate(freshTree, "tree-reset");
+      await notifyTreesUpdate(await buildTreesSnapshot());
+    } else {
+      const removed = await treeStorage.deleteTree(message.treeId);
+      if (!removed) throw new Error("Tree not found");
+      await clearOpenTabs(message.treeId);
+      await notifyTreesUpdate(await buildTreesSnapshot());
+    }
+
+    // Fire-and-forget server soft-delete. doDelete enqueues a pending
+    // op on transient failure; cross-kind queue dedup ensures any
+    // racing push is dropped.
+    scheduleDelete(message.treeId);
+
+    log.info("DELETE_TREE", {
+      treeId: message.treeId,
+      wasActive: isActive,
+      nodeCount: nodeCountForLog,
+    });
+
+    return {
+      deletedTreeId: message.treeId,
+      snapshot: {
+        meta: snapshotMeta,
+        tree: snapshotTree,
+        wasActive: isActive,
+      },
+    };
+  },
+
+  async [RPC_METHOD.RESTORE_TREE](message) {
+    const { snapshot: snap } = message;
+    // Drop any queued delete + tombstone so background drain/pull
+    // don't re-delete what we're about to restore.
+    await cancelPendingDelete(snap.meta.id);
+
+    if (snap.wasActive) {
+      // Stash whatever fresh tree is currently active (likely empty —
+      // the one DELETE_TREE seeded), then re-attach the restored tree.
+      await treeStorage.stashActiveTree();
+      const restored = NavigationTreeMapper.fromJSON(snap.tree);
+      await treeStorage.setActiveTree(restored, snap.meta);
+      await treeStorage.flushSaveNow();
+      await notifyTreeUpdate(restored, "tree-reset");
+      await notifyTreesUpdate(await buildTreesSnapshot());
+    } else {
+      // Re-stash as a stored tree. addStoredTreeFromJSON re-writes the
+      // index entry + blob; subsequent push will upsert with
+      // `deleted_at: null` to clear the server-side soft-delete.
+      await treeStorage.addStoredTreeFromJSON(snap.meta, snap.tree);
+      await notifyTreesUpdate(await buildTreesSnapshot());
+    }
+
+    log.info("RESTORE_TREE", { treeId: snap.meta.id, wasActive: snap.wasActive });
   },
 
   async [RPC_METHOD.EXPORT_TREE](message) {

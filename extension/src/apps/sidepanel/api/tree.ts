@@ -2,7 +2,9 @@ import type { NavigationNode } from "@shared/types/node.js";
 import type { NodeId, TabId, Url } from "@shared/types/ids.js";
 import {
   type BeginTempSelectionInput,
+  type DeleteTreeResponse,
   type NodeLayoutInput,
+  type RestorableTreeSnapshot,
   type TempSelectionSessionId,
   type TreeUpdatedInput,
   type TreesSnapshot,
@@ -96,8 +98,12 @@ export async function renameTree(treeId: string, label: string): Promise<void> {
   await treeService.renameTree({ treeId, label });
 }
 
-export async function deleteTree(treeId: string): Promise<void> {
-  await treeService.deleteTree({ treeId });
+export async function deleteTree(treeId: string): Promise<DeleteTreeResponse> {
+  return treeService.deleteTree({ treeId });
+}
+
+export async function restoreTree(snapshot: RestorableTreeSnapshot): Promise<void> {
+  await treeService.restoreTree({ snapshot });
 }
 
 export async function exportTree(treeId?: string): Promise<TrailExportBundle> {

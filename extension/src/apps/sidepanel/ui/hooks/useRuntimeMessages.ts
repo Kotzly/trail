@@ -6,7 +6,6 @@ import { EXTENSION_MESSAGE, onExtensionMessage } from "@shared/transport/extensi
 export function useRuntimeMessages(): void {
   const applyTreeState = useStore((state) => state.applyTreeState);
   const setCommandState = useStore((state) => state.setCommandState);
-  const setEditorMode = useStore((state) => state.setEditorMode);
   const setTrees = useStore((state) => state.setTrees);
   const setSyncStatus = useStore((state) => state.setSyncStatus);
   const setAuthState = useStore((state) => state.setAuthState);
@@ -17,12 +16,6 @@ export function useRuntimeMessages(): void {
     const removeTreeUpdated = onExtensionMessage(EXTENSION_MESSAGE.TREE_UPDATED, ({ data }) => {
       applyTreeState(data);
       setCommandState(data.commandState);
-
-      if (data.reason === "editor-enter") {
-        setEditorMode({ active: true, treeId: null });
-      } else if (data.reason === "editor-exit") {
-        setEditorMode({ active: false, treeId: null });
-      }
     });
     const removeTreesUpdated = onExtensionMessage(EXTENSION_MESSAGE.TREES_UPDATED, ({ data }) => {
       setTrees({ active: data.active, others: data.others });
@@ -64,7 +57,6 @@ export function useRuntimeMessages(): void {
   }, [
     applyTreeState,
     setCommandState,
-    setEditorMode,
     setTrees,
     setSyncStatus,
     setAuthState,

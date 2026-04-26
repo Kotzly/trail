@@ -40,6 +40,7 @@ export const RPC_METHOD = {
   OPEN_TREE: "OPEN_TREE",
   RENAME_TREE: "RENAME_TREE",
   DELETE_TREE: "DELETE_TREE",
+  RESTORE_TREE: "RESTORE_TREE",
   EXPORT_TREE: "EXPORT_TREE",
   OPEN_IN_NEW_TAB: "OPEN_IN_NEW_TAB",
   TOGGLE_MUTE: "TOGGLE_MUTE",
@@ -57,9 +58,6 @@ export const RPC_METHOD = {
   SET_NODE_LAYOUT: "SET_NODE_LAYOUT",
   SET_NODE_LAYOUT_BATCH: "SET_NODE_LAYOUT_BATCH",
   RESET_NODE_LAYOUTS: "RESET_NODE_LAYOUTS",
-  ENTER_EDITOR_MODE: "ENTER_EDITOR_MODE",
-  EXIT_EDITOR_MODE: "EXIT_EDITOR_MODE",
-  CANCEL_EDITOR_MODE: "CANCEL_EDITOR_MODE",
   REPARENT_NODE: "REPARENT_NODE",
   RENAME_NODE: "RENAME_NODE",
   DUPLICATE_SUBTREE: "DUPLICATE_SUBTREE",
@@ -219,6 +217,19 @@ export type DeleteTreeMessage = RequestMessageBase<
   typeof RPC_METHOD.DELETE_TREE,
   { treeId: string }
 >;
+export type RestorableTreeSnapshot = {
+  meta: TreeMeta;
+  tree: NavigationTreeJSON;
+  wasActive: boolean;
+};
+export type DeleteTreeResponse = {
+  deletedTreeId: string;
+  snapshot: RestorableTreeSnapshot;
+};
+export type RestoreTreeMessage = RequestMessageBase<
+  typeof RPC_METHOD.RESTORE_TREE,
+  { snapshot: RestorableTreeSnapshot }
+>;
 export type ExportTreeMessage = RequestMessageBase<
   typeof RPC_METHOD.EXPORT_TREE,
   { treeId?: string }
@@ -288,12 +299,6 @@ export type BulkDeleteRecursiveMessage = RequestMessageBase<
   BulkNodeIdsInput
 >;
 
-export type EnterEditorModeMessage = RequestMessageBase<
-  typeof RPC_METHOD.ENTER_EDITOR_MODE,
-  { treeId: string }
->;
-export type ExitEditorModeMessage = RequestMessageBase<typeof RPC_METHOD.EXIT_EDITOR_MODE>;
-export type CancelEditorModeMessage = RequestMessageBase<typeof RPC_METHOD.CANCEL_EDITOR_MODE>;
 export type ReparentNodeMessage = RequestMessageBase<
   typeof RPC_METHOD.REPARENT_NODE,
   {
@@ -308,11 +313,6 @@ export type DuplicateSubtreeMessage = RequestMessageBase<
     targetParentId: NodeId;
   }
 >;
-
-export type EditorModeState = {
-  active: boolean;
-  treeId: string | null;
-};
 
 export type SetFlagInput = { key: FlagKey; value: unknown };
 export type GetFlagsMessage = RequestMessageBase<typeof RPC_METHOD.GET_FLAGS>;
@@ -413,6 +413,7 @@ export type RequestMessage =
   | EnsureTreeLoadedMessage
   | RenameTreeMessage
   | DeleteTreeMessage
+  | RestoreTreeMessage
   | ExportTreeMessage
   | OpenInNewTabMessage
   | ToggleMuteMessage
@@ -430,9 +431,6 @@ export type RequestMessage =
   | SetNodeLayoutMessage
   | SetNodeLayoutBatchMessage
   | ResetNodeLayoutsMessage
-  | EnterEditorModeMessage
-  | ExitEditorModeMessage
-  | CancelEditorModeMessage
   | ReparentNodeMessage
   | RenameNodeMessage
   | DuplicateSubtreeMessage
@@ -475,7 +473,8 @@ export type ResponseDataByType = {
   [RPC_METHOD.NEW_TREE]: void;
   [RPC_METHOD.OPEN_TREE]: void;
   [RPC_METHOD.RENAME_TREE]: void;
-  [RPC_METHOD.DELETE_TREE]: void;
+  [RPC_METHOD.DELETE_TREE]: DeleteTreeResponse;
+  [RPC_METHOD.RESTORE_TREE]: void;
   [RPC_METHOD.EXPORT_TREE]: TrailExportBundle;
   [RPC_METHOD.OPEN_IN_NEW_TAB]: void;
   [RPC_METHOD.TOGGLE_MUTE]: void;
@@ -493,9 +492,6 @@ export type ResponseDataByType = {
   [RPC_METHOD.SET_NODE_LAYOUT]: void;
   [RPC_METHOD.SET_NODE_LAYOUT_BATCH]: void;
   [RPC_METHOD.RESET_NODE_LAYOUTS]: void;
-  [RPC_METHOD.ENTER_EDITOR_MODE]: EditorModeState;
-  [RPC_METHOD.EXIT_EDITOR_MODE]: EditorModeState;
-  [RPC_METHOD.CANCEL_EDITOR_MODE]: EditorModeState;
   [RPC_METHOD.REPARENT_NODE]: void;
   [RPC_METHOD.RENAME_NODE]: void;
   [RPC_METHOD.DUPLICATE_SUBTREE]: void;
@@ -579,9 +575,7 @@ export type TreeUpdateReason =
   | "sync"
   | "reparent"
   | "rename"
-  | "duplicate"
-  | "editor-enter"
-  | "editor-exit";
+  | "duplicate";
 
 export type TreeViewIntentMode = "force" | "soft";
 
@@ -602,7 +596,6 @@ export type TreeUpdatedInput = {
   nodeRecency: Record<NodeId, number>;
   reason: TreeUpdateReason;
   view?: TreeViewIntent;
-  editorMode?: EditorModeState;
   /** Pre-computed node positions from background ELK (fully-expanded tree). */
   positions?: Record<string, { x: number; y: number }>;
   /** Undo/redo state — avoids a follow-up getCommandState() RPC on every update. */

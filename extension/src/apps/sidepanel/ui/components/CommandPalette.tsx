@@ -1,4 +1,5 @@
 import { useDeferredValue, useMemo, useState } from "react";
+import { i18n } from "#i18n";
 import {
   Dialog,
   DialogContent,
@@ -26,6 +27,7 @@ import { browser } from "@shared/platform/webext.js";
 import { navigateToNodeId } from "../../api/tree.js";
 import type { Url } from "@shared/types/ids.js";
 import { type IndexEntry, SearchIndex } from "./command-palette-search.js";
+import { useDeleteFlow } from "../hooks/useDeleteFlow.js";
 
 /** Hard limit on items rendered in the Nodes group. cmdk filters are
  *  disabled (`shouldFilter={false}`) so what we render is exactly what
@@ -52,17 +54,27 @@ export default function CommandPalette() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <ButtonTooltip label="Search" keys={SEARCH_KEYS}>
+      <ButtonTooltip label={i18n.t("sidepanel.search.label")} keys={SEARCH_KEYS}>
         <DialogTrigger asChild>
-          <Button id="searchBtn" variant="outline" size="icon" type="button" aria-label="Search">
+          <Button
+            id="searchBtn"
+            variant="secondary"
+            size="icon"
+            type="button"
+            aria-label={i18n.t("sidepanel.search.label")}
+            className="press-feedback"
+          >
             <Icons.Search />
           </Button>
         </DialogTrigger>
       </ButtonTooltip>
-      <DialogContent showCloseButton={false} className="top-1/3 translate-y-0 overflow-hidden p-0">
+      <DialogContent
+        showCloseButton={false}
+        className="top-1/3 translate-y-0 overflow-hidden p-0 data-closed:duration-[80ms] data-closed:ease-(--ease-out) data-open:duration-(--dur-fast) data-open:ease-(--ease-out)"
+      >
         <DialogHeader className="sr-only">
-          <DialogTitle>Search Trail</DialogTitle>
-          <DialogDescription>Search nodes, jump between trees, or run commands</DialogDescription>
+          <DialogTitle>{i18n.t("sidepanel.search.title")}</DialogTitle>
+          <DialogDescription>{i18n.t("sidepanel.search.description")}</DialogDescription>
         </DialogHeader>
         <PaletteBody onClose={() => setOpen(false)} />
       </DialogContent>
@@ -81,6 +93,10 @@ export default function CommandPalette() {
  */
 function PaletteBody({ onClose }: { onClose: () => void }) {
   const tree = useStore((s) => s.tree);
+  const currentNodeId = useStore((s) => s.currentNodeId);
+  const selectedNodeIds = useStore((s) => s.graph.selectedNodeIds);
+  const activeTreeId = useStore((s) => s.trees.active?.id ?? null);
+  const { request: requestDelete } = useDeleteFlow();
   const [query, setQuery] = useState("");
 
   const index = useMemo(() => (tree ? new SearchIndex(tree) : null), [tree]);
@@ -113,26 +129,29 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
     });
   };
 
-  const heading = query.trim() ? "Nodes" : "Recent & frequent";
+  const heading = query.trim()
+    ? i18n.t("sidepanel.search.headingNodes")
+    : i18n.t("sidepanel.search.headingRecent");
   const firstMatch = matches[0];
 
   return (
     <Command shouldFilter={false}>
       <CommandInput
-        placeholder="Search nodes or type a command..."
+        placeholder={i18n.t("sidepanel.search.placeholder")}
         value={query}
         onValueChange={setQuery}
       />
       <CommandList>
-        <CommandEmpty>No matches.</CommandEmpty>
+        <CommandEmpty>{i18n.t("sidepanel.search.empty")}</CommandEmpty>
         {matches.length > 0 && (
           <CommandGroup heading={heading}>
-            {matches.map((entry) => (
+            {matches.map((entry, index) => (
               <CommandItem
                 key={entry.id}
                 value={String(entry.id)}
                 onSelect={() => handleNavigate(entry)}
-                className="gap-2"
+                className="animate-in fade-in-0 slide-in-from-top-1 fill-mode-both gap-2 duration-(--dur-fast) ease-(--ease-out)"
+                style={{ animationDelay: `${Math.min(index, 9) * 30}ms` }}
               >
                 {entry.favicon ? (
                   <img
@@ -140,7 +159,7 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
                     alt=""
                     width={14}
                     height={14}
-                    className="size-3.5 shrink-0 rounded-sm"
+                    className="size-3.5 shrink-0"
                     onError={(e) => {
                       (e.currentTarget as HTMLImageElement).style.visibility = "hidden";
                     }}
@@ -157,10 +176,10 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
           </CommandGroup>
         )}
         <CommandSeparator />
-        <CommandGroup heading="Actions">
+        <CommandGroup heading={i18n.t("sidepanel.search.headingActions")}>
           <CommandItem value="open-settings" onSelect={openSettings}>
             <Icons.Settings className="size-3.5" />
-            Open settings
+            {i18n.t("sidepanel.search.openSettings")}
           </CommandItem>
           {firstMatch && (
             <CommandItem
@@ -168,7 +187,55 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
               onSelect={() => handleOpenInNewTab(firstMatch)}
             >
               <Icons.ExternalLink className="size-3.5" />
-              Open first result in new tab
+              {i18n.t("sidepanel.search.openFirstInNewTab")}
+            </CommandItem>
+          )}
+          {currentNodeId && (
+            <CommandItem
+              value="delete-current-node"
+              onSelect={() => {
+                onClose();
+                void requestDelete(
+                  { kind: "node", nodeIds: [currentNodeId], recursive: false },
+                  { source: "palette" },
+                );
+              }}
+            >
+              <Icons.Trash2 className="size-3.5" />
+              {i18n.t("sidepanel.paletteDelete.deleteCurrentNode")}
+              <Kbd className="ml-auto">Del</Kbd>
+            </CommandItem>
+          )}
+          {selectedNodeIds.size > 0 && (
+            <CommandItem
+              value="delete-selected"
+              onSelect={() => {
+                onClose();
+                void requestDelete(
+                  {
+                    kind: "node",
+                    nodeIds: Array.from(selectedNodeIds),
+                    recursive: false,
+                  },
+                  { source: "palette" },
+                );
+              }}
+            >
+              <Icons.Trash2 className="size-3.5" />
+              {i18n.t("sidepanel.paletteDelete.deleteSelected", [String(selectedNodeIds.size)])}
+              <Kbd className="ml-auto">Del</Kbd>
+            </CommandItem>
+          )}
+          {activeTreeId && (
+            <CommandItem
+              value="delete-current-tree"
+              onSelect={() => {
+                onClose();
+                void requestDelete({ kind: "tree", treeId: activeTreeId }, { source: "palette" });
+              }}
+            >
+              <Icons.Trash2 className="size-3.5" />
+              {i18n.t("sidepanel.paletteDelete.deleteCurrentTree")}
             </CommandItem>
           )}
         </CommandGroup>
@@ -176,10 +243,10 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
       <Separator />
       <div className="text-muted-foreground flex items-center justify-end gap-3 px-3 py-1.5 text-[11px]">
         <span className="flex items-center gap-1.5">
-          <Kbd>↵</Kbd> Open
+          <Kbd>↵</Kbd> {i18n.t("sidepanel.search.kbdOpen")}
         </span>
         <span className="flex items-center gap-1.5">
-          <Kbd>Esc</Kbd> Close
+          <Kbd>Esc</Kbd> {i18n.t("sidepanel.search.kbdClose")}
         </span>
       </div>
     </Command>

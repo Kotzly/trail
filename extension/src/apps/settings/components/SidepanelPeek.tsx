@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
+import { i18n } from "#i18n";
 import { browser } from "@shared/platform/webext.js";
 import { cn } from "@ui/lib/utils";
+import { Button } from "@ui/components/ui/button";
 import { Icons } from "@ui/components/icons";
 
 type SidePanelApi = {
@@ -70,10 +72,11 @@ export function SidepanelPeek() {
   if (!available) return null;
 
   return (
-    <button
+    <Button
       type="button"
-      aria-label="Open sidepanel"
-      title="Open sidepanel"
+      variant="outline"
+      aria-label={i18n.t("settings.peek.openSidepanel")}
+      title={i18n.t("settings.peek.openSidepanel")}
       onClick={() => void handleOpen()}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
@@ -81,16 +84,13 @@ export function SidepanelPeek() {
       onBlur={() => setHover(false)}
       disabled={busy}
       className={cn(
-        "bg-card text-muted-foreground hover:text-foreground focus-visible:ring-ring",
-        "fixed top-1/2 right-0 z-40 flex -translate-y-1/2 items-center gap-2",
-        "rounded-l-full border border-r-0 py-2 pr-3 pl-2 shadow-sm",
+        "fixed top-1/2 right-0 z-40 h-auto -translate-y-1/2 gap-2",
+        "rounded-l-full border-r-0 py-2 pr-3 pl-2 shadow-sm",
         "transition-[transform,background-color,color] duration-200 ease-out",
-        "focus-visible:ring-2 focus-visible:outline-none",
-        "disabled:opacity-60",
         hover ? "translate-x-0" : "translate-x-[calc(100%-18px)]",
       )}
     >
-      <Icons.ChevronLeft className="size-4 shrink-0" aria-hidden />
+      <Icons.ChevronLeft data-icon="inline-start" aria-hidden />
       <span
         className={cn(
           "text-foreground overflow-hidden text-xs whitespace-nowrap",
@@ -98,8 +98,8 @@ export function SidepanelPeek() {
           hover ? "max-w-[120px] opacity-100" : "max-w-0 opacity-0",
         )}
       >
-        Open sidepanel
+        {i18n.t("settings.peek.openSidepanel")}
       </span>
-    </button>
+    </Button>
   );
 }

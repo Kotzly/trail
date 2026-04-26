@@ -1,5 +1,6 @@
 import { i18n } from "#i18n";
 import { Shortcut, type ShortcutKey } from "@ui/components/shortcut";
+import { Card } from "@ui/components/ui/card";
 
 type Entry = {
   keys: readonly ShortcutKey[];
@@ -29,14 +30,16 @@ export function ReadyStep() {
         </p>
       </div>
 
-      <ul className="bg-card/60 divide-border/60 animate-in fade-in-0 slide-in-from-bottom-1 fill-mode-both divide-y overflow-hidden rounded-lg border duration-300">
-        {SHORTCUTS.map((entry) => (
-          <li key={entry.labelKey} className="flex items-center justify-between gap-3 px-3 py-2">
-            <span className="text-foreground text-xs">{i18n.t(entry.labelKey)}</span>
-            <Shortcut keys={entry.keys} />
-          </li>
-        ))}
-      </ul>
+      <Card className="animate-in fade-in-0 slide-in-from-bottom-1 fill-mode-both gap-0 py-0 duration-300">
+        <ul className="divide-border/60 divide-y">
+          {SHORTCUTS.map((entry) => (
+            <li key={entry.labelKey} className="flex items-center justify-between gap-3 px-3 py-2">
+              <span className="text-foreground text-xs">{i18n.t(entry.labelKey)}</span>
+              <Shortcut keys={entry.keys} />
+            </li>
+          ))}
+        </ul>
+      </Card>
 
       <p className="text-muted-foreground animate-in fade-in-0 fill-mode-both text-center text-[11px] duration-300">
         {i18n.t("onboarding.ready.footer")}

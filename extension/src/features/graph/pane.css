@@ -22,6 +22,41 @@
   cursor: default;
 }
 
+/* Smooth edge color transitions (active-path highlight on/off).
+   Stroke is the only smoothly-animatable visual property — the path
+   `d` attribute can't be CSS-interpolated. Opacity transitions are
+   added so we can hide edges during topology morphs (see below). */
+.react-flow__edge-path {
+  transition:
+    stroke 80ms var(--ease-out),
+    opacity 200ms var(--ease-out);
+}
+
+/*
+ * Topology reshape (collapse / expand / chain-unfold).
+ *
+ * While the relayout transition tweens node transforms (350ms), the
+ * SVG edge `d` attribute snaps to the new geometry immediately —
+ * edges visibly disconnect from their endpoints during the morph.
+ * Fading edges to ~25% opacity for the morph duration hides this
+ * mismatch; the eye reads the morph as "nodes glide, edges blur and
+ * settle" rather than "edges teleport while nodes glide". Once the
+ * `graph--reshaping` class lifts, edges fade back to full opacity
+ * already drawn at their final positions. Classic crossfade trick.
+ */
+.graph--reshaping .react-flow__edge-path {
+  opacity: 0.25;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .react-flow__edge-path {
+    transition: none;
+  }
+  .graph--reshaping .react-flow__edge-path {
+    opacity: 1;
+  }
+}
+
 /*
  * Onboarding tour spotlights.
  *
@@ -52,7 +87,6 @@
 
 .trail-spotlight-pulse {
   animation: trail-spotlight-pulse-ring 1.8s ease-out infinite;
-  border-color: var(--primary) !important;
 }
 
 .trail-spotlight-target {

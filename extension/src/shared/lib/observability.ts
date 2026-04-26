@@ -17,7 +17,7 @@
  */
 
 import * as Sentry from "@sentry/browser";
-import type { PostHog } from "posthog-js";
+import type PostHog from "posthog-js-lite";
 import {
   telemetryAnonIdItem,
   telemetryConsentItem,
@@ -94,6 +94,10 @@ export type AnalyticsEvent =
   | "sync_conflict_abandoned"
   | "sync_conflict_oversized_fallback"
   | "sync_conflict_soft_deleted_flow"
+  | "delete_executed"
+  | "delete_undone"
+  | "delete_dedup_dropped_push"
+  | "delete_remote_propagated"
   | "feedback_submitted"
   | "telemetry_opted_out"
   | "telemetry_opted_in"
@@ -225,23 +229,12 @@ export async function initObservability(surface: ObservabilitySurface): Promise<
   // import bundles it regardless.
   if (POSTHOG_KEY && cachedConsent.analytics && surface !== "background") {
     try {
-      const { default: posthog } = await import("posthog-js");
+      const { default: PostHogLite } = await import("posthog-js-lite");
       const anonId = await ensureAnonId();
-      posthog.init(POSTHOG_KEY, {
-        api_host: POSTHOG_HOST,
-        autocapture: false, // we only send explicit events
-        capture_pageview: false, // no pageviews in extension UI
-        capture_pageleave: false,
-        persistence: "localStorage",
-        disable_session_recording: true,
-        disable_surveys: true,
-        property_blacklist: ["$current_url", "$pathname", "$referrer"],
-        loaded: (ph) => {
-          ph.identify(anonId);
-          ph.register({ surface, release: RELEASE, environment: ENVIRONMENT });
-        },
-      });
-      posthogClient = posthog;
+      const ph = new PostHogLite(POSTHOG_KEY, { host: POSTHOG_HOST });
+      ph.identify(anonId);
+      ph.register({ surface, release: RELEASE, environment: ENVIRONMENT });
+      posthogClient = ph;
     } catch (error) {
       console.warn("[observability] PostHog init failed:", error);
     }
@@ -333,7 +326,7 @@ export async function setTelemetryConsent(next: Partial<TelemetryConsent>): Prom
     sentryEnabled = false;
   }
   if (!merged.analytics && posthogClient) {
-    posthogClient.opt_out_capturing();
+    posthogClient.optOut();
     posthogClient = null;
   }
 }
@@ -396,17 +389,10 @@ export function readFeatureFlagSnapshot(keys: readonly string[]): Record<string,
  */
 export async function reloadFeatureFlags(): Promise<void> {
   if (!posthogClient) return;
-  await new Promise<void>((resolve) => {
-    let settled = false;
-    const done = () => {
-      if (settled) return;
-      settled = true;
-      resolve();
-    };
-    // onFeatureFlags fires once flags arrive from the server
-    posthogClient?.onFeatureFlags(() => done());
-    posthogClient?.reloadFeatureFlags();
-    // safety: don't hang callers if PostHog is unresponsive
-    setTimeout(done, 5_000);
-  });
+  const reload = posthogClient
+    .reloadFeatureFlagsAsync()
+    .then(() => undefined)
+    .catch(() => undefined);
+  const timeout = new Promise<void>((resolve) => setTimeout(resolve, 5_000));
+  await Promise.race([reload, timeout]);
 }

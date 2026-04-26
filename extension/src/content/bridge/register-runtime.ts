@@ -1,6 +1,5 @@
 import type { GetReturnType, MaybePromise, Message } from "@webext-core/messaging";
 import {
-  EXTENSION_MESSAGE,
   WEBSITE_MESSAGE,
   type ExtensionProtocolMap,
   type WebsiteProtocolMap,
@@ -28,17 +27,8 @@ export function registerWebsiteBridgeRuntime(deps: {
   onWebsiteMessage: WebsiteMessageRegistrar;
   onExtensionMessage: ExtensionMessageRegistrar;
 }): void {
-  const { websiteBridge, onWebsiteMessage, onExtensionMessage } = deps;
+  const { websiteBridge, onWebsiteMessage } = deps;
 
   onWebsiteMessage(WEBSITE_MESSAGE.PING, () => websiteBridge.ping());
   onWebsiteMessage(WEBSITE_MESSAGE.OPEN_PANEL, () => websiteBridge.openPanel());
-  onWebsiteMessage(WEBSITE_MESSAGE.ENTER_EDITOR_MODE, ({ data }) =>
-    websiteBridge.enterEditorMode(data.treeId),
-  );
-  onWebsiteMessage(WEBSITE_MESSAGE.EXIT_EDITOR_MODE, () => websiteBridge.exitEditorMode());
-  onWebsiteMessage(WEBSITE_MESSAGE.SAVE_EDITOR_MODE, () => websiteBridge.saveEditorMode());
-  onWebsiteMessage(WEBSITE_MESSAGE.CANCEL_EDITOR_MODE, () => websiteBridge.cancelEditorMode());
-  onExtensionMessage(EXTENSION_MESSAGE.SITE_EDITOR_MODE_EXITED, ({ data }) =>
-    websiteBridge.handleEditorModeExited(data),
-  );
 }

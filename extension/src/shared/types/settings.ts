@@ -1,32 +1,5 @@
 import type { ThemeId } from "./theme.js";
 
-export type ThemeDotType = "explicit-lightness" | "explicit-black-white";
-
-export type ThemeHarmony =
-  | "floating"
-  | "complementary"
-  | "singleAnalogous"
-  | "splitComplementary"
-  | "analogous"
-  | "triadic";
-
-export type ThemeDot = {
-  x: number;
-  y: number;
-  type?: ThemeDotType;
-};
-
-export type CustomTheme = {
-  enabled: boolean;
-  dots: ThemeDot[];
-  harmony: ThemeHarmony;
-  lightness: number;
-  opacity: number;
-  texture: number;
-  customColors: string[];
-  accentColor: string | null;
-};
-
 export type LayoutMode = "tree" | "mindmap";
 
 export type TreeLayoutSettings = {
@@ -100,7 +73,7 @@ export type CleanupSettings = {
 
 export type Settings = {
   theme: ThemeId;
-  customTheme: CustomTheme;
+  themePreset: string;
   layout: LayoutSettings;
   titleTruncation: TitleTruncation;
   graphDensity: GraphDensity;

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -7,14 +7,18 @@ import {
   SelectionMode,
   useReactFlow,
   useStore,
+  type NodeChange,
   type NodeMouseHandler,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import "../motion/relayout.css";
 import "../motion/hover.css";
+import "../motion/lifecycle.css";
 import "../pane.css";
-import type { TrailGraphProps, TrailNode as TrailNodeType } from "../types.js";
+import type { TrailGraphProps, TrailNode as TrailNodeType, TrailNodeData } from "../types.js";
 import { TrailNode } from "./TrailNode.js";
+import { InlineRenameProvider } from "./inline-rename-context.js";
+import { buildTreeMaps, isValidDropTarget } from "../reparent.js";
 import { GraphControls } from "./GraphControls.js";
 import { LodController } from "./LodController.js";
 import { useGraphLayout } from "../hooks/useGraphLayout.js";
@@ -25,6 +29,7 @@ import { cn } from "@ui/lib/utils";
 import { selectShowBackground } from "../lod.js";
 import { useRelayoutEnabled } from "../motion/useRelayoutEnabled.js";
 import { useHoverHighlightEnabled } from "../motion/useHoverHighlightEnabled.js";
+import { useNodeLifecycle, useNodeLifecycleEnabled } from "../motion/useNodeLifecycle.js";
 import { useCameraControls } from "../motion/useCameraControls.js";
 import { useMotionFlag } from "../motion/store.js";
 import { useLatest } from "@ui/hooks/use-latest";
@@ -62,21 +67,29 @@ function TrailGraphInner(props: TrailGraphProps) {
     currentNodeId,
     openNodeIds,
     collapsedNodeIds,
+    collapseAction,
     unfoldedChainIds,
+    badgeExpandedIds,
     selectedNodeIds,
     nodeTabCounts,
     settings,
     precomputedPositions,
     spotlight,
+    inlineRenameTargetId,
+    onInlineRenameStart,
+    onInlineRenameCommit,
+    onInlineRenameCancel,
+    onReparentNode,
     onNodeClick,
     onNodeContextMenu,
     onCollapseToggle,
+    onBadgeCollapseToggle,
     onChainUnfoldToggle,
     onSelectionChange,
   } = props;
 
   const { smoothCenter, smoothFitView } = useCameraControls();
-  const { getZoom } = useReactFlow();
+  const { getZoom, getIntersectingNodes } = useReactFlow();
   const containerRef = useRef<HTMLDivElement>(null);
   const initialFitDone = useRef(false);
   // Marker for distinguishing extension clicks from external navigation:
@@ -101,8 +114,19 @@ function TrailGraphInner(props: TrailGraphProps) {
       currentNodeId,
       openNodeIds,
       nodeTabCounts,
+      badgeExpandedIds,
+      inlineRenameTargetId,
     }),
-    [currentNodeId, openNodeIds, nodeTabCounts],
+    [currentNodeId, openNodeIds, nodeTabCounts, badgeExpandedIds, inlineRenameTargetId],
+  );
+
+  const inlineRenameContextValue = useMemo(
+    () => ({
+      targetId: inlineRenameTargetId,
+      onCommit: onInlineRenameCommit,
+      onCancel: onInlineRenameCancel,
+    }),
+    [inlineRenameTargetId, onInlineRenameCommit, onInlineRenameCancel],
   );
 
   const layout = useGraphLayout({
@@ -117,6 +141,124 @@ function TrailGraphInner(props: TrailGraphProps) {
   const spotlightId = spotlight?.nodeId ?? null;
   const spotlightKind = spotlight?.kind ?? null;
 
+  // ── Drag-to-reparent ─────────────────────────────────────────────
+  // We keep two slices of state for the duration of a drag:
+  //   • `dragState` drives drop-target highlighting (source + hovered
+  //     + valid? flag). Triggers a `displayNodes` recompute so the
+  //     `dragRole` data prop reaches the right TrailNodes.
+  //   • `dragOverride` mirrors the dragged node's live position so the
+  //     visible node follows the cursor while xyflow's internal store
+  //     updates. We control `nodes`, so without this override the node
+  //     would stay glued to its layout position during drag.
+  // Both are cleared on `onNodeDragStop`. After a successful reparent,
+  // the next `notifyTreeUpdate` round-trip rebuilds `layout.nodes` with
+  // the new parent's geometry — the override doesn't need to persist.
+  const [dragState, setDragState] = useState<{
+    sourceId: NodeId | null;
+    hoveredTargetId: NodeId | null;
+    isValidTarget: boolean;
+  }>({ sourceId: null, hoveredTargetId: null, isValidTarget: false });
+  const [dragOverride, setDragOverride] = useState<{
+    id: string;
+    x: number;
+    y: number;
+  } | null>(null);
+
+  // Parent / root lookup once per tree. Drives the per-frame
+  // `isValidDropTarget` check during a drag — same rules the backend
+  // enforces, so the user gets instant valid/invalid ring feedback.
+  const treeMaps = useMemo(() => buildTreeMaps(tree), [tree]);
+
+  const handleNodesChange = useCallback((changes: NodeChange[]) => {
+    for (const change of changes) {
+      if (change.type === "position" && change.dragging && change.position) {
+        setDragOverride({ id: change.id, x: change.position.x, y: change.position.y });
+      }
+    }
+  }, []);
+
+  const handleNodeDragStart: NodeMouseHandler = useCallback(
+    (_event, node) => {
+      const sourceId = (node.data as TrailNodeData).nodeId;
+      // Force single-node drag: clearing selection prevents xyflow from
+      // moving every selected node together (we only track one
+      // `dragOverride` slot, and reparent only acts on the source).
+      if (selectedNodeIds.size > 0) onSelectionChange(new Set());
+      setDragState({ sourceId, hoveredTargetId: null, isValidTarget: false });
+    },
+    [selectedNodeIds, onSelectionChange],
+  );
+
+  const handleNodeDrag: NodeMouseHandler = useCallback(
+    (_event, node) => {
+      const sourceId = (node.data as TrailNodeData).nodeId;
+      // `partial=true` — accept any overlap, not just full containment.
+      // With nodes the same size, a dragged node almost never sits
+      // entirely *inside* another one, so `false` would mean "no target
+      // ever lights up." When several nodes overlap, prefer the one
+      // whose center is closest to the dragged node's center (all coords
+      // in flow-space, so the comparison is consistent).
+      const intersecting = getIntersectingNodes(node, true).filter((n) => n.id !== node.id);
+      if (intersecting.length === 0) {
+        setDragState((prev) =>
+          prev.hoveredTargetId === null && prev.sourceId === sourceId
+            ? prev
+            : { sourceId, hoveredTargetId: null, isValidTarget: false },
+        );
+        return;
+      }
+      const sourceW = node.measured?.width ?? node.width ?? NODE_WIDTH;
+      const sourceH = node.measured?.height ?? node.height ?? NODE_HEIGHT;
+      const sourceCx = node.position.x + sourceW / 2;
+      const sourceCy = node.position.y + sourceH / 2;
+      let best = intersecting[0]!;
+      let bestDist = Infinity;
+      for (const n of intersecting) {
+        const w = n.measured?.width ?? n.width ?? NODE_WIDTH;
+        const h = n.measured?.height ?? n.height ?? NODE_HEIGHT;
+        const cx = n.position.x + w / 2;
+        const cy = n.position.y + h / 2;
+        const dx = cx - sourceCx;
+        const dy = cy - sourceCy;
+        const dist = dx * dx + dy * dy;
+        if (dist < bestDist) {
+          bestDist = dist;
+          best = n;
+        }
+      }
+      const candidateId = (best.data as TrailNodeData).nodeId;
+      const valid = isValidDropTarget(treeMaps, sourceId, candidateId);
+      setDragState((prev) =>
+        prev.sourceId === sourceId &&
+        prev.hoveredTargetId === candidateId &&
+        prev.isValidTarget === valid
+          ? prev
+          : { sourceId, hoveredTargetId: candidateId, isValidTarget: valid },
+      );
+    },
+    [getIntersectingNodes, treeMaps],
+  );
+
+  const handleNodeDragStop: NodeMouseHandler = useCallback(
+    (_event, node) => {
+      const sourceId = (node.data as TrailNodeData).nodeId;
+      const target = dragState.hoveredTargetId;
+      const valid = dragState.isValidTarget;
+      setDragState({ sourceId: null, hoveredTargetId: null, isValidTarget: false });
+      setDragOverride(null);
+      if (target !== null && valid) {
+        onReparentNode(sourceId, target);
+      }
+    },
+    [dragState, onReparentNode],
+  );
+
+  const dragSourceId = dragState.sourceId;
+  const dragHoveredId = dragState.hoveredTargetId;
+  const dragValid = dragState.isValidTarget;
+
+  const rootId = treeMaps.rootId;
+
   const displayNodes = useMemo(
     () =>
       layout.nodes.map((n) => {
@@ -125,13 +267,53 @@ function TrailGraphInner(props: TrailGraphProps) {
           spotlightId !== null && spotlightKind !== null && n.data.nodeId === spotlightId
             ? spotlightKind
             : undefined;
-        if (n.selected === sel && n.data.spotlight === sp) return n;
-        return { ...n, selected: sel, data: { ...n.data, spotlight: sp } };
+
+        let dragRole: TrailNodeData["dragRole"] = undefined;
+        if (dragSourceId !== null) {
+          if (n.data.nodeId === dragSourceId) dragRole = "source";
+          else if (n.data.nodeId === dragHoveredId)
+            dragRole = dragValid ? "valid-target" : "invalid-target";
+        }
+
+        const overridePos = dragOverride && dragOverride.id === n.id ? dragOverride : null;
+        // Root can't be reparented; suppressing draggable here stops the
+        // visual "drag then snap back" gesture before it starts.
+        const isDraggable = n.data.nodeId !== rootId;
+
+        if (
+          n.selected === sel &&
+          n.data.spotlight === sp &&
+          n.data.dragRole === dragRole &&
+          n.draggable === isDraggable &&
+          !overridePos
+        ) {
+          return n;
+        }
+        return {
+          ...n,
+          selected: sel,
+          draggable: isDraggable,
+          ...(overridePos ? { position: { x: overridePos.x, y: overridePos.y } } : {}),
+          data: { ...n.data, spotlight: sp, dragRole },
+        };
       }),
-    [layout.nodes, selectedNodeIds, spotlightId, spotlightKind],
+    [
+      layout.nodes,
+      selectedNodeIds,
+      spotlightId,
+      spotlightKind,
+      dragSourceId,
+      dragHoveredId,
+      dragValid,
+      dragOverride,
+      rootId,
+    ],
   );
 
-  const hasNodes = displayNodes.length > 0;
+  const lifecycleEnabled = useNodeLifecycleEnabled();
+  const lifecycleNodes = useNodeLifecycle(displayNodes, lifecycleEnabled);
+
+  const hasNodes = lifecycleNodes.length > 0;
 
   // Target position for `currentNodeId` — null when the node hasn't
   // reached the layout yet (e.g. brand-new tab that arrives just before
@@ -226,6 +408,70 @@ function TrailGraphInner(props: TrailGraphProps) {
       smoothCenter(targetX + NODE_WIDTH / 2, targetY + NODE_HEIGHT / 2);
     }
   }, [currentNodeId, hasNodes, targetX, targetY, latest]);
+
+  // ── Topology reshape (collapse / expand / chain-unfold) ───────────
+  //
+  // When the user toggles a collapse, the layout recomputes and every
+  // affected node tweens to its new transform via relayout.css. Two
+  // things were missing before:
+  //   1. The camera didn't follow — if the user collapsed a wide
+  //      branch, content shifted off-screen with no visual continuity.
+  //      Now we smoothCenter on the toggled node, preserving zoom, so
+  //      the focal point stays anchored while everything morphs around
+  //      it (PowerPoint-Morph feel).
+  //   2. SVG edges snap-update their `d` attribute to the new geometry
+  //      while nodes are still tweening to it — edges visibly
+  //      disconnect from their endpoints during the 350ms morph. The
+  //      `graph--reshaping` class fades edges to ~30% opacity for the
+  //      duration of the morph; once the nodes have settled, edges
+  //      fade back in already drawn at their final positions.
+  const [isReshaping, setIsReshaping] = useState(false);
+  const reshapeTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!collapseAction) return;
+    if (collapseAction.nodeIds.size === 0) return;
+
+    const firstId = collapseAction.nodeIds.values().next().value as NodeId | undefined;
+    if (!firstId) return;
+
+    setIsReshaping(true);
+    if (reshapeTimerRef.current !== null) {
+      window.clearTimeout(reshapeTimerRef.current);
+    }
+    reshapeTimerRef.current = window.setTimeout(() => {
+      setIsReshaping(false);
+      reshapeTimerRef.current = null;
+    }, 380);
+
+    // Defer the camera center to the next frame so the layout memo has
+    // committed the new positions; reading them earlier would tween
+    // toward the OLD position and look broken.
+    const handle = window.requestAnimationFrame(() => {
+      const { smoothCenter } = latest.current;
+      const target = displayNodesRef.current.find((n) => n.data.nodeId === firstId);
+      if (!target) return;
+      smoothCenter(target.position.x + NODE_WIDTH / 2, target.position.y + NODE_HEIGHT / 2, {
+        zoom: getZoom(),
+      });
+    });
+
+    return () => window.cancelAnimationFrame(handle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [collapseAction]);
+
+  useEffect(() => {
+    return () => {
+      if (reshapeTimerRef.current !== null) {
+        window.clearTimeout(reshapeTimerRef.current);
+      }
+    };
+  }, []);
+
+  // Mirror displayNodes into a ref so the rAF callback above always
+  // reads the latest geometry without retriggering the effect.
+  const displayNodesRef = useRef(displayNodes);
+  displayNodesRef.current = displayNodes;
 
   // Explicit "center on current node" action from the toolbar. Unlike
   // auto-centering on navigation, this preserves the user's current
@@ -332,7 +578,28 @@ function TrailGraphInner(props: TrailGraphProps) {
       // Modifier-click = multi-select, handled by ReactFlow — don't navigate
       if (event.shiftKey || event.metaKey || event.ctrlKey) return;
       const data = node.data as { nodeId?: NodeId; url?: string };
-      if (data.nodeId !== undefined && data.url !== undefined) {
+      if (data.nodeId === undefined) return;
+
+      // Check if click landed on a badge inside the node. Badges mark
+      // themselves with `data-fold-action` (chain unfold) or
+      // `data-collapse-action` (subtree expand/recollapse) so single
+      // clicks on chips toggle state instead of navigating to the URL.
+      const target = event.target as HTMLElement | null;
+      const actionEl = target?.closest("[data-fold-action], [data-collapse-action]");
+      if (actionEl) {
+        const fold = actionEl.getAttribute("data-fold-action");
+        const collapse = actionEl.getAttribute("data-collapse-action");
+        if (fold === "toggle") {
+          onChainUnfoldToggle(data.nodeId);
+          return;
+        }
+        if (collapse === "badge-toggle") {
+          onBadgeCollapseToggle(data.nodeId);
+          return;
+        }
+      }
+
+      if (data.url !== undefined) {
         // Mark this click so the centering effect can tell extension-initiated
         // navigation from external browser navigation. When the tab update
         // lands and currentNodeId matches this ref, we know the user clicked.
@@ -340,7 +607,7 @@ function TrailGraphInner(props: TrailGraphProps) {
         onNodeClick(data.nodeId, String(data.url));
       }
     },
-    [onNodeClick],
+    [onNodeClick, onChainUnfoldToggle, onBadgeCollapseToggle],
   );
 
   // Clicking empty pane clears multi-selection — feels like every other
@@ -383,17 +650,27 @@ function TrailGraphInner(props: TrailGraphProps) {
   );
 
   const handleNodeDoubleClick: NodeMouseHandler = useCallback(
-    (_event, node) => {
+    (event, node) => {
       const data = node.data as {
         nodeId?: NodeId;
         childCount?: number;
         foldedAncestorCount?: number;
+        isChainUnfolded?: boolean;
       };
       if (data.nodeId === undefined) return;
-      // Folded chain tip takes priority: double-click unfolds the
-      // chain (shows hidden ancestors inline). Otherwise fall through
-      // to the normal subtree-collapse toggle.
-      if ((data.foldedAncestorCount ?? 0) > 0) {
+      // Double-click on the title text = start inline rename. Marked via
+      // `data-rename-trigger` on the title `<span>` so the rest of the
+      // node still falls through to collapse/unfold behaviour.
+      const target = event.target as HTMLElement | null;
+      if (target?.closest("[data-rename-trigger]")) {
+        onInlineRenameStart(data.nodeId);
+        return;
+      }
+      // Chain fold takes priority over subtree collapse:
+      //   - foldedAncestorCount > 0 → tip is folded, unfold
+      //   - isChainUnfolded        → tip was unfolded, refold
+      //   - else                   → normal subtree collapse/expand
+      if ((data.foldedAncestorCount ?? 0) > 0 || data.isChainUnfolded) {
         onChainUnfoldToggle(data.nodeId);
         return;
       }
@@ -401,54 +678,72 @@ function TrailGraphInner(props: TrailGraphProps) {
         onCollapseToggle(data.nodeId);
       }
     },
-    [onCollapseToggle, onChainUnfoldToggle],
+    [onCollapseToggle, onChainUnfoldToggle, onInlineRenameStart],
   );
 
   return (
-    <div
-      ref={containerRef}
-      className={cn(
-        "min-h-0 w-full flex-1",
-        relayoutAnimated && "graph--relayout-animated",
-        hoverGlow && "graph--hover-glow",
-      )}
-      onPointerDownCapture={handleContainerPointerDown}
-      onPointerUpCapture={handleContainerPointerUp}
-    >
-      <ReactFlow
-        nodes={displayNodes}
-        edges={layout.edges}
-        nodeTypes={nodeTypes}
-        onNodeClick={handleNodeClick}
-        onNodeContextMenu={handleNodeContextMenu}
-        onNodeDoubleClick={handleNodeDoubleClick}
-        onPaneClick={handlePaneClick}
-        onSelectionChange={handleSelectionChange}
-        onSelectionStart={handleSelectionStart}
-        onSelectionEnd={handleSelectionEnd}
-        selectionOnDrag
-        selectionMode={SelectionMode.Partial}
-        multiSelectionKeyCode={MULTI_SELECT_KEYS}
-        onlyRenderVisibleElements
-        nodesDraggable={false}
-        nodesConnectable={false}
-        connectOnClick={false}
-        panOnDrag={false}
-        panOnScroll
-        panOnScrollSpeed={1}
-        zoomOnScroll={false}
-        zoomOnPinch={false}
-        fitView={false}
-        minZoom={0.05}
-        maxZoom={3}
-        proOptions={{ hideAttribution: true }}
-        defaultEdgeOptions={defaultEdgeOptions}
+    <InlineRenameProvider value={inlineRenameContextValue}>
+      <div
+        ref={containerRef}
+        className={cn(
+          "min-h-0 w-full flex-1",
+          relayoutAnimated && "graph--relayout-animated",
+          hoverGlow && "graph--hover-glow",
+          lifecycleEnabled && "graph--lifecycle-on",
+          isReshaping && "graph--reshaping",
+        )}
+        onPointerDownCapture={handleContainerPointerDown}
+        onPointerUpCapture={handleContainerPointerUp}
       >
-        <GraphBackground />
-        <LodController targetRef={containerRef} />
-        <GraphControls onCenterCurrent={handleCenterCurrent} canCenterCurrent={canCenterCurrent} />
-      </ReactFlow>
-    </div>
+        <ReactFlow
+          nodes={lifecycleNodes}
+          edges={layout.edges}
+          nodeTypes={nodeTypes}
+          onNodeClick={handleNodeClick}
+          onNodeContextMenu={handleNodeContextMenu}
+          onNodeDoubleClick={handleNodeDoubleClick}
+          onNodesChange={handleNodesChange}
+          onNodeDragStart={handleNodeDragStart}
+          onNodeDrag={handleNodeDrag}
+          onNodeDragStop={handleNodeDragStop}
+          onPaneClick={handlePaneClick}
+          onSelectionChange={handleSelectionChange}
+          onSelectionStart={handleSelectionStart}
+          onSelectionEnd={handleSelectionEnd}
+          selectionOnDrag
+          selectionMode={SelectionMode.Partial}
+          multiSelectionKeyCode={MULTI_SELECT_KEYS}
+          // ReactFlow's default `deleteKeyCode` is "Backspace" — it
+          // intercepts Backspace and triggers its own (unused) onNodesDelete
+          // callback, swallowing the event before tinykeys sees it. Disable
+          // entirely so our keyboard handler in useShortcuts owns delete.
+          deleteKeyCode={null}
+          onlyRenderVisibleElements
+          nodesDraggable
+          nodeDragThreshold={5}
+          nodesConnectable={false}
+          connectOnClick={false}
+          panOnDrag={false}
+          panOnScroll
+          panOnScrollSpeed={1}
+          zoomOnScroll={false}
+          zoomOnPinch={false}
+          zoomOnDoubleClick={false}
+          fitView={false}
+          minZoom={0.05}
+          maxZoom={3}
+          proOptions={{ hideAttribution: true }}
+          defaultEdgeOptions={defaultEdgeOptions}
+        >
+          <GraphBackground />
+          <LodController targetRef={containerRef} />
+          <GraphControls
+            onCenterCurrent={handleCenterCurrent}
+            canCenterCurrent={canCenterCurrent}
+          />
+        </ReactFlow>
+      </div>
+    </InlineRenameProvider>
   );
 }
 

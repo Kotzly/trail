@@ -15,7 +15,6 @@ const REDO_KEYS = ["meta", "shift", "Z"] as const;
 
 export default function FloatingControls() {
   const commandState = useStore((state) => state.commandState);
-  const editorActive = useStore((state) => state.editorMode.active);
   const setCommandState = useStore((state) => state.setCommandState);
 
   const undoLabel = commandState?.nextUndoDesc ? `Undo: ${commandState.nextUndoDesc}` : "Undo";
@@ -38,18 +37,19 @@ export default function FloatingControls() {
   }, [setCommandState]);
 
   return (
-    <div className="pointer-events-none fixed top-3 right-3 left-3 z-[900] flex items-start justify-between gap-2">
+    <div className="pointer-events-none fixed top-3 right-3 left-3 z-30 flex items-start justify-between gap-2">
       <div className="pointer-events-auto flex max-w-full min-w-0 items-start gap-2">
         <ButtonGroup>
           <ButtonTooltip label={undoLabel} keys={UNDO_KEYS}>
             <Button
               id="undoBtn"
-              variant="outline"
+              variant="secondary"
               size="icon"
               type="button"
               aria-label={undoLabel}
               disabled={!commandState?.canUndo}
               onClick={handleUndo}
+              className="press-feedback"
             >
               <Icons.Undo2 />
             </Button>
@@ -57,12 +57,13 @@ export default function FloatingControls() {
           <ButtonTooltip label={redoLabel} keys={REDO_KEYS}>
             <Button
               id="redoBtn"
-              variant="outline"
+              variant="secondary"
               size="icon"
               type="button"
               aria-label={redoLabel}
               disabled={!commandState?.canRedo}
               onClick={handleRedo}
+              className="press-feedback"
             >
               <Icons.Redo2 />
             </Button>
@@ -70,7 +71,7 @@ export default function FloatingControls() {
         </ButtonGroup>
 
         <ButtonGroup>
-          {!editorActive && <PinnedDropdown />}
+          <PinnedDropdown />
           <TreeDropdown />
         </ButtonGroup>
       </div>

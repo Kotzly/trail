@@ -5,7 +5,6 @@ import type { Settings } from "@shared/types/settings.js";
 import type { TabState } from "@shared/types/tabs.js";
 import type {
   CommandState,
-  EditorModeState,
   TreeUpdateReason,
   TreeUpdatedInput,
   TreesSnapshot,
@@ -95,10 +94,6 @@ type StoreState = {
     baseCurrentId: NodeId | null;
   };
   overlayEffects: OverlayEffectsState;
-  deleteTreeConfirm: {
-    open: boolean;
-    rootId: NodeId | null;
-  };
   ui: {
     settingsOpen: boolean;
     themePickerOpen: boolean;
@@ -125,8 +120,16 @@ type StoreState = {
      */
     unfoldedChainIds: Set<NodeId>;
     unfoldedChainsByTree: Map<NodeId, Set<NodeId>>;
+    /**
+     * Nodes the user has expanded **by clicking the `+N` badge** (as
+     * opposed to context-menu Expand or double-click). The TrailNode
+     * uses this to render a re-collapse arrow next to the node — a
+     * shortcut to undo the badge action. Cleared on any other
+     * collapse/expand path.
+     */
+    badgeExpandedIds: Set<NodeId>;
+    badgeExpandedByTree: Map<NodeId, Set<NodeId>>;
   };
-  editorMode: EditorModeState;
   syncStatus: SyncStatus;
   commandPalette: { open: boolean };
   renameTarget: NodeId | null;
@@ -181,8 +184,6 @@ type StoreActions = {
   setTreesOpen: (open: boolean) => void;
   setTagFilterOpen: (open: boolean) => void;
   closeAllPopups: () => void;
-  openDeleteTreeConfirm: (rootId: NodeId) => void;
-  closeDeleteTreeConfirm: () => void;
   registerOverlay: (id: string, effects: OverlayEffects) => void;
   unregisterOverlay: (id: string) => void;
   setGraphTool: (tool: GraphTool) => void;
@@ -194,16 +195,16 @@ type StoreActions = {
   collapseNodes: (nodeIds: NodeId[]) => void;
   expandNodes: (nodeIds: NodeId[]) => void;
   toggleChainUnfolded: (nodeId: NodeId) => void;
+  toggleBadgeCollapse: (nodeId: NodeId) => void;
   openContextMenu: (menu: ContextMenuState) => void;
   closeContextMenu: () => void;
   clearViewIntent: () => void;
-  setEditorMode: (state: EditorModeState) => void;
   setPickTarget: (target: StoreState["pickTarget"]) => void;
   clearPickTarget: () => void;
   setSyncStatus: (status: SyncStatus) => void;
   setCommandPaletteOpen: (open: boolean) => void;
-  openRenameDialog: (nodeId: NodeId) => void;
-  closeRenameDialog: () => void;
+  startInlineRename: (nodeId: NodeId) => void;
+  cancelInlineRename: () => void;
   setAuthState: (state: AuthUiState) => void;
   /**
    * Accept a conflict event (from the runtime-messaging ingest) OR a
@@ -355,10 +356,6 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
     lodCount: 0,
     blurCount: 0,
   },
-  deleteTreeConfirm: {
-    open: false,
-    rootId: null,
-  },
   ui: {
     settingsOpen: false,
     themePickerOpen: false,
@@ -379,8 +376,9 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
     collapseAction: null,
     unfoldedChainIds: new Set<NodeId>(),
     unfoldedChainsByTree: new Map<NodeId, Set<NodeId>>(),
+    badgeExpandedIds: new Set<NodeId>(),
+    badgeExpandedByTree: new Map<NodeId, Set<NodeId>>(),
   },
-  editorMode: { active: false, treeId: null },
   syncStatus: "idle" as SyncStatus,
   commandPalette: { open: false },
   renameTarget: null,
@@ -441,6 +439,8 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
       let nextCollapsedNodeIds: Set<NodeId>;
       let nextUnfoldedChainsByTree = state.graph.unfoldedChainsByTree;
       let nextUnfoldedChainIds: Set<NodeId>;
+      let nextBadgeExpandedByTree = state.graph.badgeExpandedByTree;
+      let nextBadgeExpandedIds: Set<NodeId>;
       if (shouldResetTransient) {
         const oldRootId = state.tree?.getRoot()?.id;
         if (oldRootId && state.graph.collapsedNodeIds.size > 0) {
@@ -451,6 +451,10 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
           nextUnfoldedChainsByTree = new Map(nextUnfoldedChainsByTree);
           nextUnfoldedChainsByTree.set(oldRootId, state.graph.unfoldedChainIds);
         }
+        if (oldRootId && state.graph.badgeExpandedIds.size > 0) {
+          nextBadgeExpandedByTree = new Map(nextBadgeExpandedByTree);
+          nextBadgeExpandedByTree.set(oldRootId, state.graph.badgeExpandedIds);
+        }
         const newRootId = tree.getRoot()?.id;
         const saved = newRootId ? nextCollapsedByTree.get(newRootId) : undefined;
         nextCollapsedNodeIds = saved ? pruneCollapsedNodes(tree, saved) : new Set<NodeId>();
@@ -458,9 +462,12 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
         nextUnfoldedChainIds = savedUnfolded
           ? prunePresentIds(tree, savedUnfolded)
           : new Set<NodeId>();
+        const savedBadge = newRootId ? nextBadgeExpandedByTree.get(newRootId) : undefined;
+        nextBadgeExpandedIds = savedBadge ? prunePresentIds(tree, savedBadge) : new Set<NodeId>();
       } else {
         nextCollapsedNodeIds = pruneCollapsedNodes(tree, state.graph.collapsedNodeIds);
         nextUnfoldedChainIds = prunePresentIds(tree, state.graph.unfoldedChainIds);
+        nextBadgeExpandedIds = prunePresentIds(tree, state.graph.badgeExpandedIds);
       }
       const autoExpandIds: NodeId[] = shouldResetTransient ? [] : [];
       const collapseVersion =
@@ -472,6 +479,24 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
       if (autoExpandIds.length > 0) {
         autoExpandIds.forEach((id) => nextCollapsedNodeIds.delete(id));
       }
+      // Prune transient single-target state (rename / pick) when the
+      // target node disappears from the new tree — covers cases where
+      // another device deleted the node mid-rename, or the local user
+      // undoes back through it. Without this the rename input renders
+      // for a no-longer-existing node.
+      const treeContains = (id: NodeId | null) => Boolean(id && tree.findNodeById(id));
+      const nextRenameTarget = treeContains(state.renameTarget) ? state.renameTarget : null;
+      const nextPickTarget =
+        state.pickTarget && treeContains(state.pickTarget.sourceNodeId) ? state.pickTarget : null;
+
+      // Selection: prune ids that vanished from the tree on EVERY apply
+      // (not just tree-switch). A remote delete or local node-delete
+      // shrinks the tree underneath us; stale ids in the Set would
+      // confuse downstream consumers (BulkContextMenu, SelectionActionBar).
+      const prunedSelection = shouldResetTransient
+        ? new Set<NodeId>()
+        : prunePresentIds(tree, state.graph.selectedNodeIds);
+
       const nextGraph = {
         ...state.graph,
         viewIntent: resolvedViewIntent,
@@ -479,11 +504,13 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
         collapsedByTree: nextCollapsedByTree,
         unfoldedChainIds: nextUnfoldedChainIds,
         unfoldedChainsByTree: nextUnfoldedChainsByTree,
+        badgeExpandedIds: nextBadgeExpandedIds,
+        badgeExpandedByTree: nextBadgeExpandedByTree,
         collapseVersion,
         collapseAction,
+        selectedNodeIds: prunedSelection,
         ...(shouldResetTransient
           ? {
-              selectedNodeIds: new Set<NodeId>(),
               hoverNodeId: null,
               collapseAction: null,
             }
@@ -501,6 +528,8 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
         openNodeIds: new Set(payload.openNodeIds),
         currentNodeId: currentId,
         nodeCount,
+        renameTarget: nextRenameTarget,
+        pickTarget: nextPickTarget,
         graph: nextGraph,
         ...(shouldResetTransient
           ? {
@@ -645,16 +674,6 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
         : { ui: { ...state.ui, tagFilterOpen: false } },
     ),
   closeAllPopups: () => set((state) => ({ ui: closeUiPopups(state.ui), contextMenu: null })),
-  openDeleteTreeConfirm: (rootId) =>
-    set((state) => ({
-      deleteTreeConfirm: { open: true, rootId },
-      contextMenu: null,
-      ui: closeUiPopups(state.ui),
-    })),
-  closeDeleteTreeConfirm: () =>
-    set({
-      deleteTreeConfirm: { open: false, rootId: null },
-    }),
   registerOverlay: (id, effects) =>
     set((state) => {
       const prev = state.overlayEffects.entries[id];
@@ -720,20 +739,29 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
     set((state) => {
       if (nodeIds.length === 0) return state;
       const next = new Set(state.graph.collapsedNodeIds);
+      const nextBadge = new Set(state.graph.badgeExpandedIds);
       const changed: NodeId[] = [];
+      let badgeChanged = false;
       nodeIds.forEach((id) => {
+        // Any collapse path clears the badge-expand affordance.
+        if (nextBadge.delete(id)) badgeChanged = true;
         if (next.has(id)) return;
         next.add(id);
         changed.push(id);
       });
-      if (changed.length === 0) return state;
+      if (changed.length === 0 && !badgeChanged) return state;
       return {
         precomputedPositions: null,
         graph: {
           ...state.graph,
           collapsedNodeIds: next,
-          collapseVersion: state.graph.collapseVersion + 1,
-          collapseAction: { kind: "collapse", nodeIds: new Set(changed) },
+          badgeExpandedIds: nextBadge,
+          collapseVersion:
+            changed.length > 0 ? state.graph.collapseVersion + 1 : state.graph.collapseVersion,
+          collapseAction:
+            changed.length > 0
+              ? { kind: "collapse", nodeIds: new Set(changed) }
+              : state.graph.collapseAction,
         },
       };
     }),
@@ -741,20 +769,30 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
     set((state) => {
       if (nodeIds.length === 0) return state;
       const next = new Set(state.graph.collapsedNodeIds);
+      const nextBadge = new Set(state.graph.badgeExpandedIds);
       const changed: NodeId[] = [];
+      let badgeChanged = false;
       nodeIds.forEach((id) => {
+        // Regular expand (not via badge) wipes any prior badge state —
+        // user shouldn't see the down-arrow after a context-menu Expand.
+        if (nextBadge.delete(id)) badgeChanged = true;
         if (!next.has(id)) return;
         next.delete(id);
         changed.push(id);
       });
-      if (changed.length === 0) return state;
+      if (changed.length === 0 && !badgeChanged) return state;
       return {
         precomputedPositions: null,
         graph: {
           ...state.graph,
           collapsedNodeIds: next,
-          collapseVersion: state.graph.collapseVersion + 1,
-          collapseAction: { kind: "expand", nodeIds: new Set(changed) },
+          badgeExpandedIds: nextBadge,
+          collapseVersion:
+            changed.length > 0 ? state.graph.collapseVersion + 1 : state.graph.collapseVersion,
+          collapseAction:
+            changed.length > 0
+              ? { kind: "expand", nodeIds: new Set(changed) }
+              : state.graph.collapseAction,
         },
       };
     }),
@@ -770,6 +808,36 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
         graph: { ...state.graph, unfoldedChainIds: next },
       };
     }),
+  toggleBadgeCollapse: (nodeId) =>
+    set((state) => {
+      const collapsed = new Set(state.graph.collapsedNodeIds);
+      const badge = new Set(state.graph.badgeExpandedIds);
+      let kind: "collapse" | "expand";
+      if (collapsed.has(nodeId)) {
+        // Currently collapsed — expand and remember it was via badge so
+        // the TrailNode can render the re-collapse arrow.
+        collapsed.delete(nodeId);
+        badge.add(nodeId);
+        kind = "expand";
+      } else if (badge.has(nodeId)) {
+        // Currently expanded via badge — re-collapse and clear the flag.
+        collapsed.add(nodeId);
+        badge.delete(nodeId);
+        kind = "collapse";
+      } else {
+        return state;
+      }
+      return {
+        precomputedPositions: null,
+        graph: {
+          ...state.graph,
+          collapsedNodeIds: collapsed,
+          badgeExpandedIds: badge,
+          collapseVersion: state.graph.collapseVersion + 1,
+          collapseAction: { kind, nodeIds: new Set([nodeId]) },
+        },
+      };
+    }),
 
   openContextMenu: (menu) =>
     set((state) => ({
@@ -781,13 +849,12 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
     set((state) => ({
       graph: { ...state.graph, viewIntent: null },
     })),
-  setEditorMode: (editorMode) => set({ editorMode }),
   setPickTarget: (pickTarget) => set({ pickTarget }),
   clearPickTarget: () => set({ pickTarget: null }),
   setSyncStatus: (syncStatus) => set({ syncStatus }),
   setCommandPaletteOpen: (open) => set({ commandPalette: { open } }),
-  openRenameDialog: (nodeId) => set({ renameTarget: nodeId }),
-  closeRenameDialog: () => set({ renameTarget: null }),
+  startInlineRename: (nodeId) => set({ renameTarget: nodeId }),
+  cancelInlineRename: () => set({ renameTarget: null }),
   setAuthState: (authState) => set({ authState }),
 
   /**

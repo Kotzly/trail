@@ -1,3 +1,4 @@
+import { i18n } from "#i18n";
 import type { Settings, CleanupSettings } from "@shared/types/settings.js";
 import {
   Field,
@@ -26,13 +27,15 @@ function CleanupInfo({ text }: { text: string }) {
         <Button
           variant="ghost"
           size="icon-sm"
-          className="text-muted-foreground hover:text-foreground"
-          aria-label="More info"
+          className="press-feedback text-muted-foreground hover:text-foreground"
+          aria-label={i18n.t("settings.behavior.moreInfo")}
         >
           <Icons.Info />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="max-w-xs text-sm leading-relaxed">{text}</PopoverContent>
+      <PopoverContent className="max-w-xs text-sm leading-relaxed data-closed:duration-[80ms] data-closed:ease-(--ease-out) data-open:duration-(--dur-fast) data-open:ease-(--ease-out)">
+        {text}
+      </PopoverContent>
     </Popover>
   );
 }
@@ -58,13 +61,18 @@ export function BehaviorPage({ settings, onUpdate }: BehaviorPageProps) {
 
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader title="Behavior" description="Customize how Trail works." />
+      <PageHeader
+        title={i18n.t("settings.behavior.title")}
+        description={i18n.t("settings.behavior.description")}
+      />
 
       <FieldGroup>
         <Field orientation="horizontal">
           <FieldContent>
-            <FieldLabel htmlFor="shortcuts-enabled">Keyboard shortcuts</FieldLabel>
-            <FieldDescription>Enable keyboard shortcuts in the side panel.</FieldDescription>
+            <FieldLabel htmlFor="shortcuts-enabled">
+              {i18n.t("settings.behavior.shortcutsLabel")}
+            </FieldLabel>
+            <FieldDescription>{i18n.t("settings.behavior.shortcutsDescription")}</FieldDescription>
           </FieldContent>
           <Switch
             id="shortcuts-enabled"
@@ -75,8 +83,12 @@ export function BehaviorPage({ settings, onUpdate }: BehaviorPageProps) {
 
         <Field orientation="horizontal">
           <FieldContent>
-            <FieldLabel htmlFor="confirm-new-tree">Confirm new tree</FieldLabel>
-            <FieldDescription>Ask for confirmation before creating a new tree.</FieldDescription>
+            <FieldLabel htmlFor="confirm-new-tree">
+              {i18n.t("settings.behavior.confirmNewTreeLabel")}
+            </FieldLabel>
+            <FieldDescription>
+              {i18n.t("settings.behavior.confirmNewTreeDescription")}
+            </FieldDescription>
           </FieldContent>
           <Switch
             id="confirm-new-tree"
@@ -87,8 +99,10 @@ export function BehaviorPage({ settings, onUpdate }: BehaviorPageProps) {
 
         <Field orientation="horizontal">
           <FieldContent>
-            <FieldLabel htmlFor="keep-tabs-on-switch">Keep tabs on switch</FieldLabel>
-            <FieldDescription>Keep open tabs when switching trees.</FieldDescription>
+            <FieldLabel htmlFor="keep-tabs-on-switch">
+              {i18n.t("settings.behavior.keepTabsLabel")}
+            </FieldLabel>
+            <FieldDescription>{i18n.t("settings.behavior.keepTabsDescription")}</FieldDescription>
           </FieldContent>
           <Switch
             id="keep-tabs-on-switch"
@@ -99,8 +113,12 @@ export function BehaviorPage({ settings, onUpdate }: BehaviorPageProps) {
 
         <Field orientation="horizontal">
           <FieldContent>
-            <FieldLabel htmlFor="adaptive-performance">Adaptive performance</FieldLabel>
-            <FieldDescription>Automatically adjust rendering quality.</FieldDescription>
+            <FieldLabel htmlFor="adaptive-performance">
+              {i18n.t("settings.behavior.adaptivePerfLabel")}
+            </FieldLabel>
+            <FieldDescription>
+              {i18n.t("settings.behavior.adaptivePerfDescription")}
+            </FieldDescription>
           </FieldContent>
           <Switch
             id="adaptive-performance"
@@ -112,19 +130,19 @@ export function BehaviorPage({ settings, onUpdate }: BehaviorPageProps) {
 
       <div className="flex flex-col gap-4">
         <SectionHeader
-          title="Auto-cleanup"
-          description="Trail quietly removes low-value pages to keep your map readable."
+          title={i18n.t("settings.behavior.cleanupTitle")}
+          description={i18n.t("settings.behavior.cleanupDescription")}
         />
         <FieldGroup>
           <Field orientation="horizontal">
             <FieldContent>
               <div className="flex items-center gap-1">
-                <FieldLabel htmlFor="cleanup-glance">Quick-peek pruning</FieldLabel>
-                <CleanupInfo text="If you open a page, leave within a few seconds, and never come back, Trail removes it. If you ever return to that URL later, the node comes back automatically." />
+                <FieldLabel htmlFor="cleanup-glance">
+                  {i18n.t("settings.behavior.glanceLabel")}
+                </FieldLabel>
+                <CleanupInfo text={i18n.t("settings.behavior.glanceTooltip")} />
               </div>
-              <FieldDescription>
-                Remove pages you viewed briefly and never returned to.
-              </FieldDescription>
+              <FieldDescription>{i18n.t("settings.behavior.glanceDescription")}</FieldDescription>
             </FieldContent>
             <Switch
               id="cleanup-glance"
@@ -137,10 +155,12 @@ export function BehaviorPage({ settings, onUpdate }: BehaviorPageProps) {
             <Field>
               <FieldContent>
                 <FieldLabel>
-                  Threshold · {(cleanup.glance.thresholdMs / 1000).toFixed(0)} s
+                  {i18n.t("settings.behavior.thresholdLabel", [
+                    (cleanup.glance.thresholdMs / 1000).toFixed(0),
+                  ])}
                 </FieldLabel>
                 <FieldDescription>
-                  Pages viewed under this duration are eligible for pruning.
+                  {i18n.t("settings.behavior.thresholdDescription")}
                 </FieldDescription>
                 <Slider
                   min={1}
@@ -161,10 +181,14 @@ export function BehaviorPage({ settings, onUpdate }: BehaviorPageProps) {
           <Field orientation="horizontal">
             <FieldContent>
               <div className="flex items-center gap-1">
-                <FieldLabel htmlFor="cleanup-roundtrip">Round-trip cleanup</FieldLabel>
-                <CleanupInfo text="If you click a link and immediately go back without staying, the side-trip is skipped. Useful for accidental clicks and captcha round-trips." />
+                <FieldLabel htmlFor="cleanup-roundtrip">
+                  {i18n.t("settings.behavior.roundTripLabel")}
+                </FieldLabel>
+                <CleanupInfo text={i18n.t("settings.behavior.roundTripTooltip")} />
               </div>
-              <FieldDescription>When you visit A → B → A, skip the detour.</FieldDescription>
+              <FieldDescription>
+                {i18n.t("settings.behavior.roundTripDescription")}
+              </FieldDescription>
             </FieldContent>
             <Switch
               id="cleanup-roundtrip"

@@ -1,4 +1,5 @@
 import { cn } from "@ui/lib/utils";
+import { Button } from "@ui/components/ui/button";
 import { Spinner } from "@ui/components/ui/spinner";
 
 type StartCardProps = {
@@ -21,26 +22,22 @@ export function StartCard({
   emphasis = "subtle",
 }: StartCardProps) {
   return (
-    <button
+    <Button
       type="button"
+      variant={emphasis === "primary" ? "default" : "outline"}
       onClick={onSelect}
       disabled={disabled || loading}
       className={cn(
-        "group relative flex w-full items-center gap-3 rounded-lg border p-3 text-left",
-        "transition-[transform,background-color,border-color] duration-150 ease-out",
+        "group relative h-auto w-full items-center justify-start gap-3 p-3 text-left text-sm whitespace-normal",
+        "transition-[transform,background-color] duration-150 ease-out",
         "hover:-translate-y-[0.5px] active:translate-y-0 active:scale-[0.985]",
-        "focus-visible:ring-ring/70 focus-visible:ring-offset-background focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none",
-        "disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0",
-        emphasis === "primary"
-          ? "border-primary/40 bg-primary/[0.04] hover:border-primary/60 hover:bg-primary/[0.07]"
-          : "border-border bg-card hover:border-foreground/25 hover:bg-accent/40",
       )}
     >
       <div
         className={cn(
-          "flex size-10 shrink-0 items-center justify-center rounded-md border",
+          "flex size-10 shrink-0 items-center justify-center border",
           emphasis === "primary"
-            ? "border-primary/30 bg-primary/10 text-primary"
+            ? "border-primary-foreground/30 bg-primary-foreground/10"
             : "border-border bg-muted/60 text-muted-foreground",
         )}
         aria-hidden
@@ -48,9 +45,16 @@ export function StartCard({
         {loading ? <Spinner className="size-4" /> : icon}
       </div>
       <div className="flex min-w-0 flex-col gap-0.5">
-        <span className="text-foreground text-sm leading-tight font-medium">{title}</span>
-        <span className="text-muted-foreground text-xs leading-snug">{description}</span>
+        <span className="text-sm leading-tight font-medium">{title}</span>
+        <span
+          className={cn(
+            "text-xs leading-snug",
+            emphasis === "primary" ? "text-primary-foreground/80" : "text-muted-foreground",
+          )}
+        >
+          {description}
+        </span>
       </div>
-    </button>
+    </Button>
   );
 }

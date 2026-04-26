@@ -54,10 +54,6 @@ export async function bulkDeleteRecursive(nodeIds: NodeId[]): Promise<void> {
   await actionService.bulkDeleteRecursive({ nodeIds });
 }
 
-export async function exitEditorMode(): Promise<void> {
-  await actionService.exitEditorMode();
-}
-
 export function fireAndForget(action: Promise<unknown>, context: string): void {
   void action.catch((error) => {
     showOperationError(`Couldn't ${context}`, error);

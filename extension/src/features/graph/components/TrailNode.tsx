@@ -1,10 +1,13 @@
-import { memo, useEffect } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { Handle, Position, useStore, useUpdateNodeInternals } from "@xyflow/react";
 import type { TrailNodeData } from "../types.js";
 import { cn } from "@ui/lib/utils";
 import { Icons } from "@ui/components/icons";
 import { Badge } from "@ui/components/ui/badge";
+import { Card } from "@ui/components/ui/card";
+import { Input } from "@ui/components/ui/input";
 import { selectLod, showDetailAt, showLabelsAt } from "../lod.js";
+import { useInlineRename } from "./inline-rename-context.js";
 
 const hidden = { opacity: 0, width: 6, height: 6 } as const;
 
@@ -40,6 +43,7 @@ function TrailNodeComponent({
   selected?: boolean;
 }) {
   const {
+    nodeId,
     title,
     url,
     favicon,
@@ -50,7 +54,11 @@ function TrailNodeComponent({
     tabCount,
     isCollapsed,
     childCount,
+    wasExpandedViaBadge,
     foldedAncestorCount,
+    isChainUnfolded,
+    isRenaming,
+    dragRole,
     handles,
     spotlight,
   } = data;
@@ -95,7 +103,7 @@ function TrailNodeComponent({
         ))}
         <div
           className={cn(
-            "h-[60px] w-[160px] rounded-md border",
+            "h-[60px] w-[160px] border",
             isOpen || isCurrent
               ? "bg-foreground/20 border-foreground/30"
               : "bg-foreground/10 border-foreground/15",
@@ -119,20 +127,24 @@ function TrailNodeComponent({
           style={hidden}
         />
       ))}
-      <div
+      <Card
+        size="default"
+        data-trail-card
         className={cn(
-          "relative flex min-h-[60px] items-center gap-2 rounded-md border px-2.5 py-2",
-          "w-[160px] cursor-default select-none",
-          "transition-[transform,box-shadow,background-color,border-color] duration-150 ease-out",
+          "relative flex min-h-[60px] w-[160px] flex-row items-center gap-2 px-2.5 py-2 has-[>img:first-child]:pt-2",
+          "cursor-default select-none",
+          "transition-[transform,box-shadow,background-color] duration-150 ease-out",
           "hover:scale-[1.015] hover:shadow-md",
-          isOpen || isCurrent
-            ? "bg-card text-card-foreground"
-            : "bg-muted/60 text-muted-foreground border-border/50",
-          onActivePath && !isCurrent && isOpen && "border-primary/50 shadow-primary/15 shadow-sm",
-          isCurrent && "border-primary shadow-primary/25 shadow-sm",
+          "active:scale-[0.985]",
+          !(isOpen || isCurrent) && "bg-muted/60 text-muted-foreground",
+          onActivePath && !isCurrent && isOpen && "ring-primary/50 shadow-primary/15 shadow-sm",
+          isCurrent && "ring-primary shadow-primary/25 shadow-sm",
           selected && "ring-ring ring-2",
           spotlight === "target" && "trail-spotlight-target",
           spotlight === "pulse" && "trail-spotlight-pulse",
+          dragRole === "source" && "ring-primary/40 scale-[1.05] opacity-60 shadow-lg ring-2",
+          dragRole === "valid-target" && "ring-primary/80 shadow-primary/30 shadow-md ring-2",
+          dragRole === "invalid-target" && "ring-destructive/70 opacity-80 ring-2",
         )}
       >
         {showDetail &&
@@ -140,7 +152,7 @@ function TrailNodeComponent({
             <img
               src={String(favicon)}
               alt=""
-              className="size-4 shrink-0 rounded-sm"
+              className="size-4 shrink-0"
               loading="lazy"
               onError={(e) => {
                 (e.target as HTMLImageElement).style.display = "none";
@@ -154,9 +166,18 @@ function TrailNodeComponent({
             />
           ))}
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span className="line-clamp-2 text-xs leading-tight font-medium">{displayTitle}</span>
+          {isRenaming ? (
+            <InlineTitleEditor nodeId={nodeId} initialTitle={String(title)} />
+          ) : (
+            <span
+              className="line-clamp-2 cursor-text text-xs leading-tight font-medium"
+              data-rename-trigger="true"
+            >
+              {displayTitle}
+            </span>
+          )}
           {showDetail && (
-            <span className="text-muted-foreground truncate font-mono text-[6px] leading-tight">
+            <span className="text-muted-foreground truncate text-[6px] leading-tight">
               {displayUrl}
             </span>
           )}
@@ -183,23 +204,46 @@ function TrailNodeComponent({
             {isCollapsed && childCount > 0 && (
               <Badge
                 variant="secondary"
-                className="h-4 rounded px-1 text-[9px] leading-none tabular-nums"
+                aria-label={`${childCount} hidden children — click to expand`}
+                data-collapse-action="badge-toggle"
+                className="hover:bg-accent hover:text-accent-foreground h-4 cursor-pointer rounded px-1 text-[9px] leading-none tabular-nums"
               >
                 +{childCount}
+              </Badge>
+            )}
+            {wasExpandedViaBadge && !isCollapsed && (
+              <Badge
+                variant="secondary"
+                aria-label="Re-collapse children"
+                data-collapse-action="badge-toggle"
+                className="hover:bg-accent hover:text-accent-foreground h-4 cursor-pointer rounded px-1 text-[9px] leading-none"
+              >
+                ↓
               </Badge>
             )}
             {foldedAncestorCount > 0 && (
               <Badge
                 variant="outline"
-                aria-label={`${foldedAncestorCount} hidden steps`}
-                className="text-muted-foreground h-4 rounded border-dashed px-1 text-[9px] leading-none tabular-nums"
+                aria-label={`${foldedAncestorCount} hidden steps — click to unfold`}
+                data-fold-action="toggle"
+                className="text-muted-foreground hover:bg-accent hover:text-accent-foreground h-4 cursor-pointer rounded border-dashed px-1 text-[9px] leading-none tabular-nums"
               >
                 ⋯{foldedAncestorCount}
               </Badge>
             )}
+            {isChainUnfolded && (
+              <Badge
+                variant="outline"
+                aria-label="Chain unfolded — click to refold"
+                data-fold-action="toggle"
+                className="text-primary/70 hover:bg-accent h-4 cursor-pointer rounded border-dashed px-1 text-[9px] leading-none tabular-nums"
+              >
+                ⇡
+              </Badge>
+            )}
           </div>
         )}
-      </div>
+      </Card>
     </>
   );
 }
@@ -219,9 +263,94 @@ export const TrailNode = memo(TrailNodeComponent, (prev, next) => {
     a.tabCount === b.tabCount &&
     a.childCount === b.childCount &&
     a.isCollapsed === b.isCollapsed &&
+    a.wasExpandedViaBadge === b.wasExpandedViaBadge &&
     a.foldedAncestorCount === b.foldedAncestorCount &&
+    a.isChainUnfolded === b.isChainUnfolded &&
+    a.isRenaming === b.isRenaming &&
+    a.dragRole === b.dragRole &&
     a.handles.length === b.handles.length &&
     a.handles.every((h, i) => h === b.handles[i]) &&
     a.spotlight === b.spotlight
   );
 });
+
+/**
+ * Inline title editor — replaces the static `<span>` while
+ * `data.isRenaming` is true. Enter commits, Escape cancels, blur acts
+ * like Enter (so clicking elsewhere saves rather than silently
+ * discards). Rendered inside the same flex slot so the node geometry
+ * stays put — no layout reflow on edit start/end.
+ */
+function InlineTitleEditor({
+  nodeId,
+  initialTitle,
+}: {
+  nodeId: import("@shared/types/ids.js").NodeId;
+  initialTitle: string;
+}) {
+  const { onCommit, onCancel } = useInlineRename();
+  const [value, setValue] = useState(initialTitle);
+  const committedRef = useRef(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.focus();
+    el.select();
+  }, []);
+
+  const commit = () => {
+    if (committedRef.current) return;
+    committedRef.current = true;
+    const trimmed = value.trim();
+    if (trimmed.length === 0 || trimmed === initialTitle) {
+      onCancel();
+      return;
+    }
+    onCommit(nodeId, trimmed);
+  };
+
+  const cancel = () => {
+    if (committedRef.current) return;
+    committedRef.current = true;
+    onCancel();
+  };
+
+  return (
+    <Input
+      ref={inputRef}
+      value={value}
+      onChange={(e) => setValue(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          e.stopPropagation();
+          commit();
+        } else if (e.key === "Escape") {
+          e.preventDefault();
+          e.stopPropagation();
+          cancel();
+        } else {
+          // Stop propagation so global hotkeys (Delete, F2, P, arrows…)
+          // don't fire while the user types into the rename field.
+          e.stopPropagation();
+        }
+      }}
+      onBlur={commit}
+      onClick={(e) => {
+        // Prevent the parent node click handler from triggering navigation
+        // when the user clicks inside the input to position the caret.
+        e.stopPropagation();
+      }}
+      onDoubleClick={(e) => e.stopPropagation()}
+      onPointerDown={(e) => e.stopPropagation()}
+      maxLength={500}
+      className={cn(
+        "h-auto min-w-0 border-none bg-transparent px-0.5 py-0",
+        "text-xs leading-tight font-medium",
+      )}
+      aria-label="Rename node"
+    />
+  );
+}

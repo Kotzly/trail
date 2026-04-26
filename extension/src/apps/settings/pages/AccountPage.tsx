@@ -8,7 +8,7 @@ import { Alert, AlertDescription, AlertTitle } from "@ui/components/ui/alert";
 import { Skeleton } from "@ui/components/ui/skeleton";
 import { Badge } from "@ui/components/ui/badge";
 import { Input } from "@ui/components/ui/input";
-import { Label } from "@ui/components/ui/label";
+import { Field, FieldGroup, FieldLabel } from "@ui/components/ui/field";
 import {
   Dialog,
   DialogContent,
@@ -142,7 +142,7 @@ export function AccountPage() {
                 </AvatarFallback>
               </Avatar>
               <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <span className="truncate text-sm font-medium">
+                <span className="truncate text-sm">
                   {state.identity.displayName ?? i18n.t("account.signedInFallback")}
                 </span>
                 <span className="text-muted-foreground truncate text-xs">
@@ -314,33 +314,37 @@ function SecurityCard() {
                 void submit();
               }}
             >
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="new-password">{i18n.t("account.security.newPassword")}</Label>
-                <Input
-                  id="new-password"
-                  type="password"
-                  autoComplete="new-password"
-                  value={next}
-                  onChange={(e) => setNext(e.target.value)}
-                  disabled={submitting}
-                />
-                <p className="text-muted-foreground text-xs">
-                  At least 8 characters with uppercase, lowercase, a number, and a symbol.
-                </p>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="confirm-password">
-                  {i18n.t("account.security.confirmPassword")}
-                </Label>
-                <Input
-                  id="confirm-password"
-                  type="password"
-                  autoComplete="new-password"
-                  value={confirm}
-                  onChange={(e) => setConfirm(e.target.value)}
-                  disabled={submitting}
-                />
-              </div>
+              <FieldGroup>
+                <Field>
+                  <FieldLabel htmlFor="new-password">
+                    {i18n.t("account.security.newPassword")}
+                  </FieldLabel>
+                  <Input
+                    id="new-password"
+                    type="password"
+                    autoComplete="new-password"
+                    value={next}
+                    onChange={(e) => setNext(e.target.value)}
+                    disabled={submitting}
+                  />
+                  <p className="text-muted-foreground text-xs">
+                    At least 8 characters with uppercase, lowercase, a number, and a symbol.
+                  </p>
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="confirm-password">
+                    {i18n.t("account.security.confirmPassword")}
+                  </FieldLabel>
+                  <Input
+                    id="confirm-password"
+                    type="password"
+                    autoComplete="new-password"
+                    value={confirm}
+                    onChange={(e) => setConfirm(e.target.value)}
+                    disabled={submitting}
+                  />
+                </Field>
+              </FieldGroup>
               {localError ? (
                 <Alert variant="destructive">
                   <Icons.AlertTriangle aria-hidden />
@@ -433,7 +437,7 @@ function DangerZoneCard({ signedIn }: { signedIn: boolean }) {
       <CardContent className="divide-border flex flex-col divide-y">
         <div className="flex flex-col gap-3 pb-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
           <div className="flex min-w-0 flex-1 flex-col gap-1">
-            <span className="text-sm font-medium">{i18n.t("account.danger.clearLocal.name")}</span>
+            <span className="text-sm">{i18n.t("account.danger.clearLocal.name")}</span>
             <span className="text-muted-foreground text-xs leading-relaxed">
               {i18n.t("account.danger.clearLocal.description")}
             </span>
@@ -466,7 +470,7 @@ function DangerZoneCard({ signedIn }: { signedIn: boolean }) {
         {signedIn ? (
           <div className="flex flex-col gap-3 pt-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
             <div className="flex min-w-0 flex-1 flex-col gap-1">
-              <span className="text-destructive text-sm font-medium">
+              <span className="text-destructive text-sm">
                 {i18n.t("account.danger.delete.name")}
               </span>
               <span className="text-muted-foreground text-xs leading-relaxed">

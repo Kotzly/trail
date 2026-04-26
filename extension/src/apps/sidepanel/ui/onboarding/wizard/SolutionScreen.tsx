@@ -13,6 +13,8 @@
 
 import { i18n } from "#i18n";
 import { cn } from "@ui/lib/utils";
+import { Alert, AlertDescription } from "@ui/components/ui/alert";
+import { Badge } from "@ui/components/ui/badge";
 import type { OnboardingPersona } from "@shared/config/storage-items.js";
 import { SolutionVisual } from "./SolutionVisual.js";
 
@@ -27,9 +29,9 @@ export function SolutionScreen({ persona }: Props) {
   const key = persona ?? "research";
 
   return (
-    <div className="animate-in fade-in-0 slide-in-from-right-2 flex flex-col gap-3.5 duration-300">
+    <div className="animate-in fade-in-0 slide-in-from-right-2 flex flex-col gap-3.5 duration-300 ease-(--ease-out)">
       <div
-        className="animate-in fade-in-0 slide-in-from-bottom-1 fill-mode-both flex flex-col gap-1.5 duration-300"
+        className="animate-in fade-in-0 slide-in-from-bottom-1 fill-mode-both flex flex-col gap-1.5 duration-300 ease-(--ease-out)"
         style={{ animationDelay: "60ms" }}
       >
         <h2 className="text-foreground text-[17px] leading-snug font-semibold tracking-tight">
@@ -42,38 +44,41 @@ export function SolutionScreen({ persona }: Props) {
 
       <div
         key={`visual-${key}`}
-        className="animate-in fade-in-0 slide-in-from-bottom-1 fill-mode-both duration-500"
+        className="animate-in fade-in-0 slide-in-from-bottom-1 fill-mode-both duration-500 ease-(--ease-out)"
         style={{ animationDelay: "180ms" }}
       >
         <SolutionVisual persona={persona} />
       </div>
 
-      <div
+      <Alert
         className={cn(
-          "animate-in fade-in-0 slide-in-from-bottom-1 fill-mode-both duration-500",
-          "border-primary/30 bg-primary/5 rounded-md border-l-2 px-3 py-2",
+          "animate-in fade-in-0 slide-in-from-bottom-1 fill-mode-both duration-500 ease-(--ease-out)",
+          "border-primary/30 bg-primary/5 rounded-none border-l-2 px-3 py-2",
         )}
         style={{ animationDelay: "320ms" }}
       >
         <p className="text-muted-foreground/80 text-[10px] font-medium tracking-wider uppercase">
           {i18n.t("onboarding.v2.solution.imagineLabel" as I18nArg)}
         </p>
-        <p className="text-foreground/90 mt-0.5 text-[12.5px] leading-relaxed italic">
+        <AlertDescription className="text-foreground/90 mt-0.5 text-[12.5px] leading-relaxed italic">
           {i18n.t(`onboarding.v2.solution.${key}.imagine` as I18nArg)}
-        </p>
-      </div>
+        </AlertDescription>
+      </Alert>
 
-      <ul className="flex flex-wrap gap-1.5">
+      <div className="flex flex-wrap gap-1.5">
         {CHIP_KEYS.map((c, i) => (
-          <li
+          <Badge
             key={c}
-            className="animate-in fade-in-0 slide-in-from-bottom-1 fill-mode-both bg-muted text-foreground/80 rounded-full px-2.5 py-1 text-[11px] font-medium duration-400"
+            variant="secondary"
+            className={cn(
+              "animate-in fade-in-0 slide-in-from-bottom-1 fill-mode-both rounded-full px-2.5 py-1 text-[11px] duration-400 ease-(--ease-out)",
+            )}
             style={{ animationDelay: `${460 + i * 80}ms` }}
           >
             {i18n.t(`onboarding.v2.solution.${key}.chips.${c}` as I18nArg)}
-          </li>
+          </Badge>
         ))}
-      </ul>
+      </div>
     </div>
   );
 }

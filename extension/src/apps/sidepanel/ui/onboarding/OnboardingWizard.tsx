@@ -11,7 +11,6 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import "./onboarding.css";
 import { i18n } from "#i18n";
 import {
   Dialog,
@@ -291,7 +290,10 @@ export default function OnboardingWizard() {
         if (!next) void handleSkip();
       }}
     >
-      <DialogContent showCloseButton={false} className="max-w-[400px] gap-0 overflow-hidden p-0">
+      <DialogContent
+        showCloseButton={false}
+        className="flex h-[480px] max-w-[400px] flex-col gap-0 overflow-hidden p-0"
+      >
         <DialogHeader className="sr-only">
           <DialogTitle>{i18n.t(TITLE_KEYS[step] as I18nArg)}</DialogTitle>
           <DialogDescription>
@@ -299,29 +301,31 @@ export default function OnboardingWizard() {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex items-center justify-between gap-2 px-5 pt-4 pb-3">
+        <div className="flex shrink-0 items-center justify-between gap-2 px-5 pt-4 pb-3">
           <div className="flex items-center gap-2">
-            <TrailLogo variant="field" className="trail-logo-badge" aria-hidden />
+            <TrailLogo variant="field" className="!h-[22px] !w-[22px]" aria-hidden />
             <span className="text-foreground/80 text-[13px] font-semibold tracking-tight">
               Trail
             </span>
           </div>
           <StepDots total={TOTAL_STEPS} current={step} />
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon-sm"
             onClick={() => void handleSkip()}
-            className="text-muted-foreground hover:text-foreground focus-visible:ring-ring rounded-sm p-1 transition-colors duration-150 focus-visible:ring-2 focus-visible:outline-none disabled:opacity-50"
+            className="text-muted-foreground hover:text-foreground"
             aria-label={i18n.t("onboarding.skipAriaLabel")}
           >
             <Icons.X className="size-3.5" />
-          </button>
+          </Button>
         </div>
 
-        <div className="relative min-h-[280px] px-5 pt-2 pb-5">
+        <div className="relative flex-1 overflow-y-auto px-5 pt-2 pb-5">
           <div key={`step-${step}`}>{renderStep()}</div>
         </div>
 
-        <div className="border-border/60 bg-muted/30 flex items-center justify-between gap-2 border-t px-4 py-3">
+        <div className="border-border/60 bg-muted/30 flex shrink-0 items-center justify-between gap-2 border-t px-4 py-3">
           {step > 0 ? (
             <Button
               variant="ghost"
@@ -330,7 +334,7 @@ export default function OnboardingWizard() {
               onClick={() => void goBack()}
               className="text-muted-foreground hover:text-foreground gap-1"
             >
-              <Icons.ChevronLeft className="size-3.5" />
+              <Icons.ChevronLeft data-icon="inline-start" />
               {i18n.t("onboarding.back")}
             </Button>
           ) : (
@@ -358,7 +362,7 @@ export default function OnboardingWizard() {
                 className="gap-1"
               >
                 {primaryLabel}
-                {step !== STEP.FEATURES ? <Icons.ChevronRight className="size-3.5" /> : null}
+                {step !== STEP.FEATURES ? <Icons.ChevronRight data-icon="inline-end" /> : null}
               </Button>
             </div>
           ) : (

@@ -133,6 +133,7 @@ describe("computeChainFoldInfo", () => {
 
     const folded = computeChainFoldInfo(tree(root), isTranslate);
     assert.equal(folded.hiddenIds.size, 1);
+    assert.equal(folded.unfoldedTipIds.size, 0);
 
     const unfolded = computeChainFoldInfo(
       tree(root),
@@ -141,6 +142,18 @@ describe("computeChainFoldInfo", () => {
     );
     assert.equal(unfolded.hiddenIds.size, 0);
     assert.equal(unfolded.tipFoldCounts.size, 0);
+    // Tip is exposed so UI can show a refold affordance.
+    assert.equal(unfolded.unfoldedTipIds.size, 1);
+    assert.ok(unfolded.unfoldedTipIds.has(tip.id));
+  });
+
+  it("non-foldable chain (pinned/too-short) does not populate unfoldedTipIds", () => {
+    const tip = makeNode("https://translate.yandex.ru/?text=tip");
+    const root = makeNode("https://google.com/", [tip]);
+    // Single-node chain — nothing to fold. Even if user "unfolded" the tip,
+    // nothing gets marked because there's no chain to refold.
+    const info = computeChainFoldInfo(tree(root), isTranslate, new Set([tip.id]));
+    assert.equal(info.unfoldedTipIds.size, 0);
   });
 
   it("handles root as chain head", () => {

@@ -18,9 +18,14 @@ type PageHeaderProps = {
  */
 export function PageHeader({ title, description, actions, className }: PageHeaderProps) {
   return (
-    <header className={cn("flex items-start justify-between gap-4 pb-2", className)}>
+    <header
+      className={cn(
+        "animate-in fade-in-0 slide-in-from-top-1 fill-mode-both flex items-start justify-between gap-4 pb-2 duration-(--dur-base) ease-(--ease-out)",
+        className,
+      )}
+    >
       <div className="flex min-w-0 flex-col gap-1">
-        <h1 className="text-foreground text-xl font-semibold tracking-tight">{title}</h1>
+        <h1 className="text-foreground text-xl tracking-tight">{title}</h1>
         {description ? (
           <p className="text-muted-foreground text-sm leading-relaxed">{description}</p>
         ) : null}
@@ -43,8 +48,13 @@ type SectionHeaderProps = {
  */
 export function SectionHeader({ title, description, className }: SectionHeaderProps) {
   return (
-    <div className={cn("flex flex-col gap-1 pb-1", className)}>
-      <h2 className="text-foreground text-sm font-medium">{title}</h2>
+    <div
+      className={cn(
+        "animate-in fade-in-0 slide-in-from-top-0.5 fill-mode-both flex flex-col gap-1 pb-1 duration-(--dur-fast) ease-(--ease-out)",
+        className,
+      )}
+    >
+      <h2 className="text-foreground text-sm">{title}</h2>
       {description ? (
         <p className="text-muted-foreground text-xs leading-relaxed">{description}</p>
       ) : null}

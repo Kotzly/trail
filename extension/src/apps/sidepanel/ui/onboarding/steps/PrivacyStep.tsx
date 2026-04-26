@@ -1,5 +1,7 @@
 import { i18n } from "#i18n";
 import { Icons } from "@ui/components/icons";
+import { Avatar, AvatarFallback } from "@ui/components/ui/avatar";
+import { Card } from "@ui/components/ui/card";
 
 const RECORDED_KEYS = [
   "onboarding.privacy.recordedItems.url",
@@ -26,17 +28,17 @@ export function PrivacyStep() {
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <section
-          className="bg-card border-border/70 animate-in fade-in-0 slide-in-from-bottom-1 fill-mode-both flex flex-col gap-2 rounded-lg border p-3 duration-300"
+        <Card
+          size="sm"
           aria-labelledby="privacy-recorded-head"
+          className="animate-in fade-in-0 slide-in-from-bottom-1 fill-mode-both gap-2 px-3 duration-300"
         >
           <header className="flex items-center gap-1.5">
-            <span
-              className="bg-primary/10 text-primary flex size-5 items-center justify-center rounded-full"
-              aria-hidden
-            >
-              <Icons.Check className="size-3" strokeWidth={2.75} />
-            </span>
+            <Avatar size="sm" className="size-5" aria-hidden>
+              <AvatarFallback className="bg-primary/10 text-primary">
+                <Icons.Check className="size-3" strokeWidth={2.75} />
+              </AvatarFallback>
+            </Avatar>
             <span
               id="privacy-recorded-head"
               className="text-foreground text-xs font-medium tracking-tight"
@@ -51,19 +53,19 @@ export function PrivacyStep() {
               </li>
             ))}
           </ul>
-        </section>
+        </Card>
 
-        <section
-          className="bg-muted/40 border-border/70 animate-in fade-in-0 slide-in-from-bottom-1 fill-mode-both flex flex-col gap-2 rounded-lg border p-3 duration-300"
+        <Card
+          size="sm"
           aria-labelledby="privacy-never-head"
+          className="bg-muted/40 animate-in fade-in-0 slide-in-from-bottom-1 fill-mode-both gap-2 px-3 duration-300"
         >
           <header className="flex items-center gap-1.5">
-            <span
-              className="bg-muted text-muted-foreground flex size-5 items-center justify-center rounded-full"
-              aria-hidden
-            >
-              <Icons.X className="size-3" strokeWidth={2.75} />
-            </span>
+            <Avatar size="sm" className="size-5" aria-hidden>
+              <AvatarFallback>
+                <Icons.X className="size-3" strokeWidth={2.75} />
+              </AvatarFallback>
+            </Avatar>
             <span
               id="privacy-never-head"
               className="text-foreground text-xs font-medium tracking-tight"
@@ -81,7 +83,7 @@ export function PrivacyStep() {
               </li>
             ))}
           </ul>
-        </section>
+        </Card>
       </div>
 
       <p className="text-muted-foreground animate-in fade-in-0 fill-mode-both inline-flex items-center gap-1.5 text-[11px] duration-300">

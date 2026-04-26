@@ -55,8 +55,6 @@ const IMMEDIATE_REASONS: Set<string> = new Set([
   "tags",
   "reparent",
   "duplicate",
-  "editor-enter",
-  "editor-exit",
   // Added in the tree-tracking overhaul (#85, #86). These all
   // correspond to user-observable events; a 200ms debounce was
   // producing visible lag (rename dialog closed but tree still
@@ -221,12 +219,7 @@ async function sendTreeNotification(
 // Reasons that don't produce a new tree content state that's worth syncing.
 // Layout-only updates shouldn't trip a push — the server payload is still the
 // same tree; client-local positions are not synced.
-const STRUCTURAL_ONLY_REASONS = new Set<TreeUpdateReason>([
-  "layout",
-  "temp-selection",
-  "editor-enter",
-  "editor-exit",
-]);
+const STRUCTURAL_ONLY_REASONS = new Set<TreeUpdateReason>(["layout", "temp-selection"]);
 
 export async function notifyTreeUpdate(
   tree: NavigationTree,

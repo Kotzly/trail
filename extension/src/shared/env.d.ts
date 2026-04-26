@@ -20,6 +20,12 @@ interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
 
+// Fontsource packages ship CSS only, no .d.ts. Side-effect imports
+// (`import "@fontsource/X"`) work without types, but dynamic imports
+// in font-loaders.ts need a module shape — declare any.
+declare module "@fontsource/*";
+declare module "@fontsource-variable/*";
+
 // tinykeys 3.0.0 ships its types via "types" but doesn't list them in
 // "exports", so moduleResolution: bundler can't find them. Re-declare
 // the small subset of the API the project consumes.

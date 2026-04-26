@@ -15,6 +15,7 @@
 
 import "../components/branch-diagram.css";
 import type { OnboardingPersona } from "@shared/config/storage-items.js";
+import { Card } from "@ui/components/ui/card";
 
 const W = 260;
 const H = 96;
@@ -86,10 +87,7 @@ function Frame({
   ariaLabel: string;
 }) {
   return (
-    <div
-      className="bg-muted/40 border-border/60 relative overflow-hidden rounded-lg border"
-      aria-hidden
-    >
+    <Card className="bg-muted/40 relative gap-0 py-0" aria-hidden>
       <svg
         viewBox={`0 0 ${W} ${H}`}
         className="branch-diagram block h-auto w-full"
@@ -104,7 +102,7 @@ function Frame({
         </defs>
         {children}
       </svg>
-    </div>
+    </Card>
   );
 }
 

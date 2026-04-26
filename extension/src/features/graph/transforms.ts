@@ -18,7 +18,13 @@ export type TreeToNodesMetadata = {
   openNodeIds: Set<NodeId>;
   nodeTabCounts: Record<NodeId, number>;
   collapsedNodeIds: Set<NodeId>;
+  /** Nodes expanded via the `+N` badge — drives the re-collapse arrow. Optional; defaults to empty. */
+  badgeExpandedIds?: Set<NodeId>;
+  /** Node currently being renamed inline. Optional; null/absent = no inline rename. */
+  inlineRenameTargetId?: NodeId | null;
 };
+
+const EMPTY_BADGE_EXPANDED: Set<NodeId> = new Set();
 
 /**
  * Build the set of node IDs on the path from root to `targetId` (inclusive).
@@ -61,7 +67,10 @@ export function treeToNodes(
     }
 
     const isCollapsed = metadata.collapsedNodeIds.has(node.id);
+    const badgeIds = metadata.badgeExpandedIds ?? EMPTY_BADGE_EXPANDED;
+    const wasExpandedViaBadge = !isCollapsed && badgeIds.has(node.id);
     const foldedAncestorCount = foldInfo.tipFoldCounts.get(node.id) ?? 0;
+    const isChainUnfolded = foldInfo.unfoldedTipIds.has(node.id);
 
     const data = {
       nodeId: node.id,
@@ -74,7 +83,10 @@ export function treeToNodes(
       tabCount: metadata.nodeTabCounts[node.id] ?? 0,
       childCount: node.children.length,
       isCollapsed,
+      wasExpandedViaBadge,
       foldedAncestorCount,
+      isChainUnfolded,
+      isRenaming: metadata.inlineRenameTargetId === node.id,
       handles: [], // filled by layout
     } as TrailNodeData;
     if (node.data.favicon !== undefined) {

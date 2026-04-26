@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import type {
-  EditorModeState,
   TitleOrFaviconChangedInput,
   TreeUpdatedInput,
   UiNotificationInput,
@@ -40,12 +39,7 @@ type _ExtensionTreeUpdated = Expect<
 type _ExtensionUiNotify = Expect<
   Equal<Parameters<ExtensionProtocolMap[typeof EXTENSION_MESSAGE.UI_NOTIFY]>, [UiNotificationInput]>
 >;
-type _WebsiteEnterEditorMode = Expect<
-  Equal<Parameters<WebsiteProtocolMap[typeof WEBSITE_MESSAGE.ENTER_EDITOR_MODE]>, [{ treeId: string }]>
->;
-type _WebsiteExitEditorMode = Expect<
-  Equal<ReturnType<WebsiteProtocolMap[typeof WEBSITE_MESSAGE.EXIT_EDITOR_MODE]>, EditorModeState>
->;
+type _WebsitePing = Expect<Equal<Parameters<WebsiteProtocolMap[typeof WEBSITE_MESSAGE.PING]>, []>>;
 
 function testProtocolConstants(): void {
   assert.equal(WEBSITE_MESSAGING_NAMESPACE, 'trail-bridge-v1');
@@ -60,19 +54,10 @@ function testProtocolConstants(): void {
     'event/sync-conflict',
     'event/sync-conflict-resolved',
     'event/auth-state',
-    'site/editor-mode-exited',
     'event/content-bridge-error',
   ]);
 
-  assert.deepEqual(Object.values(WEBSITE_MESSAGE), [
-    'site/ping',
-    'site/open-panel',
-    'site/enter-editor-mode',
-    'site/exit-editor-mode',
-    'site/save-editor-mode',
-    'site/cancel-editor-mode',
-    'site/editor-mode-exited',
-  ]);
+  assert.deepEqual(Object.values(WEBSITE_MESSAGE), ['site/ping', 'site/open-panel']);
 
   const extensionMessageIds = Object.values(EXTENSION_MESSAGE);
   const websiteMessageIds = Object.values(WEBSITE_MESSAGE);

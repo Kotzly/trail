@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { i18n } from "#i18n";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@ui/components/ui/card";
 import { PageHeader } from "../components/PageHeader.js";
 import { Switch } from "@ui/components/ui/switch";
@@ -61,25 +62,23 @@ export function PrivacyPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Privacy"
-        description="Control what leaves your device. Your browsing tree is always stored locally first."
+        title={i18n.t("settings.privacy.title")}
+        description={i18n.t("settings.privacy.description")}
       />
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Diagnostic & usage data</CardTitle>
-          <CardDescription>
-            Help us improve Trail. We never send URLs, page titles, or tree content.
-          </CardDescription>
+          <CardTitle className="text-base">{i18n.t("settings.privacy.telemetryTitle")}</CardTitle>
+          <CardDescription>{i18n.t("settings.privacy.telemetryDescription")}</CardDescription>
         </CardHeader>
         <CardContent>
           <FieldGroup>
             <Field orientation="horizontal">
               <FieldContent>
-                <FieldLabel htmlFor="telemetry-errors">Crash reports</FieldLabel>
-                <FieldDescription>
-                  Send anonymized error reports via Sentry when Trail crashes.
-                </FieldDescription>
+                <FieldLabel htmlFor="telemetry-errors">
+                  {i18n.t("settings.privacy.errorsLabel")}
+                </FieldLabel>
+                <FieldDescription>{i18n.t("settings.privacy.errorsDescription")}</FieldDescription>
               </FieldContent>
               <Switch
                 id="telemetry-errors"
@@ -93,10 +92,11 @@ export function PrivacyPage() {
 
             <Field orientation="horizontal">
               <FieldContent>
-                <FieldLabel htmlFor="telemetry-analytics">Product analytics</FieldLabel>
+                <FieldLabel htmlFor="telemetry-analytics">
+                  {i18n.t("settings.privacy.analyticsLabel")}
+                </FieldLabel>
                 <FieldDescription>
-                  Anonymous usage stats (feature opened, action taken) via PostHog. No personal
-                  data.
+                  {i18n.t("settings.privacy.analyticsDescription")}
                 </FieldDescription>
               </FieldContent>
               <Switch
@@ -107,26 +107,30 @@ export function PrivacyPage() {
               />
             </Field>
 
-            <FieldDescription>
-              Changes take effect when you next open the sidepanel or settings.
-            </FieldDescription>
+            <FieldDescription>{i18n.t("settings.privacy.consentNote")}</FieldDescription>
           </FieldGroup>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">What Trail records</CardTitle>
+          <CardTitle className="text-base">{i18n.t("settings.privacy.recordsTitle")}</CardTitle>
           <CardDescription>
-            Domains Trail should never record. Supports <code>*</code> wildcards.
+            {i18n.t("settings.privacy.recordsDescriptionPart1")} <code>*</code>{" "}
+            {i18n.t("settings.privacy.recordsDescriptionPart2")} <code>**</code>{" "}
+            {i18n.t("settings.privacy.recordsDescriptionPart3")}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <FieldGroup>
             <Field orientation="horizontal">
               <FieldContent>
-                <FieldLabel htmlFor="skip-incognito">Skip incognito windows</FieldLabel>
-                <FieldDescription>Don't record navigations in private browsing.</FieldDescription>
+                <FieldLabel htmlFor="skip-incognito">
+                  {i18n.t("settings.privacy.skipIncognitoLabel")}
+                </FieldLabel>
+                <FieldDescription>
+                  {i18n.t("settings.privacy.skipIncognitoDescription")}
+                </FieldDescription>
               </FieldContent>
               <Switch
                 id="skip-incognito"
@@ -145,18 +149,18 @@ export function PrivacyPage() {
             <Separator />
 
             <Field>
-              <FieldLabel>URL schemes to track</FieldLabel>
+              <FieldLabel>{i18n.t("settings.privacy.schemesLabel")}</FieldLabel>
               <FieldDescription>
-                Trail records pages using these schemes. Defaults to regular web pages only. Add{" "}
-                <code>file:</code> to record local files, <code>chrome-extension:</code> for
-                extension pages.
+                {i18n.t("settings.privacy.schemesDescriptionPart1")} <code>file:</code>{" "}
+                {i18n.t("settings.privacy.schemesDescriptionPart2")} <code>chrome-extension:</code>{" "}
+                {i18n.t("settings.privacy.schemesDescriptionPart3")}
               </FieldDescription>
               <PatternListEditor
                 values={settings?.privacy.trackedSchemes ?? []}
                 disabled={!settings}
-                placeholder="chrome-extension:"
-                addLabel="Add scheme"
-                emptyText="No schemes — nothing will be tracked. Add at least one (e.g. https:)."
+                placeholder={i18n.t("settings.privacy.schemesPlaceholder")}
+                addLabel={i18n.t("settings.privacy.schemesAddLabel")}
+                emptyText={i18n.t("settings.privacy.schemesEmpty")}
                 normalize={normalizeScheme}
                 onChange={(next) => {
                   if (!settings) return;
@@ -171,18 +175,29 @@ export function PrivacyPage() {
             <Separator />
 
             <Field>
-              <FieldLabel>Blocked hostnames</FieldLabel>
+              <FieldLabel>{i18n.t("settings.privacy.blocklistLabel")}</FieldLabel>
               <FieldDescription>
-                Hostnames Trail never records. Supports <code>*</code> wildcards —{" "}
-                <code>*.bank.com</code> blocks any subdomain; <code>localhost</code> is an exact
-                match.
+                {i18n.t("settings.privacy.blocklistDescriptionIntro")}
+                <br />
+                <code>*.bank.com</code> — {i18n.t("settings.privacy.blocklistExample1")}{" "}
+                <code>bank.com</code>
+                <br />
+                <code>localhost</code> — {i18n.t("settings.privacy.blocklistExample2")}
+                <br />
+                <code>*banking*</code> — {i18n.t("settings.privacy.blocklistExample3")}
+                <br />
+                <code>**/admin</code> — {i18n.t("settings.privacy.blocklistExample4")}{" "}
+                <code>admin</code> {i18n.t("settings.privacy.blocklistExample4Suffix")}
+                <br />
+                <code>example.com/**</code> — {i18n.t("settings.privacy.blocklistExample5")}{" "}
+                <code>example.com</code>
               </FieldDescription>
               <PatternListEditor
                 values={settings?.privacy.blocklist ?? []}
                 disabled={!settings}
-                placeholder="*.bank.com"
-                addLabel="Add pattern"
-                emptyText="Nothing blocked. Add a hostname pattern to hide it from your tree."
+                placeholder={i18n.t("settings.privacy.blocklistPlaceholder")}
+                addLabel={i18n.t("settings.privacy.blocklistAddLabel")}
+                emptyText={i18n.t("settings.privacy.blocklistEmpty")}
                 normalize={normalizeHostPattern}
                 onChange={(next) => {
                   if (!settings) return;
@@ -197,19 +212,16 @@ export function PrivacyPage() {
             <Separator />
 
             <Field>
-              <FieldLabel>Fold repetitive chains</FieldLabel>
+              <FieldLabel>{i18n.t("settings.privacy.collapseLabel")}</FieldLabel>
               <FieldDescription>
-                Sites whose URL changes on every keystroke (translators, live-search apps) clutter
-                the tree. Linear chains of matching navigations are auto-folded in the graph — only
-                the most recent node stays visible, with a <code>⋯N</code> badge for the hidden
-                steps. History is preserved; double-click the tip to unfold.
+                {i18n.t("settings.privacy.collapseDescription", ["⋯N"])}
               </FieldDescription>
               <PatternListEditor
                 values={settings?.privacy.collapselist ?? []}
                 disabled={!settings}
-                placeholder="translate.yandex.ru"
-                addLabel="Add pattern"
-                emptyText="No chain-fold patterns. Add a hostname to collapse its rapid-fire URL changes."
+                placeholder={i18n.t("settings.privacy.collapsePlaceholder")}
+                addLabel={i18n.t("settings.privacy.collapseAddLabel")}
+                emptyText={i18n.t("settings.privacy.collapseEmpty")}
                 normalize={normalizeHostPattern}
                 onChange={(next) => {
                   if (!settings) return;
@@ -226,7 +238,7 @@ export function PrivacyPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Policies</CardTitle>
+          <CardTitle className="text-base">{i18n.t("settings.privacy.policiesTitle")}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-2">
           <Button
@@ -234,14 +246,14 @@ export function PrivacyPage() {
             className="justify-start"
             onClick={() => openExternal(MARKETING_URLS.privacy)}
           >
-            Privacy Policy →
+            {i18n.t("settings.privacy.privacyPolicy")}
           </Button>
           <Button
             variant="outline"
             className="justify-start"
             onClick={() => openExternal(MARKETING_URLS.terms)}
           >
-            Terms of Service →
+            {i18n.t("settings.privacy.termsOfService")}
           </Button>
         </CardContent>
       </Card>

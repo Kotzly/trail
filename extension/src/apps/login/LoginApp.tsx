@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { i18n } from "#i18n";
 import { TooltipProvider } from "@ui/components/ui/tooltip";
 import { Toaster } from "@ui/components/ui/sonner";
@@ -254,16 +255,42 @@ export default function LoginApp() {
 
   // ---- Render ----------------------------------------------------------
 
+  const reduce = useReducedMotion();
+  const stageTransition = reduce
+    ? { duration: 0 }
+    : { duration: 0.2, ease: [0.23, 1, 0.32, 1] as const };
+  const stageVariants = reduce
+    ? { initial: { opacity: 1 }, animate: { opacity: 1 }, exit: { opacity: 1 } }
+    : {
+        initial: { opacity: 0, x: 12 },
+        animate: { opacity: 1, x: 0 },
+        exit: { opacity: 0, x: -8 },
+      };
+
   return (
-    <TooltipProvider delayDuration={200}>
+    <TooltipProvider delayDuration={250} skipDelayDuration={150}>
       <Toaster />
       <div className="bg-muted text-foreground flex min-h-[100dvh] items-center justify-center p-6 md:p-10">
         <div className="flex w-full max-w-sm flex-col items-center gap-6">
           <div className="flex items-center gap-3">
             <TrailLogo animated variant="field" className="size-8" />
-            <span className="text-2xl font-semibold tracking-tight">Trail</span>
+            <span className="text-2xl tracking-tight">Trail</span>
           </div>
-          <div className="flex w-full flex-col gap-4">{renderStage()}</div>
+          <div className="flex w-full flex-col gap-4">
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={stage.kind}
+                variants={stageVariants}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                transition={stageTransition}
+                className="flex w-full flex-col gap-4"
+              >
+                {renderStage()}
+              </motion.div>
+            </AnimatePresence>
+          </div>
         </div>
       </div>
     </TooltipProvider>
@@ -384,7 +411,10 @@ export default function LoginApp() {
 function Banners({ formError, info }: { formError: string | null; info: string | null }) {
   if (formError) {
     return (
-      <Alert variant="destructive">
+      <Alert
+        variant="destructive"
+        className="animate-in fade-in-0 slide-in-from-top-1 duration-(--dur-base) ease-(--ease-out)"
+      >
         <Icons.AlertTriangle aria-hidden />
         <AlertDescription>{formError}</AlertDescription>
       </Alert>
@@ -392,7 +422,7 @@ function Banners({ formError, info }: { formError: string | null; info: string |
   }
   if (info) {
     return (
-      <Alert>
+      <Alert className="animate-in fade-in-0 slide-in-from-top-1 duration-(--dur-base) ease-(--ease-out)">
         <Icons.Info aria-hidden />
         <AlertDescription>{info}</AlertDescription>
       </Alert>

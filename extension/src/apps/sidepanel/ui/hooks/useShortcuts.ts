@@ -6,21 +6,10 @@ import { browser } from "@shared/platform/webext.js";
 import { redo, undo } from "../../api/commands.js";
 import { navigateTo, setCurrentNode } from "../../api/tree.js";
 import { saveSettings } from "../../api/settings.js";
-import {
-  bulkDeleteNodes,
-  bulkDeleteRecursive,
-  bulkPin,
-  bulkUnpin,
-  deleteNode,
-  deleteWithChildren,
-  exitEditorMode,
-  fireAndForget,
-  openInNewTab,
-  togglePin,
-} from "../../api/actions.js";
+import { bulkPin, bulkUnpin, fireAndForget, openInNewTab, togglePin } from "../../api/actions.js";
 import { useStore } from "../state/store.js";
 import { IS_MAC_PLATFORM } from "@ui/components/shortcut";
-import { getIncludedRootId } from "../shared/delete-tree.js";
+import { requestDelete } from "./useDeleteFlow.js";
 
 type Store = ReturnType<typeof useStore.getState>;
 type Ctx = { event: KeyboardEvent; state: Store };
@@ -56,17 +45,18 @@ const getTargetNodeIds = (state: Store): NodeId[] => {
  * True when any dialog / popover / palette is open that should swallow
  * destructive shortcuts (Delete, Backspace, etc.). #84 was a P0 silent
  * deletion: Rename dialog open + focus on Cancel button + Backspace
- * fired the delete handler because the overlayOpen check missed
- * `renameTarget`, `deleteTreeConfirm`, command palette, and sync-
- * conflict dialogs.
+ * fired the delete handler because the overlayOpen check missed these.
+ *
+ * `renameTarget` (now inline rename) is intentionally NOT included here
+ * — `isEditableTarget(event.target)` already short-circuits when focus
+ * is on the inline `<input>`, so destructive shortcuts can't fire while
+ * the user is typing into it.
  */
 const overlayOpen = (state: Store) =>
   state.ui.pinnedOpen ||
   state.ui.treesOpen ||
   state.ui.tagFilterOpen ||
   Boolean(state.contextMenu) ||
-  Boolean(state.renameTarget) ||
-  Boolean(state.deleteTreeConfirm?.open) ||
   state.commandPalette.open ||
   Boolean(state.syncConflict);
 
@@ -121,26 +111,8 @@ function togglePinned(state: Store, nodeIds: NodeId[]) {
 
 function deleteNodes(state: Store, nodeIds: NodeId[], recursive: boolean) {
   if (nodeIds.length === 0) return;
-  const rootId = getIncludedRootId(state.tree, nodeIds);
-  if (rootId) {
-    state.openDeleteTreeConfirm(rootId);
-    return;
-  }
-  if (nodeIds.length === 1) {
-    const [nodeId] = nodeIds;
-    if (!nodeId) return;
-    fireAndForget(
-      recursive ? deleteWithChildren(nodeId) : deleteNode(nodeId),
-      recursive ? "delete subtree" : "delete node",
-    );
-  } else {
-    fireAndForget(
-      recursive ? bulkDeleteRecursive(nodeIds) : bulkDeleteNodes(nodeIds),
-      recursive ? "bulk delete recursive" : "bulk delete nodes",
-    );
-  }
-  state.clearSelection();
   state.closeContextMenu();
+  void requestDelete({ kind: "node", nodeIds, recursive }, { source: "keyboard" });
 }
 
 function selectAllNodes(state: Store) {
@@ -190,17 +162,15 @@ async function openFocusedNode(state: Store) {
 
 // ── Wiring ──────────────────────────────────────────────────────────
 
-const whenNotInEditor: WhenFn = ({ state }) => !state.editorMode.active;
 const always: WhenFn = () => true;
-const whenNotOverlayOrEditor: WhenFn = ({ state }) =>
-  !state.editorMode.active && !overlayOpen(state);
+const whenNotOverlay: WhenFn = ({ state }) => !overlayOpen(state);
 
 /**
  * Wrap a handler with the global gating: skip when typing in an input,
  * skip when settings disable shortcuts, evaluate `when`, then
  * preventDefault + run.
  */
-function gate(run: RunFn, when: WhenFn = whenNotInEditor): (event: KeyboardEvent) => void {
+function gate(run: RunFn, when: WhenFn = always): (event: KeyboardEvent) => void {
   return (event) => {
     if (event.defaultPrevented) return;
     if (isEditableTarget(event.target)) return;
@@ -216,10 +186,6 @@ function gate(run: RunFn, when: WhenFn = whenNotInEditor): (event: KeyboardEvent
 function buildBindings(): KeyBindingMap {
   const openPalette: RunFn = ({ state }) => state.setCommandPaletteOpen(true);
   const escape: RunFn = ({ state }) => {
-    if (state.editorMode.active) {
-      exitEditorMode().catch((error) => console.error("Failed to exit editor:", error));
-      return;
-    }
     state.closeAllPopups();
     state.closeContextMenu();
     state.clearSelection();
@@ -254,7 +220,7 @@ function buildBindings(): KeyBindingMap {
           console.error("Failed to redo:", error);
         }
       },
-      ({ state }) => !IS_MAC_PLATFORM && !state.editorMode.active,
+      () => !IS_MAC_PLATFORM,
     ),
 
     // Command palette / search
@@ -265,7 +231,7 @@ function buildBindings(): KeyBindingMap {
     // F2 rename
     F2: gate(({ state }) => {
       const ids = getTargetNodeIds(state);
-      if (ids.length === 1 && ids[0]) state.openRenameDialog(ids[0]);
+      if (ids.length === 1 && ids[0]) state.startInlineRename(ids[0]);
     }),
 
     // Settings page
@@ -286,19 +252,17 @@ function buildBindings(): KeyBindingMap {
     "Shift+KeyC": gate(({ state }) => toggleConnections(state), always),
 
     // Pin toggle (plain P)
-    KeyP: gate(({ state }) => togglePinned(state, getTargetNodeIds(state)), whenNotOverlayOrEditor),
+    KeyP: gate(({ state }) => togglePinned(state, getTargetNodeIds(state)), whenNotOverlay),
 
     // Enter — open in current tab
     Enter: gate(
       async ({ state }) => {
-        if (state.editorMode.active) return;
         await openFocusedNode(state);
       },
       ({ state }) => !overlayOpen(state),
     ),
     // Cmd+Enter — open in new tabs
     "$mod+Enter": gate(({ state }) => {
-      if (state.editorMode.active) return;
       getTargetNodeIds(state).forEach((nodeId) =>
         fireAndForget(openInNewTab(nodeId), "open in new tab"),
       );
@@ -307,11 +271,11 @@ function buildBindings(): KeyBindingMap {
     // Delete / Backspace — single key + Shift variant for recursive
     Delete: gate(
       ({ event, state }) => deleteNodes(state, getTargetNodeIds(state), event.shiftKey),
-      whenNotOverlayOrEditor,
+      whenNotOverlay,
     ),
     Backspace: gate(
       ({ event, state }) => deleteNodes(state, getTargetNodeIds(state), event.shiftKey),
-      whenNotOverlayOrEditor,
+      whenNotOverlay,
     ),
     // Note: Shift+Delete / Shift+Backspace are handled by the Delete /
     // Backspace bindings above via `event.shiftKey` branching.
@@ -320,10 +284,10 @@ function buildBindings(): KeyBindingMap {
     // deleteNodes twice (#92). Removed.
 
     // Arrow navigation
-    ArrowUp: gate(({ state }) => moveFocus(state, "parent"), whenNotOverlayOrEditor),
-    ArrowDown: gate(({ state }) => moveFocus(state, "child"), whenNotOverlayOrEditor),
-    ArrowLeft: gate(({ state }) => moveFocus(state, "prev"), whenNotOverlayOrEditor),
-    ArrowRight: gate(({ state }) => moveFocus(state, "next"), whenNotOverlayOrEditor),
+    ArrowUp: gate(({ state }) => moveFocus(state, "parent"), whenNotOverlay),
+    ArrowDown: gate(({ state }) => moveFocus(state, "child"), whenNotOverlay),
+    ArrowLeft: gate(({ state }) => moveFocus(state, "prev"), whenNotOverlay),
+    ArrowRight: gate(({ state }) => moveFocus(state, "next"), whenNotOverlay),
   };
 }
 

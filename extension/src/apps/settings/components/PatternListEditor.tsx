@@ -1,4 +1,5 @@
 import { useState, type KeyboardEvent } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   InputGroup,
   InputGroupAddon,
@@ -7,6 +8,7 @@ import {
 } from "@ui/components/ui/input-group";
 import { FieldDescription } from "@ui/components/ui/field";
 import { Empty, EmptyDescription } from "@ui/components/ui/empty";
+import { Kbd } from "@ui/components/ui/kbd";
 import { Icons } from "@ui/components/icons";
 
 type PatternListEditorProps = {
@@ -31,6 +33,7 @@ export function PatternListEditor({
   disabled = false,
 }: PatternListEditorProps) {
   const [draft, setDraft] = useState("");
+  const reduce = useReducedMotion();
 
   const commitAdd = () => {
     const cleaned = normalize(draft.trim());
@@ -73,21 +76,31 @@ export function PatternListEditor({
   return (
     <div className="flex flex-col gap-2">
       {values.length === 0 && emptyText ? (
-        <Empty className="border-input rounded-lg border border-dashed py-6">
+        <Empty className="border-input border border-dashed py-6">
           <EmptyDescription>{emptyText}</EmptyDescription>
         </Empty>
       ) : (
         <ul className="flex flex-col gap-1.5">
-          {values.map((value, index) => (
-            <li key={`${value}-${index}`}>
-              <PatternRow
-                value={value}
-                disabled={disabled}
-                onCommit={(next) => commitEdit(index, next)}
-                onRemove={() => remove(index)}
-              />
-            </li>
-          ))}
+          <AnimatePresence initial={false}>
+            {values.map((value, index) => (
+              <motion.li
+                key={`${value}-${index}`}
+                layout={!reduce}
+                initial={reduce ? false : { opacity: 0, y: -4, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={reduce ? { opacity: 0 } : { opacity: 0, y: -4, scale: 0.98 }}
+                transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
+                style={{ animationDelay: `${Math.min(index, 5) * 40}ms` }}
+              >
+                <PatternRow
+                  value={value}
+                  disabled={disabled}
+                  onCommit={(next) => commitEdit(index, next)}
+                  onRemove={() => remove(index)}
+                />
+              </motion.li>
+            ))}
+          </AnimatePresence>
         </ul>
       )}
 
@@ -99,7 +112,7 @@ export function PatternListEditor({
           placeholder={placeholder}
           disabled={disabled}
           spellCheck={false}
-          className="font-mono text-xs"
+          className="text-xs"
         />
         <InputGroupAddon align="inline-end">
           <InputGroupButton
@@ -108,14 +121,14 @@ export function PatternListEditor({
             aria-label={addLabel}
             onClick={commitAdd}
             disabled={disabled || draft.trim().length === 0}
+            className="press-feedback"
           >
             <Icons.Plus />
           </InputGroupButton>
         </InputGroupAddon>
       </InputGroup>
       <FieldDescription className="text-[0.7rem]">
-        Press <kbd className="font-mono">Enter</kbd> or click{" "}
-        <Icons.Plus className="inline size-3" /> to add.
+        Press <Kbd>Enter</Kbd> or click <Icons.Plus className="inline size-3" /> to add.
       </FieldDescription>
     </div>
   );
@@ -155,7 +168,7 @@ function PatternRow({ value, disabled, onCommit, onRemove }: PatternRowProps) {
         onKeyDown={handleKey}
         disabled={disabled}
         spellCheck={false}
-        className="font-mono text-xs"
+        className="text-xs"
       />
       <InputGroupAddon align="inline-end">
         <InputGroupButton
@@ -163,6 +176,7 @@ function PatternRow({ value, disabled, onCommit, onRemove }: PatternRowProps) {
           aria-label={`Remove ${value}`}
           onClick={onRemove}
           disabled={disabled}
+          className="press-feedback"
         >
           <Icons.X />
         </InputGroupButton>

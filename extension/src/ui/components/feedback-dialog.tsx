@@ -8,8 +8,8 @@ import {
   DialogTitle,
 } from "@ui/components/ui/dialog";
 import { Button } from "@ui/components/ui/button";
+import { Field, FieldLabel } from "@ui/components/ui/field";
 import { Input } from "@ui/components/ui/input";
-import { Label } from "@ui/components/ui/label";
 import { Textarea } from "@ui/components/ui/textarea";
 import { useBoolean } from "@ui/hooks/use-boolean";
 import { useLockFn } from "@ui/hooks/use-lock-fn";
@@ -104,7 +104,7 @@ export function FeedbackDialog({
   return (
     <Dialog open={kind !== null} onOpenChange={onOpenChange}>
       {kind ? (
-        <DialogContent>
+        <DialogContent className="data-closed:duration-(--dur-fast) data-closed:ease-(--ease-out) data-open:duration-(--dur-medium) data-open:ease-(--ease-out)">
           <FeedbackForm
             key={kind}
             kind={kind}
@@ -186,10 +186,10 @@ function FeedbackForm({
         }}
         className="flex flex-col gap-3"
       >
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="feedback-message" className="text-xs">
+        <Field>
+          <FieldLabel htmlFor="feedback-message" className="text-xs">
             {i18n.t("feedback.messageLabel")}
-          </Label>
+          </FieldLabel>
           <Textarea
             id="feedback-message"
             autoFocus
@@ -202,12 +202,12 @@ function FeedbackForm({
           <span className="text-muted-foreground self-end text-[10px] tabular-nums">
             {message.length}/{MAX_MESSAGE}
           </span>
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="feedback-contact" className="text-xs">
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="feedback-contact" className="text-xs">
             {i18n.t("feedback.contactLabel")}{" "}
             <span className="text-muted-foreground">{i18n.t("feedback.contactOptional")}</span>
-          </Label>
+          </FieldLabel>
           <Input
             id="feedback-contact"
             value={contact}
@@ -215,10 +215,10 @@ function FeedbackForm({
             placeholder={i18n.t("feedback.contactPlaceholder")}
             maxLength={MAX_CONTACT}
           />
-        </div>
+        </Field>
       </form>
       <DialogFooter>
-        <Button variant="ghost" onClick={onClose} disabled={submitting}>
+        <Button variant="ghost" onClick={onClose} disabled={submitting} className="press-feedback">
           {i18n.t("feedback.cancel")}
         </Button>
         <Button
@@ -227,6 +227,7 @@ function FeedbackForm({
             e.preventDefault();
             void submit();
           }}
+          className="press-feedback"
         >
           {submitting ? i18n.t("feedback.sending") : i18n.t("feedback.send")}
         </Button>

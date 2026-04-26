@@ -16,7 +16,7 @@ const D = { root: 0, left: 260, right: 820, fork: 1120 } as const;
 
 export function BranchDiagram() {
   return (
-    <div className="bg-muted/40 relative overflow-hidden rounded-lg border">
+    <div className="bg-muted/40 relative overflow-hidden border">
       <svg
         viewBox={`0 0 ${W} ${H}`}
         className="branch-diagram block h-auto w-full"
@@ -123,8 +123,7 @@ export function BranchDiagram() {
             x={NODES.root.x}
             y={NODES.root.y + 38}
             textAnchor="middle"
-            className="fill-muted-foreground"
-            style={{ fontSize: "8px" }}
+            className="fill-muted-foreground text-[8px]"
           >
             fork
           </text>

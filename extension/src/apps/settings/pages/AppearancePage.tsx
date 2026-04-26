@@ -1,9 +1,12 @@
+import { i18n } from "#i18n";
 import type {
   Settings,
   LayoutMode,
   GraphDensity,
   TitleTruncation,
 } from "@shared/types/settings.js";
+import type { ThemeId } from "@shared/types/theme.js";
+import { THEME_PRESETS } from "@shared/styles/theme-presets.js";
 import { Field, FieldContent, FieldGroup, FieldLabel } from "@ui/components/ui/field";
 import { PageHeader, SectionHeader } from "../components/PageHeader.js";
 import { Switch } from "@ui/components/ui/switch";
@@ -24,11 +27,80 @@ type AppearancePageProps = {
 export function AppearancePage({ settings, onUpdate }: AppearancePageProps) {
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader title="Appearance" description="Customize how the graph looks." />
+      <PageHeader
+        title={i18n.t("settings.appearance.title")}
+        description={i18n.t("settings.appearance.description")}
+      />
+
+      <div className="flex flex-col gap-4">
+        <SectionHeader
+          title={i18n.t("settings.appearance.themeTitle")}
+          description={i18n.t("settings.appearance.themeDescription")}
+        />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field>
+            <FieldLabel htmlFor="theme-mode">{i18n.t("settings.appearance.modeLabel")}</FieldLabel>
+            <Select value={settings.theme} onValueChange={(v) => onUpdate({ theme: v as ThemeId })}>
+              <SelectTrigger id="theme-mode" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent
+                position="popper"
+                sideOffset={6}
+                className="data-closed:duration-[80ms] data-closed:ease-(--ease-out) data-open:duration-(--dur-fast) data-open:ease-(--ease-out)"
+              >
+                <SelectGroup>
+                  <SelectItem value="light">{i18n.t("settings.appearance.modeLight")}</SelectItem>
+                  <SelectItem value="dark">{i18n.t("settings.appearance.modeDark")}</SelectItem>
+                  <SelectItem value="system">{i18n.t("settings.appearance.modeSystem")}</SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </Field>
+
+          <Field>
+            <FieldLabel htmlFor="theme-preset">
+              {i18n.t("settings.appearance.themePresetLabel")}
+            </FieldLabel>
+            <Select
+              value={settings.themePreset}
+              onValueChange={(v) => onUpdate({ themePreset: v })}
+            >
+              <SelectTrigger id="theme-preset" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent
+                position="popper"
+                sideOffset={6}
+                className="data-closed:duration-[80ms] data-closed:ease-(--ease-out) data-open:duration-(--dur-fast) data-open:ease-(--ease-out)"
+              >
+                <SelectGroup>
+                  {THEME_PRESETS.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      <span className="flex items-center gap-2">
+                        <span aria-hidden className="flex shrink-0 -space-x-1">
+                          {p.swatch.map((color, i) => (
+                            <span
+                              key={i}
+                              className="border-border ring-background inline-block size-3 rounded-full border ring-1"
+                              style={{ background: color }}
+                            />
+                          ))}
+                        </span>
+                        {p.name}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </Field>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Field>
-          <FieldLabel htmlFor="layout-mode">Layout mode</FieldLabel>
+          <FieldLabel htmlFor="layout-mode">{i18n.t("settings.appearance.layoutLabel")}</FieldLabel>
           <Select
             value={settings.layout.mode}
             onValueChange={(v) =>
@@ -38,17 +110,25 @@ export function AppearancePage({ settings, onUpdate }: AppearancePageProps) {
             <SelectTrigger id="layout-mode" className="w-full">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent
+              position="popper"
+              sideOffset={6}
+              className="data-closed:duration-[80ms] data-closed:ease-(--ease-out) data-open:duration-(--dur-fast) data-open:ease-(--ease-out)"
+            >
               <SelectGroup>
-                <SelectItem value="tree">Tree</SelectItem>
-                <SelectItem value="mindmap">Mind map</SelectItem>
+                <SelectItem value="tree">{i18n.t("settings.appearance.layoutTree")}</SelectItem>
+                <SelectItem value="mindmap">
+                  {i18n.t("settings.appearance.layoutMindmap")}
+                </SelectItem>
               </SelectGroup>
             </SelectContent>
           </Select>
         </Field>
 
         <Field>
-          <FieldLabel htmlFor="graph-density">Density</FieldLabel>
+          <FieldLabel htmlFor="graph-density">
+            {i18n.t("settings.appearance.densityLabel")}
+          </FieldLabel>
           <Select
             value={settings.graphDensity}
             onValueChange={(v) => onUpdate({ graphDensity: v as GraphDensity })}
@@ -56,18 +136,30 @@ export function AppearancePage({ settings, onUpdate }: AppearancePageProps) {
             <SelectTrigger id="graph-density" className="w-full">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent
+              position="popper"
+              sideOffset={6}
+              className="data-closed:duration-[80ms] data-closed:ease-(--ease-out) data-open:duration-(--dur-fast) data-open:ease-(--ease-out)"
+            >
               <SelectGroup>
-                <SelectItem value="compact">Compact</SelectItem>
-                <SelectItem value="comfortable">Comfortable</SelectItem>
-                <SelectItem value="spacious">Spacious</SelectItem>
+                <SelectItem value="compact">
+                  {i18n.t("settings.appearance.densityCompact")}
+                </SelectItem>
+                <SelectItem value="comfortable">
+                  {i18n.t("settings.appearance.densityComfortable")}
+                </SelectItem>
+                <SelectItem value="spacious">
+                  {i18n.t("settings.appearance.densitySpacious")}
+                </SelectItem>
               </SelectGroup>
             </SelectContent>
           </Select>
         </Field>
 
         <Field>
-          <FieldLabel htmlFor="title-truncation">Title truncation</FieldLabel>
+          <FieldLabel htmlFor="title-truncation">
+            {i18n.t("settings.appearance.truncationLabel")}
+          </FieldLabel>
           <Select
             value={settings.titleTruncation}
             onValueChange={(v) => onUpdate({ titleTruncation: v as TitleTruncation })}
@@ -75,11 +167,19 @@ export function AppearancePage({ settings, onUpdate }: AppearancePageProps) {
             <SelectTrigger id="title-truncation" className="w-full">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent
+              position="popper"
+              sideOffset={6}
+              className="data-closed:duration-[80ms] data-closed:ease-(--ease-out) data-open:duration-(--dur-fast) data-open:ease-(--ease-out)"
+            >
               <SelectGroup>
-                <SelectItem value="start">Start</SelectItem>
-                <SelectItem value="middle">Middle</SelectItem>
-                <SelectItem value="end">End</SelectItem>
+                <SelectItem value="start">
+                  {i18n.t("settings.appearance.truncationStart")}
+                </SelectItem>
+                <SelectItem value="middle">
+                  {i18n.t("settings.appearance.truncationMiddle")}
+                </SelectItem>
+                <SelectItem value="end">{i18n.t("settings.appearance.truncationEnd")}</SelectItem>
               </SelectGroup>
             </SelectContent>
           </Select>
@@ -87,11 +187,16 @@ export function AppearancePage({ settings, onUpdate }: AppearancePageProps) {
       </div>
 
       <div className="flex flex-col gap-4">
-        <SectionHeader title="Display" description="Decide how much detail each node shows." />
+        <SectionHeader
+          title={i18n.t("settings.appearance.displayTitle")}
+          description={i18n.t("settings.appearance.displayDescription")}
+        />
         <FieldGroup>
           <Field orientation="horizontal">
             <FieldContent>
-              <FieldLabel htmlFor="show-favicons">Show favicons</FieldLabel>
+              <FieldLabel htmlFor="show-favicons">
+                {i18n.t("settings.appearance.showFavicons")}
+              </FieldLabel>
             </FieldContent>
             <Switch
               id="show-favicons"
@@ -101,7 +206,7 @@ export function AppearancePage({ settings, onUpdate }: AppearancePageProps) {
           </Field>
           <Field orientation="horizontal">
             <FieldContent>
-              <FieldLabel htmlFor="show-urls">Show URLs</FieldLabel>
+              <FieldLabel htmlFor="show-urls">{i18n.t("settings.appearance.showUrls")}</FieldLabel>
             </FieldContent>
             <Switch
               id="show-urls"
@@ -111,7 +216,9 @@ export function AppearancePage({ settings, onUpdate }: AppearancePageProps) {
           </Field>
           <Field orientation="horizontal">
             <FieldContent>
-              <FieldLabel htmlFor="show-connections">Show connections</FieldLabel>
+              <FieldLabel htmlFor="show-connections">
+                {i18n.t("settings.appearance.showConnections")}
+              </FieldLabel>
             </FieldContent>
             <Switch
               id="show-connections"
@@ -121,7 +228,9 @@ export function AppearancePage({ settings, onUpdate }: AppearancePageProps) {
           </Field>
           <Field orientation="horizontal">
             <FieldContent>
-              <FieldLabel htmlFor="show-tab-counts">Show tab counts</FieldLabel>
+              <FieldLabel htmlFor="show-tab-counts">
+                {i18n.t("settings.appearance.showTabCounts")}
+              </FieldLabel>
             </FieldContent>
             <Switch
               id="show-tab-counts"
@@ -131,7 +240,9 @@ export function AppearancePage({ settings, onUpdate }: AppearancePageProps) {
           </Field>
           <Field orientation="horizontal">
             <FieldContent>
-              <FieldLabel htmlFor="dim-closed-nodes">Dim closed nodes</FieldLabel>
+              <FieldLabel htmlFor="dim-closed-nodes">
+                {i18n.t("settings.appearance.dimClosedNodes")}
+              </FieldLabel>
             </FieldContent>
             <Switch
               id="dim-closed-nodes"

@@ -1,0 +1,119 @@
+/*
+ * Node lifecycle animations.
+ *
+ * The diff hook (useNodeLifecycle) annotates each ReactFlow node with
+ * one of these classes via the `className` field. xyflow forwards
+ * `className` onto the `.react-flow__node` wrapper, but our keyframes
+ * target the inner `[data-trail-card]` element — the wrapper itself
+ * carries `transform: translate(x,y)` from xyflow which we must not
+ * touch (it interferes with relayout interpolation).
+ *
+ * Durations chosen for a productivity-tool feel: snappy entry/exit,
+ * not theatrical. Reduced-motion is handled at the global tailwind
+ * level (`prefers-reduced-motion: reduce` clamps duration to 0.01ms).
+ */
+
+@keyframes graph-node-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes graph-node-exit {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+}
+
+@keyframes graph-node-return {
+  /* A returning node — same id reappears after a brief absence (e.g.
+     collapse → expand within the same session). Soft pulse rather
+     than a fresh entry, so the user perceives "this came back" not
+     "this is new". */
+  0% {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/*
+ * Apply animations to the inner card element rather than the
+ * .react-flow__node wrapper, so xyflow's translate() transform on the
+ * wrapper is preserved while we scale + fade the visible card.
+ *
+ * Only active when the parent graph carries `graph--lifecycle-on` —
+ * the gate composes flag + reduced-motion + FPS tier (see
+ * useNodeLifecycleEnabled).
+ */
+.graph--lifecycle-on .react-flow__node.graph-node--entering [data-trail-card] {
+  animation: graph-node-enter 280ms var(--ease-out) both;
+  transform-origin: center;
+}
+
+.graph--lifecycle-on .react-flow__node.graph-node--exiting [data-trail-card] {
+  animation: graph-node-exit 200ms var(--ease-out) forwards;
+  transform-origin: center;
+  pointer-events: none;
+}
+
+.graph--lifecycle-on .react-flow__node.graph-node--returning [data-trail-card] {
+  animation: graph-node-return 320ms var(--ease-out) both;
+  transform-origin: center;
+}
+
+/* Edges entering/exiting alongside their nodes — fade only, since
+   path geometry can't be smoothly interpolated. */
+.graph--lifecycle-on .react-flow__edge.graph-edge--entering {
+  animation: graph-edge-fade-in 240ms var(--ease-out) both;
+}
+
+.graph--lifecycle-on .react-flow__edge.graph-edge--exiting {
+  animation: graph-edge-fade-out 160ms var(--ease-out) forwards;
+  pointer-events: none;
+}
+
+@keyframes graph-edge-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes graph-edge-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .graph--lifecycle-on .react-flow__node.graph-node--entering [data-trail-card],
+  .graph--lifecycle-on .react-flow__node.graph-node--exiting [data-trail-card],
+  .graph--lifecycle-on .react-flow__node.graph-node--returning [data-trail-card],
+  .graph--lifecycle-on .react-flow__edge.graph-edge--entering,
+  .graph--lifecycle-on .react-flow__edge.graph-edge--exiting {
+    animation: none;
+  }
+}

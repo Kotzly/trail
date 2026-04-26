@@ -27,7 +27,7 @@ import { settingsHandlers } from "@background/messaging/handlers/settings-handle
 import { flagsHandlers } from "@background/messaging/handlers/flags-handlers.js";
 import { tabHandlers } from "@background/messaging/handlers/tab-handlers.js";
 import { pinHandlers } from "@background/messaging/handlers/pin-handlers.js";
-import { editorHandlers, getEditorState } from "@background/messaging/handlers/editor-handlers.js";
+import { mutationHandlers } from "@background/messaging/handlers/mutation-handlers.js";
 import { syncConflictHandlers } from "@background/messaging/handlers/sync-conflict-handlers.js";
 import type { RuntimeMessageSender } from "@shared/platform/webext.js";
 
@@ -108,6 +108,11 @@ const treeService: TreeService = {
       type: RPC_METHOD.DELETE_TREE,
       ...input,
     }),
+  restoreTree: (input) =>
+    call(treeHandlers[RPC_METHOD.RESTORE_TREE], {
+      type: RPC_METHOD.RESTORE_TREE,
+      ...input,
+    }),
   exportTree: (input) =>
     call(treeHandlers[RPC_METHOD.EXPORT_TREE], { type: RPC_METHOD.EXPORT_TREE, ...input }),
   setNodeLayout: (input) =>
@@ -122,9 +127,9 @@ const treeService: TreeService = {
   importTrail: (input) =>
     call(treeHandlers[RPC_METHOD.IMPORT_TRAIL], { type: RPC_METHOD.IMPORT_TRAIL, ...input }),
   reparentNode: (input) =>
-    call(editorHandlers[RPC_METHOD.REPARENT_NODE], { type: RPC_METHOD.REPARENT_NODE, ...input }),
+    call(mutationHandlers[RPC_METHOD.REPARENT_NODE], { type: RPC_METHOD.REPARENT_NODE, ...input }),
   renameNode: (input) =>
-    call(editorHandlers[RPC_METHOD.RENAME_NODE], { type: RPC_METHOD.RENAME_NODE, ...input }),
+    call(mutationHandlers[RPC_METHOD.RENAME_NODE], { type: RPC_METHOD.RENAME_NODE, ...input }),
   fetchConflictPreview: (input) =>
     call(syncConflictHandlers[RPC_METHOD.FETCH_CONFLICT_PREVIEW], {
       type: RPC_METHOD.FETCH_CONFLICT_PREVIEW,
@@ -224,18 +229,6 @@ const actionService: ActionService = {
       type: RPC_METHOD.BULK_DELETE_RECURSIVE,
       ...input,
     }),
-  enterEditorMode: (input) =>
-    call(editorHandlers[RPC_METHOD.ENTER_EDITOR_MODE], {
-      type: RPC_METHOD.ENTER_EDITOR_MODE,
-      ...input,
-    }),
-  exitEditorMode: () =>
-    call(editorHandlers[RPC_METHOD.EXIT_EDITOR_MODE], { type: RPC_METHOD.EXIT_EDITOR_MODE }),
-  cancelEditorMode: () =>
-    call(editorHandlers[RPC_METHOD.CANCEL_EDITOR_MODE], { type: RPC_METHOD.CANCEL_EDITOR_MODE }),
-  async getEditorModeState() {
-    return getEditorState();
-  },
 };
 
 export function registerProxyServices(): void {

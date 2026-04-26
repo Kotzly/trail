@@ -22,7 +22,9 @@
 import { useCallback, useEffect, useRef } from "react";
 import { i18n } from "#i18n";
 import type { OnboardingSoftCtaKey } from "@shared/config/storage-items.js";
+import { Avatar, AvatarFallback } from "@ui/components/ui/avatar";
 import { Button } from "@ui/components/ui/button";
+import { Card } from "@ui/components/ui/card";
 import { Icons } from "@ui/components/icons";
 import { captureEvent } from "@shared/lib/observability.js";
 import { cn } from "@ui/lib/utils";
@@ -197,17 +199,17 @@ export function OnboardingHintStrip() {
 
 function StripShell({ children, ariaLabel }: { children: React.ReactNode; ariaLabel: string }) {
   return (
-    <div
+    <Card
       role="region"
       aria-label={ariaLabel}
       className={cn(
-        "pointer-events-auto absolute inset-x-3 bottom-3 z-20",
-        "bg-card text-card-foreground ring-foreground/10 rounded-xl shadow-md ring-1 backdrop-blur",
+        "pointer-events-auto absolute inset-x-3 bottom-3 z-20 gap-0 py-0 backdrop-blur",
+        "shadow-md",
         "animate-in slide-in-from-bottom-2 fade-in-0 duration-300",
       )}
     >
       {children}
-    </div>
+    </Card>
   );
 }
 
@@ -226,9 +228,9 @@ function StripBody({
 }) {
   return (
     <div className="flex items-start gap-3 px-4 pt-3 pb-3">
-      <div className="bg-primary/15 text-primary mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full">
-        {icon}
-      </div>
+      <Avatar size="sm" className="mt-0.5 size-7">
+        <AvatarFallback className="bg-primary/15 text-primary">{icon}</AvatarFallback>
+      </Avatar>
       <div className="min-w-0 flex-1">
         <h3 className="text-foreground text-[13px] font-semibold tracking-tight">{title}</h3>
         <p className="text-muted-foreground mt-0.5 text-[12px] leading-relaxed">{body}</p>
@@ -238,14 +240,16 @@ function StripBody({
           </Button>
         </div>
       </div>
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="icon-sm"
         onClick={onDismiss}
         aria-label={i18n.t("onboarding.hintStrip.dismissAriaLabel")}
-        className="text-muted-foreground hover:text-foreground focus-visible:ring-ring -mt-1 -mr-1 rounded-sm p-1.5 transition-colors focus-visible:ring-2 focus-visible:outline-none"
+        className="text-muted-foreground hover:text-foreground -mt-1 -mr-1"
       >
         <Icons.X className="size-3.5" />
-      </button>
+      </Button>
     </div>
   );
 }

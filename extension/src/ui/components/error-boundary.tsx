@@ -1,6 +1,11 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import TrailLogo from "@ui/components/trail-logo.js";
 import { Button } from "@ui/components/ui/button.js";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@ui/components/ui/collapsible.js";
 import { FeedbackDialog } from "@ui/components/feedback-dialog.js";
 import { captureError, lastErrorEventId } from "@shared/lib/observability.js";
 
@@ -124,7 +129,7 @@ export default class ErrorBoundary extends Component<Props, State> {
     const source = this.props.source ?? "error_boundary";
 
     return (
-      <div className="bg-background text-foreground fixed inset-0 z-[9999] flex items-center justify-center font-sans">
+      <div className="bg-background text-foreground animate-in fade-in-0 fixed inset-0 z-[9999] flex items-center justify-center font-sans duration-(--dur-base) ease-(--ease-out)">
         <div className="flex max-w-80 flex-col items-center gap-4 px-6 py-8 text-center">
           <TrailLogo className="mb-2 size-18 opacity-50" label="Trail" />
 
@@ -136,12 +141,17 @@ export default class ErrorBoundary extends Component<Props, State> {
           </p>
 
           <div className="mt-2 flex w-full flex-col gap-2">
-            <Button variant="default" className="w-full" type="button" onClick={this.handleReload}>
+            <Button
+              variant="default"
+              className="press-feedback w-full"
+              type="button"
+              onClick={this.handleReload}
+            >
               Reload Trail
             </Button>
             <Button
               variant="outline"
-              className="w-full"
+              className="press-feedback w-full"
               type="button"
               onClick={() => this.setState({ reportOpen: true })}
             >
@@ -149,7 +159,7 @@ export default class ErrorBoundary extends Component<Props, State> {
             </Button>
             <Button
               variant="outline"
-              className="w-full"
+              className="press-feedback w-full"
               type="button"
               onClick={this.handleCopyDiagnostics}
             >
@@ -157,7 +167,7 @@ export default class ErrorBoundary extends Component<Props, State> {
             </Button>
             <Button
               variant="ghost"
-              className="w-full"
+              className="press-feedback w-full"
               type="button"
               onClick={this.handleSafeModeReload}
             >
@@ -166,14 +176,16 @@ export default class ErrorBoundary extends Component<Props, State> {
           </div>
 
           {error?.stack && (
-            <details className="mt-4 w-full text-left">
-              <summary className="text-muted-foreground cursor-pointer text-xs">
+            <Collapsible className="mt-4 w-full text-left">
+              <CollapsibleTrigger className="text-muted-foreground cursor-pointer text-xs">
                 Technical details
-              </summary>
-              <pre className="bg-muted mt-2 max-h-[200px] overflow-auto rounded-md p-2 text-[11px] break-all whitespace-pre-wrap">
-                {error.stack}
-              </pre>
-            </details>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <pre className="bg-muted mt-2 max-h-[200px] overflow-auto p-2 text-[11px] break-all whitespace-pre-wrap">
+                  {error.stack}
+                </pre>
+              </CollapsibleContent>
+            </Collapsible>
           )}
         </div>
 

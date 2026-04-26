@@ -12,10 +12,16 @@
 //   trail_theme_choice — user's PICK ("system" | "light" | "dark")
 //                        written by next-themes when the user changes theme
 //   trail_theme        — legacy RESOLVED theme (back-compat)
+//   trail_theme_preset — color palette preset id (e.g. "catppuccin"); absent
+//                        means "default" (no override). Mirrored by
+//                        useThemePresetSync; consumed here to set
+//                        data-theme on <html> before CSS paints.
 (function () {
   var choice;
+  var preset;
   try {
     choice = localStorage.getItem("trail_theme_choice") || localStorage.getItem("trail_theme");
+    preset = localStorage.getItem("trail_theme_preset");
   } catch (e) {
     /* sandboxed */
   }
@@ -31,6 +37,7 @@
   }
   var root = document.documentElement;
   if (resolved === "dark") root.classList.add("dark");
+  if (preset && preset !== "default") root.setAttribute("data-theme", preset);
   root.style.backgroundColor = resolved === "dark" ? "#09090b" : "#ffffff";
   root.style.colorScheme = resolved;
 })();

@@ -13,6 +13,7 @@
  */
 
 import { useEffect, useRef } from "react";
+import { i18n } from "#i18n";
 import { toast } from "sonner";
 
 import { Button } from "@ui/components/ui/button";
@@ -150,12 +151,15 @@ function SyncConflictToast({
     const res = await forkTreeFromConflict(treeId);
     if (!res.ok) {
       showUiToast({
-        message: `Couldn't fork tree: ${res.reason}`,
+        message: i18n.t("sidepanel.syncConflict.forkFailed", [res.reason]),
         icon: "AlertTriangle",
       });
       return;
     }
-    showUiToast({ message: "Forked local copy and synced with cloud.", icon: "Check" });
+    showUiToast({
+      message: i18n.t("sidepanel.syncConflict.forkSuccess"),
+      icon: "Check",
+    });
     onResolved();
   });
 
@@ -163,7 +167,7 @@ function SyncConflictToast({
     const preview = await fetchConflictPreview(treeId);
     if (!preview.ok) {
       showUiToast({
-        message: `Couldn't reach the server — try again in a moment.`,
+        message: i18n.t("sidepanel.syncConflict.serverUnreachable"),
         icon: "AlertTriangle",
       });
       return;
@@ -185,12 +189,15 @@ function SyncConflictToast({
     });
     if (!res.ok) {
       showUiToast({
-        message: `Couldn't keep local version: ${res.error.reason}`,
+        message: i18n.t("sidepanel.syncConflict.keepMineFailed", [res.error.reason]),
         icon: "AlertTriangle",
       });
       return;
     }
-    showUiToast({ message: "Overwrote the cloud with your local version.", icon: "Check" });
+    showUiToast({
+      message: i18n.t("sidepanel.syncConflict.keepMineSuccess"),
+      icon: "Check",
+    });
     onResolved();
   });
 
@@ -198,7 +205,7 @@ function SyncConflictToast({
     const preview = await fetchConflictPreview(treeId);
     if (!preview.ok) {
       showUiToast({
-        message: `Couldn't reach the server — try again in a moment.`,
+        message: i18n.t("sidepanel.syncConflict.serverUnreachable"),
         icon: "AlertTriangle",
       });
       return;
@@ -215,33 +222,38 @@ function SyncConflictToast({
     });
     if (!res.ok) {
       showUiToast({
-        message: `Couldn't use server version: ${res.error.reason}`,
+        message: i18n.t("sidepanel.syncConflict.useServerFailed", [res.error.reason]),
         icon: "AlertTriangle",
       });
       return;
     }
-    showUiToast({ message: "Loaded the server version.", icon: "Check" });
+    showUiToast({
+      message: i18n.t("sidepanel.syncConflict.useServerSuccess"),
+      icon: "Check",
+    });
     onResolved();
   });
 
   return (
-    <div className="bg-popover text-popover-foreground flex w-[22rem] flex-col gap-3 rounded-md border p-4 shadow-lg">
+    <div className="bg-popover text-popover-foreground flex w-[22rem] flex-col gap-3 border p-4 shadow-lg">
       <div className="flex items-start gap-2">
         <Icons.AlertTriangle className="text-destructive mt-0.5 shrink-0" size={16} />
-        <div className="min-w-0 flex-1 space-y-0.5">
-          <div className="text-sm font-medium">Tree updated on another device</div>
-          <div className="text-muted-foreground text-xs">Last remote change {timeAgo}.</div>
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <div className="text-sm font-medium">{i18n.t("sidepanel.syncConflict.title")}</div>
+          <div className="text-muted-foreground text-xs">
+            {i18n.t("sidepanel.syncConflict.subtitle", [timeAgo])}
+          </div>
         </div>
       </div>
       <ButtonGroup className="w-full">
-        <Button size="sm" onClick={onFork}>
-          Fork tree
+        <Button size="sm" onClick={onFork} className="press-feedback">
+          {i18n.t("sidepanel.syncConflict.fork")}
         </Button>
-        <Button size="sm" variant="outline" onClick={onKeepMine}>
-          Keep mine
+        <Button size="sm" variant="outline" onClick={onKeepMine} className="press-feedback">
+          {i18n.t("sidepanel.syncConflict.keepMine")}
         </Button>
-        <Button size="sm" variant="outline" onClick={onUseServer}>
-          Use server
+        <Button size="sm" variant="outline" onClick={onUseServer} className="press-feedback">
+          {i18n.t("sidepanel.syncConflict.useServer")}
         </Button>
       </ButtonGroup>
     </div>

@@ -1,13 +1,14 @@
 import { memo, useCallback, useMemo, useRef, useState } from "react";
+import { i18n } from "#i18n";
 import {
   createNewTree,
-  deleteTree,
   ensureTreeLoaded,
   exportTree,
   importTrail,
   openTree,
   renameTree,
 } from "../../api/tree.js";
+import { useDeleteFlow } from "../hooks/useDeleteFlow.js";
 import { getBackendConfig, initBackendConfig } from "@shared/config/backend.js";
 import { useStore } from "../state/store.js";
 import { useOverlayEffects } from "../state/overlay-effects.js";
@@ -39,6 +40,14 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@ui/components/ui/empty";
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemMedia,
+  ItemTitle,
+} from "@ui/components/ui/item";
 import { Input } from "@ui/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@ui/components/ui/popover";
 import {
@@ -100,23 +109,26 @@ export default function TreeDropdown() {
 
   useOverlayEffects(treesOpen, { kind: "dropdown" });
 
-  const activeTree = trees.active
-    ? ({
-        id: trees.active.id,
-        label: trees.active.label,
-        nodeCount,
-      } as TreeItem)
-    : null;
-
-  const otherTrees = useMemo(() => {
-    return [...trees.others]
+  const allTrees = useMemo<Array<TreeItem & { active: boolean }>>(() => {
+    const active = trees.active
+      ? [
+          {
+            id: trees.active.id,
+            label: trees.active.label,
+            nodeCount,
+            active: true,
+          } as TreeItem & { active: boolean },
+        ]
+      : [];
+    const others = [...trees.others]
       .sort((a, b) => (b.savedAt ?? 0) - (a.savedAt ?? 0))
       .map((entry) => {
-        const item: TreeItem = {
+        const item: TreeItem & { active: boolean } = {
           id: entry.id,
           label: entry.label,
           nodeCount: entry.nodeCount,
           savedAt: entry.savedAt,
+          active: false,
           ...(entry.rootUrl != null && { rootUrl: entry.rootUrl }),
           ...(entry.rootTitle != null && { rootTitle: entry.rootTitle }),
           ...(entry.rootFavicon != null && { rootFavicon: entry.rootFavicon }),
@@ -126,12 +138,14 @@ export default function TreeDropdown() {
         }
         return item;
       });
-  }, [trees.others]);
+    return [...active, ...others];
+  }, [trees.active, trees.others, nodeCount]);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [confirmOpen, confirmOpenActions] = useBoolean(false);
   const [labelDraft, setLabelDraft] = useState("");
   const [deletePending, setDeletePending] = useState<string | null>(null);
+  const { request: requestDelete } = useDeleteFlow();
   const [creating, creatingActions] = useBoolean(false);
   const [importing, importingActions] = useBoolean(false);
   const [loadingTreeId, setLoadingTreeId] = useState<string | null>(null);
@@ -154,7 +168,7 @@ export default function TreeDropdown() {
     try {
       await renameTree(treeId, nextLabel);
     } catch (error) {
-      showOperationError("Rename", error);
+      showOperationError(i18n.t("sidepanel.operations.rename"), error);
     } finally {
       setEditingId(null);
     }
@@ -171,7 +185,7 @@ export default function TreeDropdown() {
         try {
           await ensureTreeLoaded(tree.id);
         } catch (loadError) {
-          showOperationError("Load tree from cloud", loadError);
+          showOperationError(i18n.t("sidepanel.operations.loadTreeFromCloud"), loadError);
           setUnavailableTreeIds((prev) => new Set(prev).add(tree.id));
           setLoadingTreeId(null);
           return;
@@ -180,7 +194,7 @@ export default function TreeDropdown() {
       try {
         await openTree(tree.id);
       } catch (openError) {
-        showOperationError("Open tree", openError);
+        showOperationError(i18n.t("sidepanel.operations.openTree"), openError);
       } finally {
         setLoadingTreeId(null);
         setTreesOpen(false);
@@ -194,23 +208,21 @@ export default function TreeDropdown() {
       if (deletePending === treeId) return;
       try {
         setDeletePending(treeId);
-        await deleteTree(treeId);
-      } catch (error) {
-        showOperationError("Delete tree", error);
+        await requestDelete({ kind: "tree", treeId }, { source: "trash-icon" });
       } finally {
         setDeletePending(null);
       }
     },
-    [deletePending],
+    [deletePending, requestDelete],
   );
 
   const handleExport = useCallback(async (treeId?: string) => {
     try {
       const bundle = await exportTree(treeId);
       downloadBundle(bundle);
-      toast.success("Exported as JSON");
+      toast.success(i18n.t("sidepanel.treesDropdown.exportedToast"));
     } catch (error) {
-      showOperationError("Export", error);
+      showOperationError(i18n.t("sidepanel.operations.export"), error);
     }
   }, []);
 
@@ -220,17 +232,17 @@ export default function TreeDropdown() {
       const baseUrl = getBackendConfig().baseUrl;
       await browser.tabs.create({ url: `${baseUrl}/trails/${treeId}`, active: true });
     } catch (error) {
-      showOperationError("Open editor", error);
+      showOperationError(i18n.t("sidepanel.operations.openEditor"), error);
     }
   }, []);
 
   const handleNewTree = useLockFn(async () => {
     try {
-      const label = labelDraft.trim() || "Unnamed Tree";
+      const label = labelDraft.trim() || i18n.t("sidepanel.treesDropdown.unnamedTree");
       creatingActions.setTrue();
       await createNewTree(label);
     } catch (error) {
-      showOperationError("Create tree", error);
+      showOperationError(i18n.t("sidepanel.operations.createTree"), error);
     } finally {
       creatingActions.setFalse();
     }
@@ -242,35 +254,36 @@ export default function TreeDropdown() {
       const text = await file.text();
       const bundle = JSON.parse(text) as TrailExportBundle;
       if (bundle.schema !== EXPORT_SCHEMA) {
-        toast.error("Unsupported file format");
+        toast.error(i18n.t("sidepanel.treesDropdown.unsupportedFile"));
         return;
       }
       await importTrail(bundle);
       setTreesOpen(false);
-      toast.success("Trail imported");
+      toast.success(i18n.t("sidepanel.treesDropdown.importedToast"));
     } catch (error) {
-      showOperationError("Import", error);
+      showOperationError(i18n.t("sidepanel.operations.import"), error);
     } finally {
       importingActions.setFalse();
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   });
 
-  const totalCount = otherTrees.length + (activeTree ? 1 : 0);
+  const totalCount = allTrees.length;
   const showSearch = totalCount > SEARCH_THRESHOLD;
-  const isEmpty = !activeTree && otherTrees.length === 0;
+  const isEmpty = totalCount === 0;
 
   return (
     <>
       <Popover open={treesOpen} onOpenChange={handlePopoverOpenChange}>
-        <ButtonTooltip label="Saved trees" keys={TREES_KEYS}>
+        <ButtonTooltip label={i18n.t("sidepanel.treesDropdown.label")} keys={TREES_KEYS}>
           <PopoverTrigger asChild>
             <Button
               id="treesBtn"
-              variant="outline"
+              variant="secondary"
               size="icon"
               type="button"
-              aria-label="Saved trees"
+              aria-label={i18n.t("sidepanel.treesDropdown.label")}
+              className="press-feedback"
             >
               <Icons.ListTree />
             </Button>
@@ -278,7 +291,7 @@ export default function TreeDropdown() {
         </ButtonTooltip>
         <PopoverContent
           align="start"
-          className="flex max-h-[min(var(--radix-popover-content-available-height),640px)] w-[360px] flex-col gap-0 overflow-hidden p-0"
+          className="flex max-h-[min(var(--radix-popover-content-available-height),640px)] w-[360px] flex-col gap-0 overflow-hidden p-0 data-closed:duration-[100ms] data-closed:ease-(--ease-out) data-open:duration-(--dur-base) data-open:ease-(--ease-out)"
           id="treesDropdown"
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
@@ -290,13 +303,16 @@ export default function TreeDropdown() {
             <header className="flex shrink-0 items-center gap-2 border-b px-3 py-2">
               <Icons.ListTree className="text-muted-foreground size-3.5 opacity-70" />
               <div className="flex min-w-0 flex-1 flex-col leading-tight">
-                <span className="text-[13px] font-medium">Trees</span>
+                <span className="text-[13px] font-medium">{i18n.t("trees.title")}</span>
                 <span className="text-muted-foreground text-[11px]">
-                  {totalCount} {totalCount === 1 ? "tree" : "trees"}
+                  {totalCount}{" "}
+                  {totalCount === 1
+                    ? i18n.t("sidepanel.treesDropdown.treeCountOne")
+                    : i18n.t("sidepanel.treesDropdown.treeCountMany")}
                 </span>
               </div>
               <div className="flex shrink-0 items-center gap-0.5">
-                <input
+                <Input
                   ref={fileInputRef}
                   type="file"
                   accept=".trail.json,.json"
@@ -306,30 +322,32 @@ export default function TreeDropdown() {
                     if (file) void handleImportFile(file);
                   }}
                 />
-                <ButtonTooltip label="Import trail">
+                <ButtonTooltip label={i18n.t("sidepanel.treesDropdown.import")}>
                   <Button
                     variant="ghost"
                     size="icon-xs"
                     type="button"
-                    aria-label="Import trail"
+                    aria-label={i18n.t("sidepanel.treesDropdown.import")}
                     disabled={importing}
                     onClick={() => fileInputRef.current?.click()}
+                    className="press-feedback"
                   >
                     {importing ? <Spinner /> : <Icons.Download />}
                   </Button>
                 </ButtonTooltip>
-                <ButtonTooltip label="New tree">
+                <ButtonTooltip label={i18n.t("trees.newTree")}>
                   <Button
                     id="newTreeBtn"
                     variant="ghost"
                     size="icon-xs"
                     type="button"
-                    aria-label="New tree"
+                    aria-label={i18n.t("trees.newTree")}
                     onClick={() => {
                       setLabelDraft("");
                       closeAllPopups();
                       confirmOpenActions.setTrue();
                     }}
+                    className="press-feedback"
                   >
                     <Icons.GitBranchPlus />
                   </Button>
@@ -339,7 +357,7 @@ export default function TreeDropdown() {
 
             {showSearch && (
               <CommandInput
-                placeholder="Search trees…"
+                placeholder={i18n.t("sidepanel.treesDropdown.searchPlaceholder")}
                 className="placeholder:text-muted-foreground/70"
               />
             )}
@@ -349,26 +367,15 @@ export default function TreeDropdown() {
             ) : (
               <CommandList className="max-h-none min-h-0 flex-1 overflow-y-auto">
                 <CommandEmpty className="text-muted-foreground py-6 text-center text-xs">
-                  No trees match
+                  {i18n.t("sidepanel.treesDropdown.noMatches")}
                 </CommandEmpty>
 
                 <CommandGroup className="p-1">
-                  {activeTree && (
-                    <ActiveTreeRow
-                      tree={activeTree}
-                      isEditing={editingId === activeTree.id}
-                      syncedAt={lastSyncedAt}
-                      onStartEdit={handleStartEdit}
-                      onCommitRename={handleCommitRename}
-                      onCancelEdit={handleCancelEdit}
-                      onExport={handleExport}
-                      onOpenEditor={openTrailEditor}
-                    />
-                  )}
-                  {otherTrees.map((tree) => (
-                    <OtherTreeRow
+                  {allTrees.map((tree) => (
+                    <TreeRow
                       key={tree.id}
                       tree={tree}
+                      syncedAt={tree.active ? lastSyncedAt : null}
                       isEditing={editingId === tree.id}
                       loading={loadingTreeId === tree.id}
                       unavailable={unavailableTreeIds.has(tree.id)}
@@ -408,75 +415,11 @@ export default function TreeDropdown() {
   );
 }
 
-/* ─── Row primitives ─────────────────────────────────────────────── */
+/* ─── Row primitive ──────────────────────────────────────────────── */
 
-const rowClass =
-  "group/tree data-[selected=true]:bg-accent relative flex items-center gap-2 rounded-md px-2 py-1.5 text-[13px] outline-none select-none";
-
-type ActiveTreeRowProps = {
-  tree: TreeItem;
-  isEditing: boolean;
+type TreeRowProps = {
+  tree: TreeItem & { active: boolean };
   syncedAt: string | null;
-  onStartEdit: (id: string) => void;
-  onCommitRename: (id: string, nextLabel: string) => void | Promise<void>;
-  onCancelEdit: () => void;
-  onExport: (treeId?: string) => void;
-  onOpenEditor: (treeId: string) => void;
-};
-
-const ActiveTreeRow = memo(function ActiveTreeRow({
-  tree,
-  isEditing,
-  syncedAt,
-  onStartEdit,
-  onCommitRename,
-  onCancelEdit,
-  onExport,
-  onOpenEditor,
-}: ActiveTreeRowProps) {
-  const meta = [
-    formatNodeCount(tree.nodeCount),
-    syncedAt ? `synced ${formatRelativeTime(syncedAt)}` : "active now",
-  ]
-    .filter(Boolean)
-    .join(" \u00b7 ");
-
-  const searchValue = `${tree.id} ${tree.label}`;
-
-  return (
-    <CommandPrimitive.Item
-      value={searchValue}
-      className={cn(rowClass, "bg-muted/50 data-[selected=true]:bg-muted")}
-      disabled
-    >
-      <span className="flex size-5 shrink-0 items-center justify-center">
-        <TreeFavicon tree={tree} />
-      </span>
-      <RowBody
-        tree={tree}
-        isEditing={isEditing}
-        meta={meta}
-        onStartEdit={onStartEdit}
-        onCommitRename={onCommitRename}
-        onCancelEdit={onCancelEdit}
-      />
-      {!isEditing && (
-        <div className="flex shrink-0 items-center gap-0.5">
-          <IconAction label="Rename" icon={<Icons.Pencil />} onClick={() => onStartEdit(tree.id)} />
-          <IconAction label="Export tree" icon={<Icons.Upload />} onClick={() => onExport()} />
-          <IconAction
-            label="Open in editor"
-            icon={<Icons.ExternalLink />}
-            onClick={() => onOpenEditor(tree.id)}
-          />
-        </div>
-      )}
-    </CommandPrimitive.Item>
-  );
-});
-
-type OtherTreeRowProps = {
-  tree: TreeItem;
   isEditing: boolean;
   loading: boolean;
   unavailable: boolean;
@@ -485,13 +428,14 @@ type OtherTreeRowProps = {
   onCommitRename: (id: string, nextLabel: string) => void | Promise<void>;
   onCancelEdit: () => void;
   onOpen: (tree: TreeItem) => void;
-  onExport: (treeId: string) => void;
+  onExport: (treeId?: string) => void;
   onOpenEditor: (treeId: string) => void;
   onDelete: (treeId: string) => void;
 };
 
-const OtherTreeRow = memo(function OtherTreeRow({
+const TreeRow = memo(function TreeRow({
   tree,
+  syncedAt,
   isEditing,
   loading,
   unavailable,
@@ -503,104 +447,109 @@ const OtherTreeRow = memo(function OtherTreeRow({
   onExport,
   onOpenEditor,
   onDelete,
-}: OtherTreeRowProps) {
-  const clickable = !loading && !unavailable && !isEditing;
-  const meta = [
-    tree.stub ? (unavailable ? "unavailable" : "cloud") : null,
-    formatHost(tree.rootUrl),
-    formatNodeCount(tree.nodeCount),
-    formatDate(tree.savedAt),
-  ]
-    .filter(Boolean)
-    .join(" \u00b7 ");
-
+}: TreeRowProps) {
+  const clickable = !tree.active && !loading && !unavailable && !isEditing;
+  const metaParts = tree.active
+    ? [
+        formatNodeCount(tree.nodeCount),
+        syncedAt
+          ? i18n.t("sidepanel.treesDropdown.metaSynced", [formatRelativeTime(syncedAt)])
+          : i18n.t("sidepanel.treesDropdown.metaActiveNow"),
+      ]
+    : [
+        tree.stub
+          ? unavailable
+            ? i18n.t("sidepanel.treesDropdown.metaUnavailable")
+            : i18n.t("sidepanel.treesDropdown.metaCloud")
+          : null,
+        formatHost(tree.rootUrl),
+        formatNodeCount(tree.nodeCount),
+        formatDate(tree.savedAt),
+      ];
+  const meta = metaParts.filter(Boolean).join(" · ");
   const searchValue = `${tree.id} ${tree.label} ${formatHost(tree.rootUrl) ?? ""}`;
 
   return (
     <CommandPrimitive.Item
+      asChild
       value={searchValue}
       onSelect={clickable ? () => void onOpen(tree) : undefined}
       disabled={!clickable}
-      className={cn(
-        rowClass,
-        clickable && "cursor-pointer",
-        loading && "opacity-60",
-        unavailable && "opacity-50",
-      )}
     >
-      <span className="flex size-5 shrink-0 items-center justify-center">
-        <TreeFavicon tree={tree} loading={loading} unavailable={unavailable} />
-      </span>
-      <RowBody
-        tree={tree}
-        isEditing={isEditing}
-        meta={meta}
-        onStartEdit={onStartEdit}
-        onCommitRename={onCommitRename}
-        onCancelEdit={onCancelEdit}
-      />
-      {!isEditing && !loading && (
-        <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover/tree:opacity-100 group-data-[selected=true]/tree:opacity-100">
-          <IconAction label="Rename" icon={<Icons.Pencil />} onClick={() => onStartEdit(tree.id)} />
-          {!tree.stub && (
-            <IconAction
-              label="Export tree"
-              icon={<Icons.Upload />}
-              onClick={() => onExport(tree.id)}
+      <Item
+        size="xs"
+        variant={tree.active ? "muted" : "default"}
+        className={cn(
+          "data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground rounded-inner transition-colors",
+          clickable && "cursor-pointer",
+          loading && "opacity-60",
+          unavailable && "opacity-50",
+        )}
+      >
+        <ItemMedia variant="icon" className="opacity-80">
+          <TreeFavicon tree={tree} loading={loading} unavailable={unavailable} />
+        </ItemMedia>
+        <ItemContent>
+          {isEditing ? (
+            <RenameField
+              initial={tree.label}
+              onCommit={(next) => void onCommitRename(tree.id, next)}
+              onCancel={onCancelEdit}
             />
+          ) : (
+            <ItemTitle>
+              {displayLabel({
+                label: tree.label,
+                ...(tree.rootTitle ? { rootTitle: tree.rootTitle } : {}),
+                ...(tree.rootUrl ? { rootUrl: tree.rootUrl } : {}),
+              })}
+            </ItemTitle>
           )}
-          <IconAction
-            label="Open in editor"
-            icon={<Icons.ExternalLink />}
-            onClick={() => onOpenEditor(tree.id)}
-          />
-          <IconAction
-            label="Delete tree"
-            icon={<Icons.Trash2 />}
-            disabled={deleting}
-            onClick={() => onDelete(tree.id)}
-          />
-        </div>
-      )}
+          {meta && !isEditing ? (
+            <ItemDescription className="text-[11px] text-current opacity-60">
+              {meta}
+            </ItemDescription>
+          ) : null}
+        </ItemContent>
+        {!isEditing && !loading && (
+          <ItemActions
+            className={cn(
+              "gap-0.5 transition-opacity",
+              !tree.active &&
+                "opacity-0 group-hover/item:opacity-100 group-data-[selected=true]/item:opacity-100",
+            )}
+          >
+            <IconAction
+              label={i18n.t("trees.actions.rename")}
+              icon={<Icons.Pencil />}
+              onClick={() => onStartEdit(tree.id)}
+            />
+            {!tree.stub && (
+              <IconAction
+                label={i18n.t("trees.actions.exportTree")}
+                icon={<Icons.Upload />}
+                onClick={() => onExport(tree.active ? undefined : tree.id)}
+              />
+            )}
+            <IconAction
+              label={i18n.t("sidepanel.treesDropdown.openInEditor")}
+              icon={<Icons.ExternalLink />}
+              onClick={() => onOpenEditor(tree.id)}
+            />
+            {!tree.active && (
+              <IconAction
+                label={i18n.t("menus.deleteTree")}
+                icon={<Icons.Trash2 />}
+                disabled={deleting}
+                onClick={() => onDelete(tree.id)}
+              />
+            )}
+          </ItemActions>
+        )}
+      </Item>
     </CommandPrimitive.Item>
   );
 });
-
-/* ─── Shared row body + primitives ───────────────────────────────── */
-
-type RowBodyProps = {
-  tree: TreeItem;
-  isEditing: boolean;
-  meta: string;
-  onStartEdit: (id: string) => void;
-  onCommitRename: (id: string, nextLabel: string) => void | Promise<void>;
-  onCancelEdit: () => void;
-};
-
-function RowBody({ tree, isEditing, meta, onCommitRename, onCancelEdit }: RowBodyProps) {
-  return (
-    <div className="flex min-w-0 flex-1 flex-col leading-tight">
-      {isEditing ? (
-        <RenameField
-          initial={tree.label}
-          onCommit={(next) => void onCommitRename(tree.id, next)}
-          onCancel={onCancelEdit}
-        />
-      ) : (
-        <span className="truncate">
-          {displayLabel({
-            label: tree.label,
-            ...(tree.rootTitle ? { rootTitle: tree.rootTitle } : {}),
-            ...(tree.rootUrl ? { rootUrl: tree.rootUrl } : {}),
-          })}
-        </span>
-      )}
-      {meta && !isEditing ? (
-        <span className="text-muted-foreground truncate text-[11px]">{meta}</span>
-      ) : null}
-    </div>
-  );
-}
 
 function RenameField({
   initial,
@@ -613,7 +562,7 @@ function RenameField({
 }) {
   const [draft, setDraft] = useState(initial);
   const submit = () => {
-    const trimmed = draft.trim() || "Unnamed Tree";
+    const trimmed = draft.trim() || i18n.t("sidepanel.treesDropdown.unnamedTree");
     onCommit(trimmed);
   };
   return (
@@ -660,7 +609,7 @@ function IconAction({
         type="button"
         aria-label={label}
         disabled={disabled}
-        className="text-muted-foreground hover:text-foreground"
+        className="press-feedback opacity-60 hover:opacity-100"
         onClick={(e) => {
           e.stopPropagation();
           onClick();
@@ -683,19 +632,19 @@ function TreeFavicon({
   unavailable?: boolean;
 }) {
   if (loading) {
-    return <Spinner className="text-muted-foreground size-4" />;
+    return <Spinner className="size-4 opacity-60" />;
   }
   if (tree.stub) {
     return unavailable ? (
-      <Icons.CloudOff className="text-muted-foreground size-4" />
+      <Icons.CloudOff className="size-4 opacity-60" />
     ) : (
-      <Icons.Cloud className="text-muted-foreground size-4" />
+      <Icons.Cloud className="size-4 opacity-60" />
     );
   }
   if (tree.rootUrl) {
-    return <img className="size-4 rounded-sm" alt="" src={getFaviconUrl(tree.rootUrl)} />;
+    return <img className="size-4" alt="" src={getFaviconUrl(tree.rootUrl)} />;
   }
-  return <Icons.Bookmark className="text-muted-foreground size-4" />;
+  return <Icons.Bookmark className="size-4 opacity-60" />;
 }
 
 function EmptyState() {
@@ -705,8 +654,8 @@ function EmptyState() {
         <EmptyMedia variant="icon">
           <Icons.ListTree />
         </EmptyMedia>
-        <EmptyTitle className="text-sm">No trees yet</EmptyTitle>
-        <EmptyDescription>Create a new tree to get started</EmptyDescription>
+        <EmptyTitle className="text-sm">{i18n.t("sidepanel.treesDropdown.emptyTitle")}</EmptyTitle>
+        <EmptyDescription>{i18n.t("sidepanel.treesDropdown.emptyDescription")}</EmptyDescription>
       </EmptyHeader>
     </Empty>
   );
@@ -735,16 +684,21 @@ function NewTreeDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xs" showCloseButton={false}>
+      <DialogContent
+        className="max-w-xs data-closed:duration-(--dur-fast) data-closed:ease-(--ease-out) data-open:duration-(--dur-medium) data-open:ease-(--ease-out)"
+        showCloseButton={false}
+      >
         <DialogHeader>
           <DialogTitle className="text-sm font-normal">
-            {confirmNewTree ? "Create a new tree" : "Name your new tree"}
+            {confirmNewTree
+              ? i18n.t("trees.createDialog.title")
+              : i18n.t("sidepanel.treesDropdown.newTreeNameTitle")}
           </DialogTitle>
         </DialogHeader>
         <Input
           type="text"
           value={label}
-          placeholder="Unnamed Tree"
+          placeholder={i18n.t("sidepanel.treesDropdown.unnamedTree")}
           onChange={(e) => onLabelChange(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
@@ -761,11 +715,18 @@ function NewTreeDialog({
             type="button"
             onClick={() => onOpenChange(false)}
             disabled={creating}
+            className="press-feedback"
           >
-            Cancel
+            {i18n.t("trees.createDialog.cancel")}
           </Button>
-          <Button size="sm" type="button" onClick={onConfirm} disabled={creating}>
-            {creating ? "Creating…" : "Create"}
+          <Button
+            size="sm"
+            type="button"
+            onClick={onConfirm}
+            disabled={creating}
+            className="press-feedback"
+          >
+            {creating ? i18n.t("trees.createDialog.creating") : i18n.t("trees.createDialog.create")}
           </Button>
         </DialogFooter>
       </DialogContent>

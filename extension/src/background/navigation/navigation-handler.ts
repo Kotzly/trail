@@ -28,7 +28,6 @@ import { createUrlKey } from "@shared/lib/url-key.js";
 import { browser, type Browser, type Tab } from "@shared/platform/webext.js";
 import { markNodeVisited } from "../state/node-recency.js";
 import { createLogger } from "@shared/lib/logger.js";
-import { getEditorState, saveEditorMode } from "../messaging/handlers/editor-handlers.js";
 
 const log = createLogger("navigation");
 
@@ -61,21 +60,6 @@ export async function handleNavigation(
   // blocklist and be dropped.
   if (!settingsManager.isReady()) {
     await settingsManager.ready;
-  }
-
-  // Auto-exit editor mode when user navigates in the active tab
-  const editorState = getEditorState();
-  if (editorState.active) {
-    try {
-      const [activeTab] = await browser.tabs.query({ active: true, currentWindow: true });
-      if (activeTab?.id === tabId && shouldTrackUrl(url as Url)) {
-        await saveEditorMode();
-      }
-    } catch (e) {
-      log.error("Auto-exit editor on navigation failed", {
-        error: e instanceof Error ? e.message : String(e),
-      });
-    }
   }
 
   // Ensure tab still exists (read outside the lock)

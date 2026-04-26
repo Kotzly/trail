@@ -5,7 +5,7 @@ import { i18n } from "#i18n";
 import { useTrees } from "../hooks/useTrees.js";
 import { Button } from "@ui/components/ui/button";
 import { Input } from "@ui/components/ui/input";
-import { Label } from "@ui/components/ui/label";
+import { Field, FieldGroup, FieldLabel } from "@ui/components/ui/field";
 import { PageHeader } from "../components/PageHeader.js";
 import {
   Dialog,
@@ -26,6 +26,7 @@ import {
   ItemTitle,
 } from "@ui/components/ui/item";
 import { Skeleton } from "@ui/components/ui/skeleton";
+import { Spinner } from "@ui/components/ui/spinner";
 import { ButtonTooltip } from "@ui/components/button-tooltip";
 import {
   AlertDialog,
@@ -243,7 +244,7 @@ function NewTreeDialog({ onCreate }: { onCreate: (label: string) => Promise<unkn
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button>
-          <Icons.Plus />
+          <Icons.Plus data-icon="inline-start" />
           {i18n.t("trees.newTree")}
         </Button>
       </DialogTrigger>
@@ -259,17 +260,21 @@ function NewTreeDialog({ onCreate }: { onCreate: (label: string) => Promise<unkn
             void submit();
           }}
         >
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="new-tree-label">{i18n.t("trees.createDialog.nameLabel")}</Label>
-            <Input
-              id="new-tree-label"
-              placeholder={i18n.t("trees.createDialog.namePlaceholder")}
-              value={label}
-              onChange={(e) => setLabel(e.target.value)}
-              autoFocus
-              disabled={submitting}
-            />
-          </div>
+          <FieldGroup>
+            <Field>
+              <FieldLabel htmlFor="new-tree-label">
+                {i18n.t("trees.createDialog.nameLabel")}
+              </FieldLabel>
+              <Input
+                id="new-tree-label"
+                placeholder={i18n.t("trees.createDialog.namePlaceholder")}
+                value={label}
+                onChange={(e) => setLabel(e.target.value)}
+                autoFocus
+                disabled={submitting}
+              />
+            </Field>
+          </FieldGroup>
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
               {i18n.t("trees.createDialog.cancel")}
@@ -406,7 +411,7 @@ function resolveBadgeVariant({
       tooltip: busy ? i18n.t("trees.sync.working") : i18n.t("trees.sync.pending"),
       ariaLabel: i18n.t("trees.sync.inProgressAria"),
       disabled: true,
-      icon: <Icons.Loader2 className="animate-spin" />,
+      icon: <Spinner />,
     };
   }
 

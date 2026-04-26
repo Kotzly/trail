@@ -12,7 +12,6 @@ import type { NavigationTreeJSON, TreeMeta, TreeIndexEntry } from "../types/tree
 import type { Settings } from "../types/settings.js";
 import type { PersistedFlagState } from "../types/flags.js";
 import type { BackendConfigOverride } from "./backend.js";
-import type { EditorModeState } from "../rpc/contracts.js";
 import type { LayoutPositionsCacheEntry } from "@background/services/layout-cache-signature.js";
 import type { ConflictPickState } from "../types/tree-diff.js";
 
@@ -186,6 +185,27 @@ export const deviceIdItem = storage.defineItem<string | null>("local:trail_devic
   fallback: null,
 });
 
+/**
+ * Per-user provisioning cache. After the first successful
+ * `provisionSignedInUser` call, the userId is recorded here so subsequent
+ * surface mounts (settings, sidepanel, login) skip the redundant
+ * `users` upsert + `sync_public_user_from_auth` RPC + `devices` upsert
+ * round-trips. Device `last_seen_at` is refreshed on a throttle instead.
+ *
+ * Cleared on sign-out so a re-sign-in re-runs full provisioning.
+ */
+export type UserProvisionMeta = {
+  /** Unix-ms when ensurePublicUser+device first ran for this user. */
+  provisionedAt: number;
+  /** Unix-ms of the most recent device upsert. */
+  deviceLastSeenAt: number;
+};
+
+export const provisionedUsersItem = storage.defineItem<Record<string, UserProvisionMeta>>(
+  "local:trail_provisioned_users",
+  { fallback: {} },
+);
+
 export type SyncStateMeta = {
   /** Server-side updated_at ISO of the local tree's last successful push. */
   lastSyncedAt: string | null;
@@ -240,12 +260,6 @@ export const conflictPicksItem = storage.defineItem<Record<string, ConflictPickS
   { fallback: {} },
 );
 
-// ── Editor State (session-scoped) ────────────────────────────────────
-
-export const editorStateItem = storage.defineItem<EditorModeState>("session:trail_editor_state", {
-  fallback: { active: false, treeId: null },
-});
-
 export const layoutPositionsCacheItem = storage.defineItem<
   Record<string, LayoutPositionsCacheEntry>
 >("session:trail_layout_positions", { fallback: {} });
@@ -282,4 +296,27 @@ export type CleanupTombstone = {
 export const cleanupTombstonesItem = storage.defineItem<CleanupTombstone[]>(
   "local:trail_cleanup_tombstones",
   { fallback: [] },
+);
+
+/**
+ * Local "I just deleted this" tombstones for trees, indexed by treeId.
+ * Bridges the window between local DELETE_TREE and server-side
+ * `deleted_at = now()` so a periodic pull arriving mid-flight cannot
+ * re-stub the tree from a server row that hasn't been soft-deleted yet.
+ *
+ * 24h TTL — long enough to cover offline-then-online + clock skew, much
+ * shorter than the 30-day server retention. Cleared on successful
+ * server ack (sync-engine `doDelete` sets `deleted_at` then unsets the
+ * tombstone) or by `cancelPendingDelete` (Undo path).
+ */
+export type LocalDeleteTombstone = {
+  /** Unix ms when the local delete was issued. */
+  deletedAt: number;
+};
+
+export const LOCAL_DELETE_TOMBSTONE_TTL_MS = 24 * 60 * 60 * 1000;
+
+export const localDeleteTombstonesItem = storage.defineItem<Record<string, LocalDeleteTombstone>>(
+  "local:trail_local_delete_tombstones",
+  { fallback: {} },
 );

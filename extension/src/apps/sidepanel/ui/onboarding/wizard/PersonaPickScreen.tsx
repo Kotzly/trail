@@ -6,6 +6,7 @@
 
 import { i18n } from "#i18n";
 import { cn } from "@ui/lib/utils";
+import { Button } from "@ui/components/ui/button";
 import { Icons } from "@ui/components/icons";
 import type { OnboardingPersona } from "@shared/config/storage-items.js";
 
@@ -28,7 +29,7 @@ type Props = {
 
 export function PersonaPickScreen({ selected, onSelect }: Props) {
   return (
-    <div className="animate-in fade-in-0 slide-in-from-right-2 flex flex-col gap-4 duration-300">
+    <div className="animate-in fade-in-0 slide-in-from-right-2 flex flex-col gap-4 duration-300 ease-(--ease-out)">
       <div className="flex flex-col gap-1">
         <h2 className="text-foreground text-lg font-semibold tracking-tight">
           {i18n.t("onboarding.v2.persona.title")}
@@ -40,25 +41,23 @@ export function PersonaPickScreen({ selected, onSelect }: Props) {
         {OPTIONS.map((opt, i) => {
           const isSelected = selected === opt.id;
           return (
-            <button
+            <Button
               key={opt.id}
               type="button"
+              variant="outline"
               onClick={() => onSelect(opt.id)}
               className={cn(
-                "group flex items-start gap-3 rounded-lg border px-3.5 py-3 text-left transition-all duration-150",
-                "animate-in fade-in-0 slide-in-from-bottom-1 fill-mode-both",
-                "focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none",
+                "group h-auto items-start justify-start gap-3 px-3.5 py-3 text-left whitespace-normal transition-all duration-150",
+                "animate-in fade-in-0 slide-in-from-bottom-1 fill-mode-both ease-(--ease-out)",
                 "hover:border-primary/50 hover:bg-accent/40",
-                isSelected
-                  ? "border-primary bg-primary/5 ring-primary/30 ring-2"
-                  : "border-border bg-card",
+                isSelected && "border-primary bg-primary/5 ring-primary/30 ring-2",
               )}
               style={{ animationDelay: `${80 + i * 80}ms` }}
               aria-pressed={isSelected}
             >
               <span
                 className={cn(
-                  "mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md",
+                  "mt-0.5 flex size-8 shrink-0 items-center justify-center",
                   isSelected
                     ? "bg-primary/15 text-primary"
                     : "bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary",
@@ -74,7 +73,7 @@ export function PersonaPickScreen({ selected, onSelect }: Props) {
                   {i18n.t(`onboarding.v2.persona.options.${opt.id}.body`)}
                 </span>
               </span>
-            </button>
+            </Button>
           );
         })}
       </div>

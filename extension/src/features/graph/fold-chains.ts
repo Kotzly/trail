@@ -41,12 +41,20 @@ export type ChainFoldInfo = {
    * skipping past the hidden intermediates).
    */
   readonly headToTip: ReadonlyMap<NodeId, NavigationNodeJSON>;
+  /**
+   * Tips of chains the user has manually unfolded (double-click). The
+   * chain's nodes render as normal, and double-clicking the tip again
+   * re-folds it. Populated even though the chain is NOT currently
+   * hidden, so the UI can show a "refold" affordance.
+   */
+  readonly unfoldedTipIds: ReadonlySet<NodeId>;
 };
 
 export const EMPTY_FOLD_INFO: ChainFoldInfo = {
   hiddenIds: new Set<NodeId>(),
   tipFoldCounts: new Map<NodeId, number>(),
   headToTip: new Map<NodeId, NavigationNodeJSON>(),
+  unfoldedTipIds: new Set<NodeId>(),
 };
 
 /**
@@ -64,13 +72,14 @@ export const EMPTY_FOLD_INFO: ChainFoldInfo = {
 export function computeChainFoldInfo(
   tree: NavigationTreeJSON | null,
   matches: UrlPredicate,
-  unfoldedTipIds: ReadonlySet<NodeId> = new Set<NodeId>(),
+  userUnfoldedIds: ReadonlySet<NodeId> = new Set<NodeId>(),
 ): ChainFoldInfo {
   if (!tree?.root) return EMPTY_FOLD_INFO;
 
   const hiddenIds = new Set<NodeId>();
   const tipFoldCounts = new Map<NodeId, number>();
   const headToTip = new Map<NodeId, NavigationNodeJSON>();
+  const unfoldedTipIds = new Set<NodeId>();
 
   function walkFromHead(head: NavigationNodeJSON): NavigationNodeJSON {
     // Follow the linear chain: while current has exactly one child and
@@ -90,14 +99,20 @@ export function computeChainFoldInfo(
     // fully visible. The user has explicitly signalled these URLs
     // matter — don't hide them.
     const anyPinned = members.some((n) => n.data.pinned);
-    const tipUnfolded = unfoldedTipIds.has(tip.id);
+    const tipUnfolded = userUnfoldedIds.has(tip.id);
 
-    if (members.length > 1 && !anyPinned && !tipUnfolded) {
-      for (let i = 0; i < members.length - 1; i += 1) {
-        hiddenIds.add(members[i]!.id);
+    if (members.length > 1 && !anyPinned) {
+      if (tipUnfolded) {
+        // Chain would fold but the user explicitly unfolded the tip.
+        // Expose that to the UI so double-click can re-fold.
+        unfoldedTipIds.add(tip.id);
+      } else {
+        for (let i = 0; i < members.length - 1; i += 1) {
+          hiddenIds.add(members[i]!.id);
+        }
+        tipFoldCounts.set(tip.id, members.length - 1);
+        headToTip.set(head.id, tip);
       }
-      tipFoldCounts.set(tip.id, members.length - 1);
-      headToTip.set(head.id, tip);
     }
 
     return tip;
@@ -134,5 +149,5 @@ export function computeChainFoldInfo(
   }
 
   walk(tree.root, false, false);
-  return { hiddenIds, tipFoldCounts, headToTip };
+  return { hiddenIds, tipFoldCounts, headToTip, unfoldedTipIds };
 }

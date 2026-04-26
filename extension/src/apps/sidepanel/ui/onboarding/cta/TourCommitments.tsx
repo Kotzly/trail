@@ -9,7 +9,9 @@
  */
 
 import { i18n } from "#i18n";
+import { Avatar, AvatarFallback } from "@ui/components/ui/avatar";
 import { Button } from "@ui/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@ui/components/ui/card";
 import { Icons } from "@ui/components/icons";
 import { completeOnboarding, disposeTourTree } from "../../../api/onboarding.js";
 import { useStore } from "../../state/store.js";
@@ -61,19 +63,23 @@ export function TourCommitments() {
       role="dialog"
       aria-modal="false"
       aria-label={i18n.t("onboarding.cta.title" as I18nArg)}
-      className="animate-in fade-in-0 bg-background/95 absolute inset-0 z-30 flex flex-col items-center justify-center px-6 text-center backdrop-blur-sm duration-500"
+      className="animate-in fade-in-0 bg-background/95 absolute inset-0 z-30 flex flex-col items-center justify-center px-6 backdrop-blur-sm duration-500"
     >
-      <div className="animate-in zoom-in-95 slide-in-from-bottom-2 flex max-w-[320px] flex-col items-center gap-5 duration-500">
-        <div className="bg-primary/15 text-primary flex size-12 items-center justify-center rounded-full">
-          <Icons.Cloud className="size-6" aria-hidden />
-        </div>
-        <div className="flex flex-col gap-2">
-          <h2 className="text-foreground text-xl font-semibold tracking-tight">
+      <Card className="animate-in zoom-in-95 slide-in-from-bottom-2 max-w-[320px] items-center gap-5 border-none bg-transparent py-0 text-center ring-0 duration-500">
+        <Avatar size="lg" className="size-12">
+          <AvatarFallback className="bg-primary/15 text-primary">
+            <Icons.Cloud className="size-6" aria-hidden />
+          </AvatarFallback>
+        </Avatar>
+        <CardHeader className="gap-2 px-0">
+          <CardTitle className="text-xl font-semibold tracking-tight">
             {i18n.t("onboarding.cta.title" as I18nArg)}
-          </h2>
-          <p className="text-muted-foreground text-[13px] leading-relaxed">{i18n.t(taglineKey)}</p>
-        </div>
-        <div className="mt-1 flex w-full flex-col gap-2">
+          </CardTitle>
+          <CardDescription className="text-[13px] leading-relaxed">
+            {i18n.t(taglineKey)}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="mt-1 flex w-full flex-col gap-2 px-0">
           <Button type="button" size="default" onClick={() => void handleSignIn()}>
             {i18n.t("onboarding.cta.signIn" as I18nArg)}
           </Button>
@@ -86,8 +92,8 @@ export function TourCommitments() {
           >
             {i18n.t("onboarding.cta.skip" as I18nArg)}
           </Button>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

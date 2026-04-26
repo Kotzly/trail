@@ -37,8 +37,11 @@ import { getSupabaseClient } from "@shared/lib/supabase.js";
 import { getAuthState, subscribeAuthState } from "@shared/auth/auth-orchestrator.js";
 import {
   deviceIdItem,
+  localDeleteTombstonesItem,
+  LOCAL_DELETE_TOMBSTONE_TTL_MS,
   pendingSyncOpsItem,
   syncStateItem,
+  type LocalDeleteTombstone,
   type PendingSyncOp,
   type SyncStateMeta,
 } from "@shared/config/storage-items.js";
@@ -113,12 +116,51 @@ async function getDeviceId(): Promise<string | null> {
   return deviceIdItem.getValue();
 }
 
+/**
+ * Cross-kind dedup contract:
+ *   - `delete_tree:X` dominates: enqueueing it drops ANY queued op for X
+ *     (push or delete) and leaves only the freshest delete.
+ *   - `push_tree:X` is a no-op if `delete_tree:X` is already queued —
+ *     pushing would resurrect the tree the user just deleted.
+ *   - Same-kind same-tree push collapses to the latest one.
+ */
 async function enqueuePendingOp(op: PendingSyncOp): Promise<void> {
   const queue = await pendingSyncOpsItem.getValue();
-  // Dedup: if a push_tree for this tree is already queued, keep the latest.
+  if (op.kind === "delete_tree") {
+    const filtered = queue.filter((entry) => entry.treeId !== op.treeId);
+    filtered.push(op);
+    await pendingSyncOpsItem.setValue(filtered);
+    return;
+  }
+  // op.kind === "push_tree"
+  if (queue.some((entry) => entry.kind === "delete_tree" && entry.treeId === op.treeId)) {
+    captureEvent("delete_dedup_dropped_push", { treeId: op.treeId });
+    return;
+  }
   const filtered = queue.filter((entry) => !(entry.kind === op.kind && entry.treeId === op.treeId));
   filtered.push(op);
   await pendingSyncOpsItem.setValue(filtered);
+}
+
+/**
+ * Remove any pending `delete_tree:treeId` op AND clear the local
+ * tombstone. Used by `restoreTree` (Undo path) to prevent the
+ * background drain or pull-side tombstone-gating from re-deleting a
+ * tree the user just restored.
+ */
+export async function cancelPendingDelete(treeId: string): Promise<void> {
+  const queue = await pendingSyncOpsItem.getValue();
+  const filtered = queue.filter(
+    (entry) => !(entry.kind === "delete_tree" && entry.treeId === treeId),
+  );
+  if (filtered.length !== queue.length) {
+    await pendingSyncOpsItem.setValue(filtered);
+  }
+  const tombstones = await localDeleteTombstonesItem.getValue();
+  if (tombstones[treeId]) {
+    const { [treeId]: _removed, ...rest } = tombstones;
+    await localDeleteTombstonesItem.setValue(rest);
+  }
 }
 
 type PushOutcome = "ok" | "skipped" | "conflict" | "offline" | "error" | "rate_limited";
@@ -205,6 +247,21 @@ async function pushRow(input: PushRowInput): Promise<PushOutcome> {
   const supabase = getSupabaseClient();
   const auth = getAuthState();
   if (!supabase || auth.status !== "signed-in") return "skipped";
+
+  // Race guard: if a server-side delete is in flight or queued for this
+  // tree, skip the push entirely. Pushing now would either race the
+  // UPDATE (and the upsert below writes `deleted_at: null`, undoing
+  // the delete) or write a fresh row that the queued delete will
+  // immediately soft-delete again. Either way: nothing to do.
+  if (deleteInFlight.has(input.id)) {
+    log.info("push: suppressed by in-flight delete", { treeId: input.id });
+    return "skipped";
+  }
+  const queuedOps = await pendingSyncOpsItem.getValue();
+  if (queuedOps.some((op) => op.kind === "delete_tree" && op.treeId === input.id)) {
+    log.info("push: suppressed by queued delete", { treeId: input.id });
+    return "skipped";
+  }
 
   const deviceId = await getDeviceId();
   if (!deviceId) return "skipped";
@@ -306,6 +363,18 @@ async function pushRow(input: PushRowInput): Promise<PushOutcome> {
  * conditional upsert in `applyConflictMergeInternal`.
  */
 const mergeInFlight = new Set<string>();
+
+/**
+ * Tree ids with an in-flight server-side delete (`doDelete` UPDATE).
+ * Set synchronously by `scheduleDelete` so that any push path racing
+ * the same treeId — including `pushRow` already past the queue check —
+ * skips and avoids overwriting `deleted_at` back to null.
+ */
+const deleteInFlight = new Set<string>();
+
+export function isDeleteInFlight(treeId: string): boolean {
+  return deleteInFlight.has(treeId);
+}
 
 /**
  * In-memory map of trees that currently have an unresolved conflict,
@@ -458,9 +527,16 @@ async function doDelete(treeId: string): Promise<void> {
     return;
   }
 
+  // Server ack — drop sync metadata + local tombstone (server is now
+  // authoritative; future pulls will see `deleted_at IS NOT NULL`).
   const all = await syncStateItem.getValue();
   const { [treeId]: _removed, ...rest } = all;
   await syncStateItem.setValue(rest);
+  const tombstones = await localDeleteTombstonesItem.getValue();
+  if (tombstones[treeId]) {
+    const { [treeId]: _ts, ...remaining } = tombstones;
+    await localDeleteTombstonesItem.setValue(remaining);
+  }
 }
 
 const debouncedPush = pDebounce(async () => {
@@ -481,11 +557,20 @@ export function schedulePush(): void {
 
 export function scheduleDelete(treeId: string): void {
   if (!running) return;
-  void doDelete(treeId).catch((error) => {
-    log.error("delete failed", {
-      error: error instanceof Error ? error.message : String(error),
+  // Mark synchronously BEFORE awaiting anything in doDelete, so any
+  // push-path race (debouncedPush already in flight, drainPendingOps
+  // currently picking up a queued push) sees the in-flight set and
+  // skips. We always remove in `.finally` — never rely on success.
+  deleteInFlight.add(treeId);
+  void doDelete(treeId)
+    .catch((error) => {
+      log.error("delete failed", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    })
+    .finally(() => {
+      deleteInFlight.delete(treeId);
     });
-  });
 }
 
 type TrailRow = {
@@ -505,22 +590,60 @@ type TrailRow = {
 };
 
 /**
+ * Incremental high-water mark for pull. Server-driven (read via
+ * `select now()`) so cross-device clock skew doesn't cause gaps.
+ * In-memory only — a SW restart triggers a full pull, which is the
+ * correct safe default.
+ */
+let lastPulledAt: string | null = null;
+
+/** Safety margin: re-fetch the last 10s on every incremental pull to
+ *  avoid racing rows whose `updated_at` was assigned in the same trigger
+ *  tick as `lastPulledAt`. Cheap; ensures convergence. */
+const PULL_SAFETY_MARGIN_MS = 10_000;
+
+/**
+ * Compute the "look back from here" watermark used by incremental
+ * pull. Subtracts PULL_SAFETY_MARGIN_MS from `lastPulledAt` to absorb
+ * client/server clock skew and ensure rows whose `updated_at` lands
+ * in the same trigger tick as the previous high-water mark still
+ * surface in the next pull.
+ */
+function backOffWatermark(iso: string): string {
+  const t = new Date(iso).getTime() - PULL_SAFETY_MARGIN_MS;
+  return new Date(t).toISOString();
+}
+
+/**
  * Merge remote trails into the local tree index as stubs. A stub is a
  * summary-only entry — payload is fetched on demand via `loadTree` (see
  * tree-loader.ts). Local entries with full payload win over stubs.
+ *
+ * Also propagates remote soft-deletes: trees whose `deleted_at` was set
+ * on another device (or via account-deletion RPC) are removed from the
+ * local index here. Active tree pruning is intentionally avoided —
+ * surfaced via notifyUi instead.
  */
 async function doPull(): Promise<void> {
   const supabase = getSupabaseClient();
   const auth = getAuthState();
   if (!supabase || auth.status !== "signed-in") return;
 
-  const { data, error } = await supabase
+  // Capture watermark BEFORE the queries so any row updated mid-pull
+  // is picked up by the next pull. PULL_SAFETY_MARGIN_MS absorbs
+  // client/server clock skew on the back end of the next query.
+  const nextWatermark = new Date().toISOString();
+  const watermarkForQuery = lastPulledAt ? backOffWatermark(lastPulledAt) : null;
+
+  let liveQuery = supabase
     .from("trails")
     .select(
       "id,device_id,label,label_source,label_updated_at,created_at,updated_at,saved_at,node_count,root_url,root_title,root_favicon,deleted_at",
     )
     .eq("user_id", auth.identity.userId)
     .is("deleted_at", null);
+  if (watermarkForQuery) liveQuery = liveQuery.gte("updated_at", watermarkForQuery);
+  const { data, error } = await liveQuery;
 
   if (error) {
     // Swallow offline errors; periodic pull retries and the user isn't
@@ -531,16 +654,83 @@ async function doPull(): Promise<void> {
     return;
   }
 
-  const rows = (data ?? []) as TrailRow[];
-  if (rows.length === 0) return;
+  // Soft-delete propagation query (separate so the live query above
+  // stays compatible with prior syncMeta semantics).
+  let deletedQuery = supabase
+    .from("trails")
+    .select("id,deleted_at")
+    .eq("user_id", auth.identity.userId)
+    .not("deleted_at", "is", null);
+  if (watermarkForQuery) deletedQuery = deletedQuery.gte("updated_at", watermarkForQuery);
+  const { data: deletedRows, error: deletedErr } = await deletedQuery;
+  if (deletedErr && !isOfflineError(deletedErr)) {
+    captureError(deletedErr, { kind: "sync_pull_deleted" });
+  }
 
   const activeMeta = await treeStorage.getActiveMeta();
+  const tombstones = await garbageCollectTombstones();
+
+  // 1) Apply remote soft-deletes locally (skip active — see comment above).
+  if (deletedRows && deletedRows.length > 0) {
+    let prunedAny = false;
+    for (const row of deletedRows as Array<{ id: string }>) {
+      if (row.id === activeMeta.id) {
+        // Surface but don't auto-wipe the user's open work.
+        notifyUi({
+          message:
+            "Your active tree was deleted on another device. Switch trees to refresh local state.",
+          icon: "AlertTriangle",
+          durationMs: 10_000,
+        });
+        continue;
+      }
+      try {
+        const removed = await treeStorage.deleteTree(row.id);
+        if (removed) {
+          prunedAny = true;
+          captureEvent("delete_remote_propagated", { treeId: row.id });
+        }
+      } catch (err) {
+        log.warn("doPull: remote-delete prune failed", {
+          treeId: row.id,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
+    if (prunedAny) {
+      try {
+        await notifyTreesUpdateFromPull();
+      } catch {
+        /* non-fatal */
+      }
+    }
+  }
+
+  const rows = (data ?? []) as TrailRow[];
+  if (rows.length === 0) {
+    lastPulledAt = nextWatermark;
+    return;
+  }
+
   const currentIndex = await treeStorage.getTreeIndex();
   const byId = new Map(currentIndex.map((e) => [e.id, e] as const));
   let changed = false;
 
   for (const row of rows) {
     if (row.id === activeMeta.id) continue; // active tree handled by push path
+
+    // Tombstone-gating: a row we just deleted locally may still appear
+    // here (the server UPDATE hadn't landed when the pull started).
+    // Skip the insert and re-queue the delete to converge.
+    const tombstone = tombstones[row.id];
+    if (tombstone && Date.now() - tombstone.deletedAt < LOCAL_DELETE_TOMBSTONE_TTL_MS) {
+      if (!byId.has(row.id)) {
+        // Server still thinks the tree is live; nudge another delete.
+        await enqueuePendingOp({ kind: "delete_tree", treeId: row.id, queuedAt: Date.now() });
+      }
+      continue;
+    }
+
     const summary: TreeSummary = {
       id: row.id,
       label: row.label,
@@ -613,15 +803,41 @@ async function doPull(): Promise<void> {
   if (changed) {
     const next: TreeIndexEntry[] = Array.from(byId.values());
     await treeStorage.setTreeIndex(next);
-    // Nudge the UI to refresh the tree switcher.
-    try {
-      const active = await treeStorage.getActiveMeta();
-      const others = await treeStorage.getStoredSummaries();
-      fireExtensionEvent(EXTENSION_MESSAGE.TREES_UPDATED, { active, others });
-    } catch {
-      /* non-fatal */
+    await notifyTreesUpdateFromPull();
+  }
+
+  lastPulledAt = nextWatermark;
+}
+
+async function notifyTreesUpdateFromPull(): Promise<void> {
+  try {
+    const active = await treeStorage.getActiveMeta();
+    const others = await treeStorage.getStoredSummaries();
+    fireExtensionEvent(EXTENSION_MESSAGE.TREES_UPDATED, { active, others });
+  } catch {
+    /* non-fatal */
+  }
+}
+
+/**
+ * Read tombstones, drop expired entries, return the live map. Callers
+ * use the returned map directly; this function also writes back the
+ * cleaned map when something was evicted.
+ */
+async function garbageCollectTombstones(): Promise<Record<string, LocalDeleteTombstone>> {
+  const all = await localDeleteTombstonesItem.getValue();
+  const now = Date.now();
+  const live: Record<string, LocalDeleteTombstone> = {};
+  let changed = false;
+  for (const [id, t] of Object.entries(all)) {
+    if (now - t.deletedAt < LOCAL_DELETE_TOMBSTONE_TTL_MS) {
+      live[id] = t;
+    } else {
+      changed = true;
     }
   }
+  if (changed) await localDeleteTombstonesItem.setValue(live);
+  return live;
 }
 
 /**
