@@ -15,8 +15,6 @@ import {
   resolveOgImage,
   resolveOgLocale,
 } from "@/lib/seo";
-import { Header } from "@/app/components/Header";
-import { Footer } from "@/app/components/Footer";
 import { fetchSiteSettings } from "@/lib/sanity/queries";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
@@ -138,16 +136,7 @@ export default async function RootLayout({
             installUrl={settings?.navCta?.href}
           />
           <div className="relative z-10 min-h-screen flex flex-col">
-            <Header
-              navLinks={settings?.nav}
-              ctaText={settings?.navCta?.text}
-              ctaHref={settings?.navCta?.href}
-            />
-            <main className="flex-1">{children}</main>
-            <Footer
-              links={settings?.footerLinks}
-              copyright={settings?.footerCopyright}
-            />
+            {children}
           </div>
           <FeedbackWidget />
           <div className="noise" aria-hidden="true" />

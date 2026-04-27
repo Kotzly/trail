@@ -52,14 +52,14 @@
   --border-subtle: #1a1a1a;
   --border-strong: #333333;
 
-  --magenta: #D4166C;
-  --magenta-hover: #B8125D;
+  --magenta: #d4166c;
+  --magenta-hover: #b8125d;
   --magenta-glow: rgba(212, 22, 108, 0.15);
   --magenta-focus: rgba(212, 22, 108, 0.4);
   --magenta-subtle: rgba(212, 22, 108, 0.08);
 
-  --gold: #E8B831;
-  --gold-hover: #D4A52A;
+  --gold: #e8b831;
+  --gold-hover: #d4a52a;
   --gold-glow: rgba(232, 184, 49, 0.15);
   --gold-subtle: rgba(232, 184, 49, 0.08);
 }
@@ -89,10 +89,18 @@
   background-size: 256px 256px;
 }
 
-.tracking-display  { letter-spacing: -0.075em; }
-.tracking-heading  { letter-spacing: -0.05em; }
-.tracking-body     { letter-spacing: -0.02em; }
-.tracking-label    { letter-spacing: 0.05em; }
+.tracking-display {
+  letter-spacing: -0.075em;
+}
+.tracking-heading {
+  letter-spacing: -0.05em;
+}
+.tracking-body {
+  letter-spacing: -0.02em;
+}
+.tracking-label {
+  letter-spacing: 0.05em;
+}
 
 ::selection {
   background: rgba(212, 22, 108, 0.25);
@@ -107,5 +115,17 @@
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
+  }
+}
+
+/* Magnetic scrolling — only active when the landing is in the DOM.
+   `proximity` softly nudges to nearby snap points (act centers + section
+   starts) without forcing the user; free scroll still works. */
+html:has([data-landing]) {
+  scroll-snap-type: y proximity;
+}
+@media (prefers-reduced-motion: reduce) {
+  html:has([data-landing]) {
+    scroll-snap-type: none;
   }
 }

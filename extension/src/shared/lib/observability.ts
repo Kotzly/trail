@@ -78,6 +78,7 @@ export type AnalyticsEvent =
   | "auth_password_reset_requested"
   | "auth_password_changed"
   | "auth_signout"
+  | "auth_user_changed_wipe"
   | "sync_ok"
   | "sync_failed"
   // Sync-conflict resolution (§ sync-wiggly-hellman plan)

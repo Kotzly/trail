@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { setRequestLocale } from "next-intl/server";
 import { buildMetadata } from "@/lib/seo";
 import { Reveal } from "@/app/components/ui/reveal";
+import { SiteChrome } from "@/app/components/SiteChrome";
 import {
   changelog,
   type ChangelogChangeType,
@@ -38,40 +39,42 @@ export default async function ChangelogPage({
   const entries = [...changelog].sort((a, b) => b.date.localeCompare(a.date));
 
   return (
-    <section className="relative mx-auto max-w-3xl px-6 pb-24 pt-32">
-      <Reveal>
-        <div className="text-center">
-          <span className="inline-block text-xs font-medium uppercase tracking-widest text-text-tertiary">
-            Changelog
-          </span>
-          <h1 className="mt-4 font-serif text-4xl italic leading-tight text-text-primary md:text-5xl">
-            What's new in Trail
-          </h1>
-          <p className="mx-auto mt-4 max-w-lg text-base text-text-secondary leading-relaxed">
-            New features, improvements, and fixes — in the order we shipped
-            them.
-          </p>
-        </div>
-      </Reveal>
-
-      {entries.length === 0 ? (
-        <Reveal delay={0.1}>
-          <div className="mt-12 rounded-2xl border border-border-subtle bg-surface p-8 text-center">
-            <p className="text-sm text-text-tertiary">
-              Nothing to report yet. Check back soon.
+    <SiteChrome locale={locale}>
+      <section className="relative mx-auto max-w-3xl px-6 pb-24 pt-32">
+        <Reveal>
+          <div className="text-center">
+            <span className="inline-block text-xs font-medium uppercase tracking-widest text-text-tertiary">
+              Changelog
+            </span>
+            <h1 className="mt-4 font-serif text-4xl italic leading-tight text-text-primary md:text-5xl">
+              What&rsquo;s new in Trail
+            </h1>
+            <p className="mx-auto mt-4 max-w-lg text-base text-text-secondary leading-relaxed">
+              New features, improvements, and fixes — in the order we shipped
+              them.
             </p>
           </div>
         </Reveal>
-      ) : (
-        <ol className="mt-12 space-y-6">
-          {entries.map((entry, index) => (
-            <Reveal key={entry.version} delay={0.05 + index * 0.05}>
-              <ChangelogCard entry={entry} locale={locale} />
-            </Reveal>
-          ))}
-        </ol>
-      )}
-    </section>
+
+        {entries.length === 0 ? (
+          <Reveal delay={0.1}>
+            <div className="mt-12 rounded-2xl border border-border-subtle bg-surface p-8 text-center">
+              <p className="text-sm text-text-tertiary">
+                Nothing to report yet. Check back soon.
+              </p>
+            </div>
+          </Reveal>
+        ) : (
+          <ol className="mt-12 space-y-6">
+            {entries.map((entry, index) => (
+              <Reveal key={entry.version} delay={0.05 + index * 0.05}>
+                <ChangelogCard entry={entry} locale={locale} />
+              </Reveal>
+            ))}
+          </ol>
+        )}
+      </section>
+    </SiteChrome>
   );
 }
 

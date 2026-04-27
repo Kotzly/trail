@@ -181,6 +181,23 @@ export const authIdentityItem = storage.defineItem<AuthIdentity | null>(
   { fallback: null },
 );
 
+/**
+ * The most recently signed-in user id on this browser. Survives signOut
+ * (unlike `authIdentityItem` and `provisionedUsersItem`) so the next
+ * sign-in can detect "different account" and wipe stale per-user local
+ * state — local trees, syncStateItem, pendingSyncOpsItem, deviceId, etc.
+ * Without this, a new user inherits the previous user's tree blobs and
+ * the upsert path immediately hits Postgres RLS:
+ *   "new row violates row-level security policy (USING expression)"
+ * because the trail row already exists in Supabase under the previous
+ * `user_id` and the UPDATE branch of `INSERT ... ON CONFLICT DO UPDATE`
+ * fails the `user_id = auth.uid()` USING check.
+ */
+export const lastSignedInUserIdItem = storage.defineItem<string | null>(
+  "local:trail_last_signed_in_user",
+  { fallback: null },
+);
+
 export const deviceIdItem = storage.defineItem<string | null>("local:trail_device_id", {
   fallback: null,
 });

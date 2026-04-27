@@ -5,6 +5,7 @@ import { setRequestLocale } from "next-intl/server";
 import { fetchSupportPage } from "@/lib/sanity/queries";
 import { buildMetadata } from "@/lib/seo";
 import { Reveal } from "@/app/components/ui/reveal";
+import { SiteChrome } from "@/app/components/SiteChrome";
 import { LeaveNoteButton } from "./LeaveNoteButton";
 
 type SupportPageData = {
@@ -64,35 +65,51 @@ export default async function SupportPage({
   const contactEmail = page?.contactEmail ?? fallback.contactEmail;
 
   return (
-    <section className="relative mx-auto max-w-3xl px-6 pb-24 pt-32">
-      {/* Hero */}
-      <Reveal>
-        <div className="text-center">
-          <span className="inline-block text-xs font-medium uppercase tracking-widest text-text-tertiary">
-            Support
-          </span>
-          <h1 className="mt-4 font-serif text-4xl italic leading-tight text-text-primary md:text-5xl">
-            {title}
-          </h1>
-          {description && (
-            <p className="mx-auto mt-4 max-w-lg text-base text-text-secondary leading-relaxed">
-              {description}
-            </p>
-          )}
-        </div>
-      </Reveal>
+    <SiteChrome locale={locale}>
+      <section className="relative mx-auto max-w-3xl px-6 pb-24 pt-32">
+        {/* Hero */}
+        <Reveal>
+          <div className="text-center">
+            <span className="inline-block text-xs font-medium uppercase tracking-widest text-text-tertiary">
+              Support
+            </span>
+            <h1 className="mt-4 font-serif text-4xl italic leading-tight text-text-primary md:text-5xl">
+              {title}
+            </h1>
+            {description && (
+              <p className="mx-auto mt-4 max-w-lg text-base text-text-secondary leading-relaxed">
+                {description}
+              </p>
+            )}
+          </div>
+        </Reveal>
 
-      {/* Status Banner */}
-      <Reveal delay={0.1}>
-        <div className="mt-12">
-          {statusPageUrl ? (
-            <a
-              href={statusPageUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group flex items-center justify-between rounded-2xl border border-border-subtle bg-surface px-6 py-4 transition-colors hover:border-border-strong"
-            >
-              <div className="flex items-center gap-3">
+        {/* Status Banner */}
+        <Reveal delay={0.1}>
+          <div className="mt-12">
+            {statusPageUrl ? (
+              <a
+                href={statusPageUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex items-center justify-between rounded-2xl border border-border-subtle bg-surface px-6 py-4 transition-colors hover:border-border-strong"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                    <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                  </span>
+                  <span className="text-sm font-medium text-text-primary">
+                    {statusLabel}
+                  </span>
+                </div>
+                <span className="flex items-center gap-1 text-xs text-text-tertiary transition-colors group-hover:text-text-secondary">
+                  Status page
+                  <ArrowUpRight size={12} />
+                </span>
+              </a>
+            ) : (
+              <div className="flex items-center gap-3 rounded-2xl border border-border-subtle bg-surface px-6 py-4">
                 <span className="relative flex h-2.5 w-2.5">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
                   <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
@@ -101,46 +118,32 @@ export default async function SupportPage({
                   {statusLabel}
                 </span>
               </div>
-              <span className="flex items-center gap-1 text-xs text-text-tertiary transition-colors group-hover:text-text-secondary">
-                Status page
-                <ArrowUpRight size={12} />
-              </span>
-            </a>
-          ) : (
-            <div className="flex items-center gap-3 rounded-2xl border border-border-subtle bg-surface px-6 py-4">
-              <span className="relative flex h-2.5 w-2.5">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
-              </span>
-              <span className="text-sm font-medium text-text-primary">
-                {statusLabel}
-              </span>
-            </div>
-          )}
-        </div>
-      </Reveal>
-
-      {/* Contact Section */}
-      <Reveal delay={0.2}>
-        <div className="mt-12">
-          <h2 className="text-center text-xs font-medium uppercase tracking-widest text-text-tertiary">
-            Get in touch
-          </h2>
-
-          <div className="mt-6 grid gap-4 sm:grid-cols-2">
-            <ContactCard
-              icon={Mail}
-              label="Email"
-              description="Send us a message and we'll get back to you"
-              href={`mailto:${contactEmail}`}
-              cta={contactEmail}
-            />
-
-            <LeaveNoteButton />
+            )}
           </div>
-        </div>
-      </Reveal>
-    </section>
+        </Reveal>
+
+        {/* Contact Section */}
+        <Reveal delay={0.2}>
+          <div className="mt-12">
+            <h2 className="text-center text-xs font-medium uppercase tracking-widest text-text-tertiary">
+              Get in touch
+            </h2>
+
+            <div className="mt-6 grid gap-4 sm:grid-cols-2">
+              <ContactCard
+                icon={Mail}
+                label="Email"
+                description="Send us a message and we'll get back to you"
+                href={`mailto:${contactEmail}`}
+                cta={contactEmail}
+              />
+
+              <LeaveNoteButton />
+            </div>
+          </div>
+        </Reveal>
+      </section>
+    </SiteChrome>
   );
 }
 

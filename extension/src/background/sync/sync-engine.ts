@@ -499,14 +499,55 @@ async function handlePushError(treeId: string, error: PostgrestError): Promise<P
     return "offline";
   }
 
+  // RLS USING-clause failure on the UPDATE branch of an upsert means
+  // the row exists in `trails` but is owned by a different
+  // `auth.uid()` — i.e. local state for this tree id is orphaned from
+  // a previous account on this browser. The user-change wipe in
+  // `provisionSignedInUser` is the primary fix; this branch is a
+  // belt-and-suspenders that drops the cached sync metadata and pulls
+  // any pending push for this tree out of the queue so we don't keep
+  // looping on the same orphan. The local tree blob itself is left
+  // alone — the user keeps their work and a fresh tree id elsewhere
+  // converges normally.
+  if (error.code === "42501") {
+    log.warn("push: RLS rejected — orphan from previous account, dropping sync metadata", {
+      treeId,
+      msg: error.message ?? "",
+    });
+    captureError(error, { kind: "sync_push_rls_orphan", treeId });
+    captureEvent("sync_failed", { reason: "rls_orphan", code: "42501" });
+    try {
+      const all = await syncStateItem.getValue();
+      if (treeId in all) {
+        const { [treeId]: _removed, ...rest } = all;
+        await syncStateItem.setValue(rest);
+      }
+      const queued = await pendingSyncOpsItem.getValue();
+      const filtered = queued.filter((op) => !(op.kind === "push_tree" && op.treeId === treeId));
+      if (filtered.length !== queued.length) {
+        await pendingSyncOpsItem.setValue(filtered);
+      }
+    } catch (cleanupErr) {
+      log.warn("push: orphan cleanup failed", {
+        treeId,
+        error: cleanupErr instanceof Error ? cleanupErr.message : String(cleanupErr),
+      });
+    }
+    setStatus("idle");
+    return "skipped";
+  }
+
+  // Background sync failures are logged + tracked but never toasted —
+  // see feedback memory `feedback_no_sync_error_toasts`. The next pull
+  // tick recovers; the sync status pill reflects the failure.
+  log.warn("push failed", {
+    treeId,
+    code: error.code ?? "unknown",
+    msg: error.message ?? "",
+  });
   captureError(error, { kind: "sync_push", treeId });
   captureEvent("sync_failed", { reason: "push_error", code: error.code ?? "unknown" });
   setStatus("error");
-  notifyUi({
-    message: `Couldn't sync a tree to the cloud: ${error.message ?? "unknown error"}.`,
-    icon: "AlertTriangle",
-    durationMs: 10000,
-  });
   return "error";
 }
 

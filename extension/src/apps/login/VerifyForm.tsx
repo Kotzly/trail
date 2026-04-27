@@ -49,7 +49,7 @@ export function VerifyForm({
           }}
         >
           <FieldGroup>
-            <Field data-invalid={otpError ? true : undefined} className="items-center">
+            <Field data-invalid={otpError ? true : undefined}>
               <FieldLabel htmlFor="otp" className="sr-only">
                 {i18n.t("login.verify.codeLabel")}
               </FieldLabel>
@@ -61,7 +61,7 @@ export function VerifyForm({
                 autoFocus
                 disabled={pending}
                 aria-invalid={otpError ? true : undefined}
-                containerClassName="gap-1"
+                containerClassName="justify-center"
               >
                 <InputOTPGroup>
                   <InputOTPSlot

@@ -12,7 +12,6 @@ import { useEffect, useMemo, useState } from "react";
 import { i18n } from "#i18n";
 import { Avatar, AvatarFallback } from "@ui/components/ui/avatar";
 import { Button } from "@ui/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@ui/components/ui/card";
 import { Icons } from "@ui/components/icons";
 import { cn } from "@ui/lib/utils";
 import { setOnboardingPhase } from "../../../api/onboarding.js";
@@ -103,32 +102,30 @@ function CelebrationBody({ startedAt }: { startedAt: number | null }) {
       className="animate-in fade-in-0 bg-background/95 absolute inset-0 z-30 flex flex-col items-center justify-center overflow-hidden px-6 backdrop-blur-sm duration-500 ease-(--ease-out)"
     >
       <Confetti />
-      <Card className="animate-in zoom-in-95 slide-in-from-bottom-2 relative z-10 items-center gap-4 border-none bg-transparent py-0 text-center ring-0 duration-700 ease-(--ease-out)">
+      <div className="animate-in zoom-in-95 slide-in-from-bottom-2 relative z-10 flex w-full flex-col items-center gap-4 text-center duration-700 ease-(--ease-out)">
         <Avatar size="lg" className="size-14">
           <AvatarFallback className="bg-primary/15 text-primary">
             <Icons.Sparkles className="size-7" aria-hidden />
           </AvatarFallback>
         </Avatar>
-        <CardHeader className="gap-2 px-0">
-          <CardTitle className="text-2xl font-semibold tracking-tight">
+        <div className="flex w-full flex-col items-center gap-2">
+          <h2 className="text-foreground text-2xl font-semibold tracking-tight">
             {i18n.t("onboarding.celebration.title", [String(nodeCount), secondsLabel])}
-          </CardTitle>
-          <CardDescription className="max-w-[260px] text-sm leading-relaxed">
+          </h2>
+          <p className="text-muted-foreground max-w-[260px] text-sm leading-relaxed">
             {i18n.t(bodyKey)}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="px-0">
-          <Button
-            type="button"
-            size="sm"
-            variant="secondary"
-            onClick={handleContinue}
-            className="press-feedback"
-          >
-            {i18n.t("onboarding.celebration.cta" as I18nArg)}
-          </Button>
-        </CardContent>
-      </Card>
+          </p>
+        </div>
+        <Button
+          type="button"
+          size="sm"
+          variant="secondary"
+          onClick={handleContinue}
+          className="press-feedback"
+        >
+          {i18n.t("onboarding.celebration.cta" as I18nArg)}
+        </Button>
+      </div>
     </div>
   );
 }

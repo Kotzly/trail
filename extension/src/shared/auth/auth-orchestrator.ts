@@ -42,10 +42,20 @@ import type { AuthError, Session } from "@supabase/supabase-js";
 import { getSupabaseClient, isSupabaseConfigured } from "@shared/lib/supabase.js";
 import {
   authIdentityItem,
+  cleanupTombstonesItem,
+  conflictPicksItem,
   deviceIdItem,
+  lastSignedInUserIdItem,
+  layoutPositionsCacheItem,
+  localDeleteTombstonesItem,
+  openTabsItem,
+  pendingSyncOpsItem,
   provisionedUsersItem,
+  syncStateItem,
+  undoHistoryItem,
   type AuthIdentity,
 } from "@shared/config/storage-items.js";
+import { treeStorage } from "@background/services/tree-storage.js";
 import { captureError, captureEvent, resetTelemetryIdentity } from "@shared/lib/observability.js";
 import { createLogger } from "@shared/lib/logger.js";
 
@@ -90,6 +100,41 @@ async function ensureDeviceId(): Promise<string> {
   const next = crypto.randomUUID();
   await deviceIdItem.setValue(next);
   return next;
+}
+
+/**
+ * Wipe every per-user persisted bucket on this browser. Called when the
+ * sign-in identity differs from the last one we saw — at that point the
+ * old user's trees, sync metadata, queued cloud ops, and device row no
+ * longer belong to the active session, and pushing them under the new
+ * `auth.uid()` fails the trails/devices RLS USING check.
+ *
+ * Settings/onboarding/telemetry/flag state is intentionally left alone —
+ * it's either device-scoped or hydrates from the server on demand.
+ */
+async function wipeUserScopedLocalState(): Promise<void> {
+  const safeRun = async (label: string, fn: () => Promise<void>): Promise<void> => {
+    try {
+      await fn();
+    } catch (err) {
+      log.warn(`wipeUserScopedLocalState: ${label} failed`, {
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  };
+  await safeRun("trees", () => treeStorage.clearAllTrees());
+  await safeRun("syncState", () => syncStateItem.setValue({}));
+  await safeRun("pendingSyncOps", () => pendingSyncOpsItem.setValue([]));
+  await safeRun("localDeleteTombstones", () => localDeleteTombstonesItem.setValue({}));
+  await safeRun("cleanupTombstones", () => cleanupTombstonesItem.setValue([]));
+  await safeRun("openTabs", () => openTabsItem.setValue({}));
+  await safeRun("undoHistory", () => undoHistoryItem.setValue(null));
+  await safeRun("conflictPicks", () => conflictPicksItem.setValue({}));
+  await safeRun("layoutPositions", () => layoutPositionsCacheItem.setValue({}));
+  // Rotate the device id so `ensureDeviceRegistered` inserts a fresh
+  // `devices` row instead of upserting on top of the previous user's
+  // row (which silently fails RLS USING and leaves an orphan).
+  await safeRun("deviceId", () => deviceIdItem.setValue(null));
 }
 
 function detectOs(ua: string): string | null {
@@ -153,6 +198,34 @@ async function ensurePublicUser(identity: AuthIdentity): Promise<void> {
 }
 
 /**
+ * If the previously-seen signed-in user on this browser differs from
+ * the one currently signing in, scrub every per-user storage bucket
+ * before broadcasting `signed-in`. Idempotent — once
+ * `lastSignedInUserIdItem` matches, subsequent calls are no-ops.
+ *
+ * Pure chrome.storage I/O. No Supabase calls — safe to await inside
+ * `onAuthStateChange` (unlike `provisionSignedInUser`, which talks to
+ * Supabase and must stay fire-and-forget there to avoid the
+ * navigator.locks deadlock).
+ */
+async function runUserChangeWipeIfNeeded(identity: AuthIdentity): Promise<void> {
+  const previousUserId = await lastSignedInUserIdItem.getValue();
+  if (previousUserId === identity.userId) return;
+  if (previousUserId) {
+    log.info("auth: account switch detected, wiping per-user local state", {
+      from: previousUserId,
+      to: identity.userId,
+    });
+    await wipeUserScopedLocalState();
+    captureEvent("auth_user_changed_wipe");
+  }
+  // Always advance the discriminator — first sign-in on a fresh
+  // install hits this path with `previousUserId === null` and we want
+  // future sign-ins as a different user to wipe.
+  await lastSignedInUserIdItem.setValue(identity.userId);
+}
+
+/**
  * Provision everything a signed-in identity needs server-side before
  * the extension tries to write trails. Order matters: `devices` and
  * every other public table have a FK to `public.users(id)`, so the
@@ -165,6 +238,11 @@ async function ensurePublicUser(identity: AuthIdentity): Promise<void> {
  * without spamming the backend on every surface mount.
  */
 async function provisionSignedInUser(identity: AuthIdentity): Promise<void> {
+  // Account-switch wipe runs first so the sync engine never observes
+  // the previous user's local trees under the new `auth.uid()`, which
+  // would fail the trails RLS USING check on every upsert.
+  await runUserChangeWipeIfNeeded(identity);
+
   const cache = await provisionedUsersItem.getValue();
   const entry = cache[identity.userId];
   const now = Date.now();
@@ -399,15 +477,22 @@ export async function initAuth(): Promise<AuthState> {
         return;
       }
       await authIdentityItem.setValue(identity);
-      // Fire-and-forget: awaiting inside an `onAuthStateChange` callback
-      // deadlocks supabase-js's `navigator.locks` critical section —
-      // another context (SW or sidepanel) steals the auth lock and the
-      // original caller's sign-in rejects with "lock stolen". Explicit
-      // sign-in entry points (`signInWithGoogle`, `signInWithEmailPassword`,
-      // `signUpWithEmailPassword`, `verifyEmailOtp`) await provisioning
-      // themselves before broadcasting; this handler exists for token
-      // refresh / cross-tab wakeups where an eventual-consistent row is
-      // good enough.
+      // Account-switch wipe MUST run before `notify` so the sync engine
+      // (which subscribes via `subscribeAuthState`) doesn't kick off a
+      // backfill against the previous user's local trees. It only does
+      // chrome.storage I/O — no Supabase calls — so it's safe to await
+      // here without tripping the navigator.locks deadlock that
+      // forbids awaiting `provisionSignedInUser` (which talks to
+      // Supabase) in this callback.
+      await runUserChangeWipeIfNeeded(identity);
+      // Fire-and-forget the *server-side* provisioning: awaiting that
+      // inside an `onAuthStateChange` callback deadlocks supabase-js's
+      // `navigator.locks` critical section — another context (SW or
+      // sidepanel) steals the auth lock and the original caller's
+      // sign-in rejects with "lock stolen". Explicit sign-in entry
+      // points await provisioning themselves before broadcasting;
+      // this handler exists for token refresh / cross-tab wakeups
+      // where an eventual-consistent row is good enough.
       void provisionSignedInUser(identity);
       notify({ status: "signed-in", identity });
     } else {
@@ -779,6 +864,11 @@ export async function updatePassword(newPassword: string): Promise<void> {
       pendingRecoveryIdentity = null;
       if (identity) {
         await authIdentityItem.setValue(identity);
+        // Cross-account recovery: someone signed in to A might run
+        // password recovery as B on the same browser. Run the wipe
+        // before `notify` so the sync engine doesn't backfill A's
+        // local trees under B's auth.uid().
+        await runUserChangeWipeIfNeeded(identity);
         notify({ status: "signed-in", identity });
       }
     }
