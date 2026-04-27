@@ -9,7 +9,6 @@ type RootNode = {
   x: number;
   y: number;
   dir: Direction;
-  delay: number;
   favicon: FaviconKind;
   title: string;
   domain: string;
@@ -18,12 +17,26 @@ type RootNode = {
 
 type FaviconKind = "wiki" | "arxiv" | "gh" | "so" | "hn" | "figma" | "yt";
 
+// Seed position — matches the first node and the visual "root" point.
+const SEED_X = 50;
+const SEED_Y = 22;
+
+// Stagger delay derived from each node's position relative to the seed.
+// Vertical distance (down the trunk) comes first; lateral distance from
+// the trunk spreads after. Result: nodes appear like a root growing —
+// trunk descends, then branches splay left/right at each depth — instead
+// of horizontal stripes top-to-bottom.
+function nodeDelay(n: { x: number; y: number }): number {
+  const vert = Math.max(0, n.y - SEED_Y) / 70; // 0..1, top→bottom of card area
+  const lat = Math.abs(n.x - SEED_X) / 50; // 0..1, center→edge
+  return vert * 0.12 + lat * 0.16;
+}
+
 const NODES: RootNode[] = [
   {
     x: 50,
     y: 22,
     dir: "down",
-    delay: 0.0,
     favicon: "wiki",
     title: "History of typography",
     domain: "wikipedia.org",
@@ -34,7 +47,6 @@ const NODES: RootNode[] = [
     x: 30,
     y: 28,
     dir: "left",
-    delay: 0.02,
     favicon: "arxiv",
     title: "Attention is all you need",
     domain: "arxiv.org",
@@ -45,7 +57,6 @@ const NODES: RootNode[] = [
     x: 70,
     y: 26,
     dir: "right",
-    delay: 0.03,
     favicon: "figma",
     title: "Trail · Mood board",
     domain: "figma.com",
@@ -55,7 +66,6 @@ const NODES: RootNode[] = [
     x: 18,
     y: 42,
     dir: "left",
-    delay: 0.06,
     favicon: "so",
     title: "How does sticky work?",
     domain: "stackoverflow.com",
@@ -66,7 +76,6 @@ const NODES: RootNode[] = [
     x: 40,
     y: 48,
     dir: "left",
-    delay: 0.07,
     favicon: "gh",
     title: "facebook / react",
     domain: "github.com",
@@ -76,7 +85,6 @@ const NODES: RootNode[] = [
     x: 60,
     y: 46,
     dir: "right",
-    delay: 0.08,
     favicon: "hn",
     title: "Show HN: a tree for tabs",
     domain: "news.ycombinator.com",
@@ -87,7 +95,6 @@ const NODES: RootNode[] = [
     x: 82,
     y: 44,
     dir: "right",
-    delay: 0.06,
     favicon: "yt",
     title: "On craft (talk)",
     domain: "youtube.com",
@@ -97,7 +104,6 @@ const NODES: RootNode[] = [
     x: 10,
     y: 58,
     dir: "left",
-    delay: 0.11,
     favicon: "arxiv",
     title: "Self-attention, revisited",
     domain: "arxiv.org",
@@ -108,7 +114,6 @@ const NODES: RootNode[] = [
     x: 26,
     y: 62,
     dir: "left",
-    delay: 0.13,
     favicon: "gh",
     title: "tannerlinsley / react-query",
     domain: "github.com",
@@ -118,7 +123,6 @@ const NODES: RootNode[] = [
     x: 44,
     y: 64,
     dir: "left",
-    delay: 0.15,
     favicon: "so",
     title: "When to use useMemo",
     domain: "stackoverflow.com",
@@ -129,7 +133,6 @@ const NODES: RootNode[] = [
     x: 56,
     y: 64,
     dir: "right",
-    delay: 0.15,
     favicon: "figma",
     title: "Components / Buttons v3",
     domain: "figma.com",
@@ -139,7 +142,6 @@ const NODES: RootNode[] = [
     x: 74,
     y: 62,
     dir: "right",
-    delay: 0.13,
     favicon: "hn",
     title: "Ask HN: how do you read papers?",
     domain: "news.ycombinator.com",
@@ -150,7 +152,6 @@ const NODES: RootNode[] = [
     x: 90,
     y: 58,
     dir: "right",
-    delay: 0.11,
     favicon: "wiki",
     title: "Forest ecology",
     domain: "wikipedia.org",
@@ -160,7 +161,6 @@ const NODES: RootNode[] = [
     x: 6,
     y: 76,
     dir: "left",
-    delay: 0.18,
     favicon: "yt",
     title: "Suzanne Simard · Mother trees",
     domain: "youtube.com",
@@ -171,7 +171,6 @@ const NODES: RootNode[] = [
     x: 20,
     y: 84,
     dir: "left",
-    delay: 0.2,
     favicon: "gh",
     title: "pmndrs / zustand",
     domain: "github.com",
@@ -182,7 +181,6 @@ const NODES: RootNode[] = [
     x: 36,
     y: 88,
     dir: "left",
-    delay: 0.22,
     favicon: "wiki",
     title: "Slime mould networks",
     domain: "wikipedia.org",
@@ -193,7 +191,6 @@ const NODES: RootNode[] = [
     x: 50,
     y: 92,
     dir: "down",
-    delay: 0.24,
     favicon: "arxiv",
     title: "Emergent abilities of LLMs",
     domain: "arxiv.org",
@@ -204,7 +201,6 @@ const NODES: RootNode[] = [
     x: 64,
     y: 88,
     dir: "right",
-    delay: 0.22,
     favicon: "figma",
     title: "Hero · Animation refs",
     domain: "figma.com",
@@ -214,7 +210,6 @@ const NODES: RootNode[] = [
     x: 80,
     y: 84,
     dir: "right",
-    delay: 0.2,
     favicon: "so",
     title: "Smooth canvas resize",
     domain: "stackoverflow.com",
@@ -225,7 +220,6 @@ const NODES: RootNode[] = [
     x: 94,
     y: 76,
     dir: "right",
-    delay: 0.18,
     favicon: "hn",
     title: "The garden, not the stream",
     domain: "news.ycombinator.com",
@@ -291,7 +285,7 @@ function NodeWaypoint({
   setHovered: (i: number | null) => void;
   setPinned: (i: number | null) => void;
 }) {
-  const localStart = WIN_START + node.delay;
+  const localStart = WIN_START + nodeDelay(node);
   const localEnd = localStart + FADE_LEN;
 
   // Continuous opacity curve: 0 before localStart, 1 after localEnd.

@@ -95,7 +95,6 @@ export function LandingDemo() {
       className="relative border-t border-[var(--landing-line)] bg-[var(--landing-bg)]"
       style={{
         padding: "clamp(96px, 14vh, 200px) clamp(24px, 6vw, 96px)",
-        scrollSnapAlign: "start",
       }}
     >
       <motion.div

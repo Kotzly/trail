@@ -127,15 +127,3 @@
     scroll-behavior: auto;
   }
 }
-
-/* Magnetic scrolling — only active when the landing is in the DOM.
-   `proximity` softly nudges to nearby snap points (act centers + section
-   starts) without forcing the user; free scroll still works. */
-html:has([data-landing]) {
-  scroll-snap-type: y proximity;
-}
-@media (prefers-reduced-motion: reduce) {
-  html:has([data-landing]) {
-    scroll-snap-type: none;
-  }
-}

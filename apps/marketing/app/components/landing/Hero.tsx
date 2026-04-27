@@ -9,6 +9,7 @@ import {
   useReducedMotion,
 } from "motion/react";
 import { RootNodes } from "./RootNodes";
+import { RootTraces } from "./RootTraces";
 
 type NetworkInfo = {
   saveData?: boolean;
@@ -268,30 +269,9 @@ export function LandingHero() {
       className="relative w-full"
       style={{
         height: `${SCROLL_LENGTH_VH * 100}vh`,
-        scrollSnapAlign: "start",
       }}
       aria-label="Trail introduction"
     >
-      {/* Scroll magnets — invisible 1px waypoints at each act's progress center.
-          With `scroll-snap-type: y proximity` on the document, the browser
-          softly nudges scroll to the nearest magnet without forcing it. */}
-      {ACTS.map((a, i) => {
-        const center = (a.range[0] + a.range[1]) / 2;
-        const topVH = 50 + center * (SCROLL_LENGTH_VH - 1) * 100;
-        return (
-          <div
-            key={`magnet-${i}`}
-            aria-hidden="true"
-            className="pointer-events-none absolute left-0 right-0"
-            style={{
-              top: `${topVH}vh`,
-              height: 1,
-              scrollSnapAlign: "center",
-              scrollSnapStop: "normal",
-            }}
-          />
-        );
-      })}
       <div className="sticky top-0 h-screen w-full overflow-hidden bg-[var(--landing-bg)]">
         {/* Always-rendered poster — covers the slow-network fallback path
             and shows immediately while the video (if any) is fetched. */}
@@ -336,6 +316,12 @@ export function LandingHero() {
               "radial-gradient(ellipse at 50% 55%, transparent 40%, rgba(10,9,8,0.55) 100%)",
           }}
         />
+
+        {/* SVG root traces — visible whenever the video isn't (slow
+            connection, reduced motion, or while it's still loading).
+            Provides scroll-driven motion that matches the hero metaphor
+            without any extra network. */}
+        {!videoSrc ? <RootTraces progress={scrollYProgress} /> : null}
 
         {/* Root-tip nodes — receives a quantized motion value */}
         <RootNodes progress={scrollYProgress} />

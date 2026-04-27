@@ -102,8 +102,10 @@ function TrailNodeComponent({
           />
         ))}
         <div
+          data-trail-card
           className={cn(
-            "h-[60px] w-[160px] border",
+            "h-[60px] w-[160px] rounded-md border",
+            "transition-colors duration-150 ease-out",
             isOpen || isCurrent
               ? "bg-foreground/20 border-foreground/30"
               : "bg-foreground/10 border-foreground/15",

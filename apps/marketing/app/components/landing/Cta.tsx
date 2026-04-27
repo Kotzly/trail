@@ -12,7 +12,6 @@ export function LandingCta({ ctaHref = "#" }: { ctaHref?: string }) {
       className="relative overflow-hidden border-t border-[var(--landing-line)] bg-[var(--landing-bg)]"
       style={{
         padding: "clamp(120px, 18vh, 220px) clamp(24px, 6vw, 96px)",
-        scrollSnapAlign: "start",
       }}
     >
       {/* Soft golden glow */}
