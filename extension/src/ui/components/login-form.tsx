@@ -1,3 +1,4 @@
+import { i18n } from "#i18n";
 import { cn } from "@ui/lib/utils";
 import { Button } from "@ui/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@ui/components/ui/card";
@@ -9,6 +10,8 @@ import {
   FieldSeparator,
 } from "@ui/components/ui/field";
 import { Input } from "@ui/components/ui/input";
+
+type I18nArg = Parameters<typeof i18n.t>[0];
 
 type LoginFormProps = Omit<React.ComponentProps<"div">, "onSubmit"> & {
   email: string;
@@ -45,8 +48,8 @@ export function LoginForm({
     >
       <Card>
         <CardHeader className="text-center">
-          <CardTitle className="text-xl">Welcome back</CardTitle>
-          <CardDescription>Sign in with Google or email</CardDescription>
+          <CardTitle className="text-xl">{i18n.t("login.form.welcomeBack" as I18nArg)}</CardTitle>
+          <CardDescription>{i18n.t("login.form.signInDescription" as I18nArg)}</CardDescription>
         </CardHeader>
         <CardContent>
           <form
@@ -70,18 +73,20 @@ export function LoginForm({
                       fill="currentColor"
                     />
                   </svg>
-                  Login with Google
+                  {i18n.t("login.form.loginWithGoogle" as I18nArg)}
                 </Button>
               </Field>
               <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">
-                Or continue with
+                {i18n.t("login.form.orContinueWith" as I18nArg)}
               </FieldSeparator>
               <Field>
-                <FieldLabel htmlFor="email">Email</FieldLabel>
+                <FieldLabel htmlFor="email">
+                  {i18n.t("login.form.emailLabel" as I18nArg)}
+                </FieldLabel>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="me@example.com"
+                  placeholder={i18n.t("login.form.emailPlaceholder" as I18nArg)}
                   autoComplete="email"
                   required
                   value={email}
@@ -91,7 +96,9 @@ export function LoginForm({
               </Field>
               <Field>
                 <div className="flex items-center">
-                  <FieldLabel htmlFor="password">Password</FieldLabel>
+                  <FieldLabel htmlFor="password">
+                    {i18n.t("login.form.passwordLabel" as I18nArg)}
+                  </FieldLabel>
                   <Button
                     variant="link"
                     size="sm"
@@ -100,7 +107,7 @@ export function LoginForm({
                     disabled={pending}
                     className="press-feedback ml-auto h-auto px-0"
                   >
-                    Forgot your password?
+                    {i18n.t("login.form.forgotPassword" as I18nArg)}
                   </Button>
                 </div>
                 <Input
@@ -115,10 +122,10 @@ export function LoginForm({
               </Field>
               <Field>
                 <Button type="submit" disabled={pending} className="press-feedback">
-                  Login
+                  {i18n.t("login.form.login" as I18nArg)}
                 </Button>
                 <FieldDescription className="text-center">
-                  Don&apos;t have an account?{" "}
+                  {i18n.t("login.form.noAccount" as I18nArg)}{" "}
                   <Button
                     variant="link"
                     size="sm"
@@ -126,7 +133,7 @@ export function LoginForm({
                     onClick={onSignUp}
                     className="press-feedback h-auto px-0"
                   >
-                    Sign up
+                    {i18n.t("login.form.signUp" as I18nArg)}
                   </Button>
                 </FieldDescription>
               </Field>
@@ -135,13 +142,13 @@ export function LoginForm({
         </CardContent>
       </Card>
       <FieldDescription className="px-6 text-center">
-        By clicking Login, you agree to our{" "}
+        {i18n.t("login.form.termsPrefix" as I18nArg)}{" "}
         <a href="https://gettrail.net/terms" target="_blank" rel="noreferrer">
-          Terms of Service
+          {i18n.t("login.form.termsOfService" as I18nArg)}
         </a>{" "}
-        and{" "}
+        {i18n.t("login.form.and" as I18nArg)}{" "}
         <a href="https://gettrail.net/privacy" target="_blank" rel="noreferrer">
-          Privacy Policy
+          {i18n.t("login.form.privacyPolicy" as I18nArg)}
         </a>
         .
       </FieldDescription>

@@ -14,7 +14,7 @@ export default function NotFound() {
       </p>
       <Link
         href="/"
-        className="mt-8 inline-flex rounded-full bg-primary px-8 py-3 text-base font-medium text-primary-foreground transition-shadow hover:shadow-[0_0_24px_rgba(212,22,108,0.25)] active:scale-[0.98]"
+        className="mt-8 inline-flex rounded-full bg-primary px-8 py-3 text-base font-medium text-primary-foreground transition-shadow hover:shadow-[0_18px_48px_-12px_var(--ember-glow)] active:scale-[0.98]"
       >
         Back to Trail
       </Link>

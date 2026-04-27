@@ -31,13 +31,13 @@ export function HeroSection({ section }: { section: HeroSectionData }) {
       <div className="relative z-10 mx-auto max-w-4xl px-6 pt-40 text-center">
         {section.eyebrow && (
           <motion.div
-            initial={{ filter: "blur(10px)", opacity: 0, y: 24 }}
-            animate={{ filter: "blur(0px)", opacity: 1, y: 0 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.1, ease }}
             className="mb-8 flex justify-center"
           >
-            <span className="inline-flex items-center gap-2 rounded-full border border-border-subtle bg-background px-3 py-1 text-xs tracking-label uppercase text-gold">
-              <span className="h-1.5 w-1.5 rounded-full bg-gold animate-pulse" />
+            <span className="inline-flex items-center gap-2 rounded-full border border-border-subtle bg-background px-3 py-1 text-xs tracking-label uppercase text-ember">
+              <span className="h-1.5 w-1.5 rounded-full bg-ember" />
               {section.eyebrow}
             </span>
           </motion.div>
@@ -45,9 +45,9 @@ export function HeroSection({ section }: { section: HeroSectionData }) {
 
         <motion.h1
           className="tracking-display text-5xl font-bold leading-[0.95] sm:text-6xl md:text-7xl lg:text-8xl"
-          initial={{ filter: "blur(10px)", opacity: 0, y: 24 }}
-          animate={{ filter: "blur(0px)", opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.3, ease }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, delay: 0.3, ease }}
         >
           {parseHeadline(section.title ?? "")}
         </motion.h1>
@@ -55,8 +55,8 @@ export function HeroSection({ section }: { section: HeroSectionData }) {
         {section.description && (
           <motion.p
             className="tracking-body mx-auto mt-6 max-w-lg text-lg text-text-secondary sm:text-xl"
-            initial={{ filter: "blur(10px)", opacity: 0, y: 24 }}
-            animate={{ filter: "blur(0px)", opacity: 1, y: 0 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.5, ease }}
           >
             {section.description}
@@ -65,14 +65,14 @@ export function HeroSection({ section }: { section: HeroSectionData }) {
 
         {cta && (
           <motion.div
-            initial={{ filter: "blur(10px)", opacity: 0, y: 24 }}
-            animate={{ filter: "blur(0px)", opacity: 1, y: 0 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.7, ease }}
             className="mt-10"
           >
             <a
               href={cta.href}
-              className="inline-flex rounded-full bg-primary px-8 py-3 text-base font-medium text-primary-foreground transition-shadow hover:shadow-[0_0_24px_rgba(212,22,108,0.25)] active:scale-[0.98]"
+              className="inline-flex rounded-full bg-primary px-8 py-3 text-base font-medium text-primary-foreground transition-shadow hover:shadow-[0_18px_48px_-12px_var(--ember-glow)] active:scale-[0.98]"
             >
               {cta.text}
             </a>
@@ -84,8 +84,8 @@ export function HeroSection({ section }: { section: HeroSectionData }) {
       {videoUrl && (
         <motion.div
           className="relative z-10 mx-auto mt-12 w-full max-w-6xl px-4 pb-16"
-          initial={{ filter: "blur(10px)", opacity: 0, y: 60 }}
-          animate={{ filter: "blur(0px)", opacity: 1, y: 0 }}
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, delay: 0.9, ease }}
           style={{
             y: videoY,

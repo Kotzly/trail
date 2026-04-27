@@ -45,12 +45,11 @@ export function StaggerItem({
   return (
     <motion.div
       variants={{
-        hidden: { filter: "blur(10px)", opacity: 0, y: 24 },
+        hidden: { opacity: 0, y: 20 },
         visible: {
-          filter: "blur(0px)",
           opacity: 1,
           y: 0,
-          transition: { duration: 0.7, ease: [0.25, 0.1, 0.25, 1] },
+          transition: { duration: 0.6, ease: [0.23, 1, 0.32, 1] },
         },
       }}
       className={className}

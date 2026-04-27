@@ -2,7 +2,15 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { MessageCircle, X, Lightbulb, MessageSquare, Send, Check, HelpCircle } from "lucide-react";
+import {
+  MessageCircle,
+  X,
+  Lightbulb,
+  MessageSquare,
+  Send,
+  Check,
+  HelpCircle,
+} from "lucide-react";
 
 type FeedbackType = "feature" | "feedback" | "support";
 type Status = "idle" | "sending" | "sent" | "error";
@@ -93,7 +101,7 @@ export function FeedbackWidget() {
         {!open && (
           <motion.button
             onClick={() => setOpen(true)}
-            className="fixed bottom-6 right-6 z-[9990] flex items-center gap-2 rounded-full border border-border-strong bg-elevated/80 px-4 py-2.5 text-sm font-medium text-text-secondary backdrop-blur-xl transition-colors hover:text-text-primary hover:border-magenta/40 active:scale-[0.97]"
+            className="fixed bottom-6 right-6 z-[9990] flex items-center gap-2 rounded-full border border-border-strong bg-elevated px-4 py-2.5 text-sm font-medium text-text-secondary transition-colors hover:text-text-primary hover:border-ember/40 active:scale-[0.97]"
             initial={{ opacity: 0, y: 20, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
@@ -112,7 +120,7 @@ export function FeedbackWidget() {
           <>
             {/* Backdrop */}
             <motion.div
-              className="fixed inset-0 z-[9991] bg-black/60 backdrop-blur-sm"
+              className="fixed inset-0 z-[9991] bg-[rgba(10,9,8,0.7)]"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -214,8 +222,12 @@ export function FeedbackWidget() {
                   {/* Submit */}
                   <button
                     type="submit"
-                    disabled={!message.trim() || status === "sending" || status === "sent"}
-                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-primary py-2.5 text-sm font-medium text-primary-foreground transition-all hover:shadow-[0_0_24px_rgba(212,22,108,0.25)] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
+                    disabled={
+                      !message.trim() ||
+                      status === "sending" ||
+                      status === "sent"
+                    }
+                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-primary py-2.5 text-sm font-medium text-primary-foreground transition-shadow hover:shadow-[0_18px_48px_-12px_var(--ember-glow)] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
                   >
                     {status === "sending" ? (
                       <>
@@ -230,7 +242,12 @@ export function FeedbackWidget() {
                     ) : (
                       <>
                         <Send size={16} />
-                        Send {type === "feature" ? "Request" : type === "support" ? "Note" : "Feedback"}
+                        Send{" "}
+                        {type === "feature"
+                          ? "Request"
+                          : type === "support"
+                            ? "Note"
+                            : "Feedback"}
                       </>
                     )}
                   </button>

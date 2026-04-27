@@ -78,6 +78,7 @@
     },
     "v2": {
       "hook": {
+        "eyebrow": "01 — A seed",
         "title": "Never lose a tab again.",
         "body": "Trail turns every click into a node you can return to — weeks later, with two letters.",
         "cta": "Show me"
@@ -173,6 +174,10 @@
       "progress": "Step $1 of $2",
       "skip": "Skip",
       "confirmSkip": "Exit the tour? Your tour tree will be deleted.",
+      "confirmSkipTitle": "Exit the tour?",
+      "confirmSkipBody": "Your tour tree will be deleted. You can start over from the sidepanel later.",
+      "confirmSkipCancel": "Stay in the tour",
+      "confirmSkipConfirm": "Exit tour",
       "regionAriaLabel": "Onboarding coach",
       "arm": {
         "title": "Open any site.",
@@ -202,6 +207,7 @@
       }
     },
     "celebration": {
+      "eyebrow": "Your first trail",
       "title": "$1 nodes in $2 seconds.",
       "body": "This is what every browsing session could look like.",
       "bodyByPersona": {
@@ -213,6 +219,7 @@
       "cta": "That's enough"
     },
     "cta": {
+      "eyebrow": "Keep going",
       "title": "Keep it across devices?",
       "taglines": {
         "research": "Your research deserves to outlive this tab.",
@@ -459,6 +466,33 @@
     }
   },
   "login": {
+    "form": {
+      "welcomeBack": "Welcome back",
+      "signInDescription": "Sign in with Google or email",
+      "loginWithGoogle": "Login with Google",
+      "orContinueWith": "Or continue with",
+      "emailLabel": "Email",
+      "emailPlaceholder": "me@example.com",
+      "passwordLabel": "Password",
+      "forgotPassword": "Forgot your password?",
+      "login": "Login",
+      "noAccount": "Don't have an account?",
+      "signUp": "Sign up",
+      "termsPrefix": "By clicking Login, you agree to our",
+      "termsOfService": "Terms of Service",
+      "and": "and",
+      "privacyPolicy": "Privacy Policy"
+    },
+    "signupForm": {
+      "createAccount": "Create your account",
+      "createDescription": "Create account with Google or email",
+      "signUpWithGoogle": "Sign up with Google",
+      "passwordHint": "At least 8 characters with uppercase, lowercase, a number, and a symbol.",
+      "submit": "Create account",
+      "haveAccount": "Already have an account?",
+      "signIn": "Sign in",
+      "termsPrefix": "By clicking continue, you agree to our"
+    },
     "passwordRequired": "Password is required.",
     "signupOtpSent": "We sent a 6-digit code to your email. Enter it below to finish.",
     "recoveryOtpSent": "We sent a recovery code to your email. Enter it below, then choose a new password.",

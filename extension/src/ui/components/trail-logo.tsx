@@ -1,7 +1,7 @@
 import { useId } from "react";
 import "./trail-logo.css";
 
-export type TrailLogoVariant = "empty" | "field" | "dark" | "light";
+export type TrailLogoVariant = "empty" | "field";
 
 export type TrailLogoProps = {
   className?: string;

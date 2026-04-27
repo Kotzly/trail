@@ -19,7 +19,7 @@ export function GraphControls({ onCenterCurrent, canCenterCurrent }: GraphContro
       <ButtonTooltip label="Zoom in" side="left">
         <Button
           variant="outline"
-          size="icon-sm"
+          size="icon"
           aria-label="Zoom in"
           onClick={() => zoomIn({ duration: 200 })}
         >
@@ -29,7 +29,7 @@ export function GraphControls({ onCenterCurrent, canCenterCurrent }: GraphContro
       <ButtonTooltip label="Zoom out" side="left">
         <Button
           variant="outline"
-          size="icon-sm"
+          size="icon"
           aria-label="Zoom out"
           onClick={() => zoomOut({ duration: 200 })}
         >
@@ -39,7 +39,7 @@ export function GraphControls({ onCenterCurrent, canCenterCurrent }: GraphContro
       <ButtonTooltip label="Center on current tab" side="left">
         <Button
           variant="outline"
-          size="icon-sm"
+          size="icon"
           aria-label="Center on current tab"
           disabled={!canCenterCurrent}
           onClick={onCenterCurrent}
@@ -50,7 +50,7 @@ export function GraphControls({ onCenterCurrent, canCenterCurrent }: GraphContro
       <ButtonTooltip label="Fit whole graph" side="left">
         <Button
           variant="outline"
-          size="icon-sm"
+          size="icon"
           aria-label="Fit whole graph"
           onClick={() => smoothFitView()}
         >

@@ -18,14 +18,17 @@ export function StepDots({ total, current, className }: StepDotsProps) {
     >
       {Array.from({ length: total }).map((_, i) => {
         const state = i < current ? "past" : i === current ? "current" : "future";
+        // Fixed track width (5px = "current" target). Past/future dots
+        // scale down to 30% on the X axis. Animating transform avoids
+        // layout invalidation per frame — only compositor work runs.
         return (
           <span
             key={i}
             className={cn(
-              "block h-1.5 rounded-full transition-[width,background-color,opacity] duration-300 ease-out",
-              state === "current" && "bg-primary w-5",
-              state === "past" && "bg-primary/60 w-1.5",
-              state === "future" && "bg-border w-1.5 opacity-60",
+              "block h-1.5 w-5 origin-center rounded-full transition-[transform,background-color,opacity] duration-300 ease-out",
+              state === "current" && "bg-primary scale-x-100",
+              state === "past" && "bg-primary/60 scale-x-[0.3]",
+              state === "future" && "bg-border scale-x-[0.3] opacity-60",
             )}
           />
         );

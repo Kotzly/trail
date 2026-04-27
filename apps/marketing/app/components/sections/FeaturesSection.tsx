@@ -1,16 +1,13 @@
 "use client";
 
-import {
-  Camera,
-  Eye,
-  Share2,
-  Palette,
-  type LucideIcon,
-} from "lucide-react";
+import { Camera, Eye, Share2, Palette, type LucideIcon } from "lucide-react";
 import { Reveal } from "../ui/reveal";
 import { Stagger, StaggerItem } from "../ui/stagger";
 import { parseHeadline } from "../ui/parse-headline";
-import type { BentoFeaturesSectionData, BentoFeature } from "../../../lib/sanity/types";
+import type {
+  BentoFeaturesSectionData,
+  BentoFeature,
+} from "../../../lib/sanity/types";
 
 const iconMap: Record<string, LucideIcon> = {
   capture: Camera,
@@ -19,7 +16,11 @@ const iconMap: Record<string, LucideIcon> = {
   customize: Palette,
 };
 
-export function FeaturesSection({ section }: { section: BentoFeaturesSectionData }) {
+export function FeaturesSection({
+  section,
+}: {
+  section: BentoFeaturesSectionData;
+}) {
   const features: BentoFeature[] = section.features ?? [];
 
   return (
@@ -27,7 +28,7 @@ export function FeaturesSection({ section }: { section: BentoFeaturesSectionData
       <div className="mx-auto max-w-5xl px-6">
         {section.eyebrow && (
           <Reveal delay={0.1}>
-            <span className="inline-flex rounded-full border border-gold/20 bg-gold-subtle px-3 py-1 text-xs tracking-label uppercase text-gold">
+            <span className="inline-flex rounded-full border border-ember/20 bg-ember-subtle px-3 py-1 text-xs tracking-label uppercase text-ember">
               {section.eyebrow}
             </span>
           </Reveal>
@@ -58,8 +59,8 @@ export function FeaturesSection({ section }: { section: BentoFeaturesSectionData
             const Icon = iconMap[feature.id ?? ""] ?? Camera;
             return (
               <StaggerItem key={feature._key ?? feature.id}>
-                <div className="group relative rounded-xl border border-border-subtle bg-surface p-6 transition-all duration-200 hover:border-border-strong hover:bg-elevated hover:shadow-[0_4px_32px_rgba(212,22,108,0.08)] sm:p-8">
-                  <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-elevated text-text-secondary transition-colors group-hover:text-magenta">
+                <div className="group relative rounded-xl border border-border-subtle bg-surface p-6 transition-colors duration-200 hover:border-border-strong hover:bg-elevated sm:p-8">
+                  <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-elevated text-text-secondary transition-colors group-hover:text-ember">
                     <Icon className="h-5 w-5" />
                   </div>
                   <h3 className="tracking-heading text-lg font-semibold text-text-primary">

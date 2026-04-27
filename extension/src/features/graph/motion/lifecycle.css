@@ -37,18 +37,15 @@
 
 @keyframes graph-node-return {
   /* A returning node — same id reappears after a brief absence (e.g.
-     collapse → expand within the same session). Soft pulse rather
-     than a fresh entry, so the user perceives "this came back" not
-     "this is new". */
-  0% {
+     collapse → expand within the same session). Monotonic deceleration
+     from a slightly-smaller starting scale so the user perceives
+     "this came back" not "this is new". No overshoot — the brand
+     motion vocabulary is decelerating, never bouncy. */
+  from {
     opacity: 0;
     transform: scale(0.92);
   }
-  60% {
-    opacity: 1;
-    transform: scale(1.04);
-  }
-  100% {
+  to {
     opacity: 1;
     transform: scale(1);
   }

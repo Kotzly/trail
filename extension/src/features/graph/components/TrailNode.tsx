@@ -131,7 +131,7 @@ function TrailNodeComponent({
         size="default"
         data-trail-card
         className={cn(
-          "relative flex min-h-[60px] w-[160px] flex-row items-center gap-2 px-2.5 py-2 has-[>img:first-child]:pt-2",
+          "relative flex min-h-[60px] w-[160px] flex-row items-center gap-2 px-2.5 py-2",
           "cursor-default select-none",
           "transition-[transform,box-shadow,background-color] duration-150 ease-out",
           "hover:scale-[1.015] hover:shadow-md",
@@ -149,15 +149,17 @@ function TrailNodeComponent({
       >
         {showDetail &&
           (favicon ? (
-            <img
-              src={String(favicon)}
-              alt=""
-              className="size-4 shrink-0"
-              loading="lazy"
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.display = "none";
-              }}
-            />
+            <span className="flex size-4 shrink-0 items-center justify-center">
+              <img
+                src={String(favicon)}
+                alt=""
+                className="size-4"
+                loading="lazy"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = "none";
+                }}
+              />
+            </span>
           ) : (
             <Icons.Globe
               className="text-muted-foreground/60 size-4 shrink-0"
@@ -203,42 +205,62 @@ function TrailNodeComponent({
             )}
             {isCollapsed && childCount > 0 && (
               <Badge
+                asChild
                 variant="secondary"
-                aria-label={`${childCount} hidden children — click to expand`}
-                data-collapse-action="badge-toggle"
-                className="hover:bg-accent hover:text-accent-foreground h-4 cursor-pointer rounded px-1 text-[9px] leading-none tabular-nums"
+                className="hover:bg-accent hover:text-accent-foreground h-4 rounded px-1 text-[9px] leading-none tabular-nums"
               >
-                +{childCount}
+                <button
+                  type="button"
+                  aria-label={`${childCount} hidden children — click to expand`}
+                  data-collapse-action="badge-toggle"
+                >
+                  +{childCount}
+                </button>
               </Badge>
             )}
             {wasExpandedViaBadge && !isCollapsed && (
               <Badge
+                asChild
                 variant="secondary"
-                aria-label="Re-collapse children"
-                data-collapse-action="badge-toggle"
-                className="hover:bg-accent hover:text-accent-foreground h-4 cursor-pointer rounded px-1 text-[9px] leading-none"
+                className="hover:bg-accent hover:text-accent-foreground h-4 rounded px-1 text-[9px] leading-none"
               >
-                ↓
+                <button
+                  type="button"
+                  aria-label="Re-collapse children"
+                  data-collapse-action="badge-toggle"
+                >
+                  ↓
+                </button>
               </Badge>
             )}
             {foldedAncestorCount > 0 && (
               <Badge
+                asChild
                 variant="outline"
-                aria-label={`${foldedAncestorCount} hidden steps — click to unfold`}
-                data-fold-action="toggle"
-                className="text-muted-foreground hover:bg-accent hover:text-accent-foreground h-4 cursor-pointer rounded border-dashed px-1 text-[9px] leading-none tabular-nums"
+                className="text-muted-foreground hover:bg-accent hover:text-accent-foreground h-4 rounded border-dashed px-1 text-[9px] leading-none tabular-nums"
               >
-                ⋯{foldedAncestorCount}
+                <button
+                  type="button"
+                  aria-label={`${foldedAncestorCount} hidden steps — click to unfold`}
+                  data-fold-action="toggle"
+                >
+                  ⋯{foldedAncestorCount}
+                </button>
               </Badge>
             )}
             {isChainUnfolded && (
               <Badge
+                asChild
                 variant="outline"
-                aria-label="Chain unfolded — click to refold"
-                data-fold-action="toggle"
-                className="text-primary/70 hover:bg-accent h-4 cursor-pointer rounded border-dashed px-1 text-[9px] leading-none tabular-nums"
+                className="text-primary/70 hover:bg-accent h-4 rounded border-dashed px-1 text-[9px] leading-none tabular-nums"
               >
-                ⇡
+                <button
+                  type="button"
+                  aria-label="Chain unfolded — click to refold"
+                  data-fold-action="toggle"
+                >
+                  ⇡
+                </button>
               </Badge>
             )}
           </div>

@@ -159,7 +159,7 @@
   /* Concentric corner for items nested inside a popover (Apple HIG):
      inner = outer (PopoverContent rounded-2xl) − padding (CommandGroup p-1). */
   --radius-inner: calc(var(--radius-2xl) - 0.25rem);
-  --font-serif: Playfair Display, ui-serif, serif;
+  --font-serif: "Source Serif 4 Variable", ui-serif, serif;
   --font-sans: Geist, ui-sans-serif, sans-serif, system-ui;
   --font-mono: JetBrains Mono, ui-monospace, monospace;
   --radius: 0.5rem;
@@ -307,7 +307,7 @@
   --sidebar-ring: oklch(0.8348 0.1302 160.908);
   --destructive-foreground: oklch(0.9934 0.0032 17.2118);
   --font-sans: Geist, ui-sans-serif, sans-serif, system-ui;
-  --font-serif: Playfair Display, ui-serif, serif;
+  --font-serif: "Source Serif 4 Variable", ui-serif, serif;
   --font-mono: JetBrains Mono, ui-monospace, monospace;
   --shadow-color: #000000;
   --shadow-opacity: 0.17;
@@ -363,7 +363,7 @@
   --destructive-foreground: oklch(0.9368 0.0045 34.3092);
   --radius: 0.5rem;
   --font-sans: Geist, ui-sans-serif, sans-serif, system-ui;
-  --font-serif: Playfair Display, ui-serif, serif;
+  --font-serif: "Source Serif 4 Variable", ui-serif, serif;
   --font-mono: JetBrains Mono, ui-monospace, monospace;
   --shadow-color: #000000;
   --shadow-opacity: 0.17;

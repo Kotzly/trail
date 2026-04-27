@@ -9,7 +9,6 @@
  */
 
 import { i18n } from "#i18n";
-import { Avatar, AvatarFallback } from "@ui/components/ui/avatar";
 import { Button } from "@ui/components/ui/button";
 import { Icons } from "@ui/components/icons";
 import { completeOnboarding, disposeTourTree } from "../../../api/onboarding.js";
@@ -62,21 +61,20 @@ export function TourCommitments() {
       role="dialog"
       aria-modal="false"
       aria-label={i18n.t("onboarding.cta.title" as I18nArg)}
-      className="animate-in fade-in-0 bg-background/95 absolute inset-0 z-30 flex flex-col items-center justify-center px-6 backdrop-blur-sm duration-500"
+      className="animate-in fade-in-0 bg-background absolute inset-0 z-30 flex flex-col justify-end px-6 pt-10 pb-12 duration-500"
     >
-      <div className="animate-in zoom-in-95 slide-in-from-bottom-2 flex w-full max-w-[320px] flex-col items-center gap-5 text-center duration-500">
-        <Avatar size="lg" className="size-12">
-          <AvatarFallback className="bg-primary/15 text-primary">
-            <Icons.Cloud className="size-6" aria-hidden />
-          </AvatarFallback>
-        </Avatar>
-        <div className="flex w-full flex-col items-center gap-2">
-          <h2 className="text-foreground text-xl font-semibold tracking-tight">
-            {i18n.t("onboarding.cta.title" as I18nArg)}
-          </h2>
-          <p className="text-muted-foreground text-[13px] leading-relaxed">{i18n.t(taglineKey)}</p>
+      <div className="animate-in slide-in-from-bottom-2 flex w-full max-w-[55ch] flex-col items-start gap-3 duration-500">
+        <div className="text-muted-foreground flex items-center gap-1.5 font-mono text-[10px] font-medium tracking-[0.18em] uppercase">
+          <Icons.Cloud className="text-primary size-3" aria-hidden strokeWidth={1.75} />
+          <span>{i18n.t("onboarding.cta.eyebrow" as I18nArg)}</span>
         </div>
-        <div className="mt-1 flex w-full flex-col gap-2">
+        <h2 className="text-foreground font-serif text-[clamp(24px,4.6vw,34px)] leading-[1.05] font-normal tracking-tight">
+          {i18n.t("onboarding.cta.title" as I18nArg)}
+        </h2>
+        <p className="text-muted-foreground max-w-[55ch] text-[14px] leading-relaxed">
+          {i18n.t(taglineKey)}
+        </p>
+        <div className="mt-2 flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
           <Button type="button" size="default" onClick={() => void handleSignIn()}>
             {i18n.t("onboarding.cta.signIn" as I18nArg)}
           </Button>

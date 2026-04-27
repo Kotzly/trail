@@ -23,11 +23,9 @@ export function LandingNav({ ctaHref = "#cta" }: { ctaHref?: string }) {
       initial={reduce ? false : { opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, ease: easeOut, delay: 0.3 }}
-      className="fixed inset-x-0 top-0 z-50 transition-[background-color,backdrop-filter,border-color] duration-[350ms] ease-out"
+      className="fixed inset-x-0 top-0 z-50 transition-[background-color,border-color] duration-[350ms] ease-out"
       style={{
-        backgroundColor: scrolled ? "rgba(10, 9, 8, 0.72)" : "transparent",
-        backdropFilter: scrolled ? "blur(16px) saturate(150%)" : "none",
-        WebkitBackdropFilter: scrolled ? "blur(16px) saturate(150%)" : "none",
+        backgroundColor: scrolled ? "rgba(10, 9, 8, 0.92)" : "transparent",
         borderBottom: scrolled
           ? "1px solid rgba(246, 239, 225, 0.06)"
           : "1px solid transparent",

@@ -41,7 +41,7 @@ export default function SelectionActionBar() {
       role="region"
       aria-label={i18n.t("sidepanel.selectionBar.selected", [String(ids.length)])}
     >
-      <div className="bg-popover/95 text-popover-foreground animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-1 pointer-events-auto inline-flex items-center gap-0.5 rounded-full border p-1 shadow-md backdrop-blur-sm duration-(--dur-fast) ease-(--ease-out)">
+      <div className="bg-popover text-popover-foreground animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-1 pointer-events-auto inline-flex items-center gap-0.5 rounded-full border p-1 shadow-md duration-(--dur-fast) ease-(--ease-out)">
         <span className="text-muted-foreground px-2 text-xs font-medium tabular-nums">
           {i18n.t("sidepanel.selectionBar.selected", [String(ids.length)])}
         </span>

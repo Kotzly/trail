@@ -140,8 +140,8 @@ export function LandingFooter({
           color: "rgba(246,239,225,0.36)",
         }}
       >
-        <span>© 2026 Trail. All roots reserved.</span>
-        <span>Made local-first, on purpose.</span>
+        <span>© {new Date().getFullYear()} Trail</span>
+        <span>Local-first, on purpose</span>
       </div>
     </footer>
   );

@@ -93,12 +93,12 @@ export function SidepanelPeek() {
       <Icons.ChevronLeft data-icon="inline-start" aria-hidden />
       <span
         className={cn(
-          "text-foreground overflow-hidden text-xs whitespace-nowrap",
-          "transition-[max-width,opacity] duration-200 ease-out",
-          hover ? "max-w-[120px] opacity-100" : "max-w-0 opacity-0",
+          "text-foreground inline-grid grid-cols-[0fr] overflow-hidden text-xs whitespace-nowrap",
+          "transition-[grid-template-columns,opacity] duration-200 ease-out",
+          hover ? "grid-cols-[1fr] opacity-100" : "opacity-0",
         )}
       >
-        {i18n.t("settings.peek.openSidepanel")}
+        <span className="overflow-hidden">{i18n.t("settings.peek.openSidepanel")}</span>
       </span>
     </Button>
   );

@@ -22,7 +22,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import { i18n } from "#i18n";
 import type { OnboardingSoftCtaKey } from "@shared/config/storage-items.js";
-import { Avatar, AvatarFallback } from "@ui/components/ui/avatar";
 import { Button } from "@ui/components/ui/button";
 import { Card } from "@ui/components/ui/card";
 import { Icons } from "@ui/components/icons";
@@ -203,7 +202,7 @@ function StripShell({ children, ariaLabel }: { children: React.ReactNode; ariaLa
       role="region"
       aria-label={ariaLabel}
       className={cn(
-        "pointer-events-auto absolute inset-x-3 bottom-3 z-20 gap-0 py-0 backdrop-blur",
+        "pointer-events-auto absolute inset-x-3 bottom-3 z-20 gap-0 py-0",
         "shadow-md",
         "animate-in slide-in-from-bottom-2 fade-in-0 duration-300",
       )}
@@ -228,12 +227,18 @@ function StripBody({
 }) {
   return (
     <div className="flex items-start gap-3 px-4 pt-3 pb-3">
-      <Avatar size="sm" className="mt-0.5 size-7">
-        <AvatarFallback className="bg-primary/15 text-primary">{icon}</AvatarFallback>
-      </Avatar>
       <div className="min-w-0 flex-1">
-        <h3 className="text-foreground text-[13px] font-semibold tracking-tight">{title}</h3>
-        <p className="text-muted-foreground mt-0.5 text-[12px] leading-relaxed">{body}</p>
+        <div className="text-muted-foreground flex items-center gap-1.5">
+          <span className="text-primary/80 inline-flex size-3 items-center [&>svg]:size-3">
+            {icon}
+          </span>
+          <h3 className="text-foreground font-serif text-[15px] leading-snug font-normal tracking-tight">
+            {title}
+          </h3>
+        </div>
+        <p className="text-muted-foreground mt-1 max-w-[55ch] text-[12px] leading-relaxed">
+          {body}
+        </p>
         <div className="mt-2.5 flex items-center gap-2">
           <Button type="button" size="sm" onClick={primary.onClick}>
             {primary.label}

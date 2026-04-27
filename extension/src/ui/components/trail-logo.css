@@ -23,20 +23,6 @@
   --trail-logo-bg: transparent;
 }
 
-.trail-logo--light {
-  --trail-logo-bg: #ffffff;
-  --trail-logo-border: #aeb7c6;
-  --trail-logo-accent: #0ea5e9;
-  --trail-logo-node: #111625;
-}
-
-.trail-logo--dark {
-  --trail-logo-bg: #0d0d0e;
-  --trail-logo-border: #4b4b51;
-  --trail-logo-accent: #22d3ee;
-  --trail-logo-node: #f9f9f9;
-}
-
 .trail-logo--field {
   --trail-logo-bg: var(--card);
   --trail-logo-node: var(--card-foreground);

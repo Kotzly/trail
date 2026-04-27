@@ -55,30 +55,22 @@
 }
 
 @keyframes branch-node-pop {
-  0% {
+  from {
     opacity: 0;
     transform: scale(0.7);
   }
-  60% {
-    opacity: 1;
-    transform: scale(1.08);
-  }
-  100% {
+  to {
     opacity: 1;
     transform: scale(1);
   }
 }
 
 @keyframes branch-glow-pulse {
-  0% {
+  from {
     opacity: 0;
     transform: scale(0.6);
   }
-  50% {
-    opacity: 0.9;
-    transform: scale(1.15);
-  }
-  100% {
+  to {
     opacity: 0.3;
     transform: scale(1);
   }

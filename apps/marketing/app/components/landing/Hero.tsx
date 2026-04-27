@@ -10,6 +10,38 @@ import {
 } from "motion/react";
 import { RootNodes } from "./RootNodes";
 
+type NetworkInfo = {
+  saveData?: boolean;
+  effectiveType?: "slow-2g" | "2g" | "3g" | "4g";
+  downlink?: number; // Mbps
+  rtt?: number; // ms
+};
+
+// Decide whether to load the scroll-driven hero video. Skip on Save-Data,
+// 2G/3G effective types, or any 4G that's slower than ~2 Mbps downlink
+// (DevTools "Slow 4G" reports effectiveType=4g but downlink≈0.4 Mbps —
+// without the downlink check we'd ship 10MB to a 50 KB/s pipe and
+// produce a cascade of canceled range requests as scroll seeks thrash
+// the buffer).
+function shouldServeHeavyHero(): boolean {
+  if (typeof navigator === "undefined") return true;
+  const conn = (navigator as Navigator & { connection?: NetworkInfo })
+    .connection;
+  if (!conn) return true; // Safari/Firefox: opt in by default
+  if (conn.saveData) return false;
+  const t = conn.effectiveType;
+  if (t === "slow-2g" || t === "2g" || t === "3g") return false;
+  if (
+    typeof conn.downlink === "number" &&
+    conn.downlink > 0 &&
+    conn.downlink < 2
+  ) {
+    return false;
+  }
+  if (typeof conn.rtt === "number" && conn.rtt > 600) return false;
+  return true;
+}
+
 const ACTS = [
   {
     eyebrow: "01 — A SEED",
@@ -62,13 +94,22 @@ export function LandingHero() {
   const cueRef = useRef<HTMLDivElement>(null);
   const durationRef = useRef(0);
   const lastSeekTargetRef = useRef(-1);
-  const [videoReady, setVideoReady] = useState(false);
   const reduce = useReducedMotion();
+  // null = undecided (SSR), false = static poster only, true = full video
+  const [enableVideo, setEnableVideo] = useState<boolean | null>(null);
+  // Object URL of the fully-buffered MP4. The video element only gets a
+  // src once this is set, which means scrubbing only ever reads from
+  // memory — no Range: requests, no cancel cascade.
+  const [videoSrc, setVideoSrc] = useState<string | null>(null);
 
-  // Scroll progress, 0..1 across the entire sticky section.
+  // Scroll progress, 0..1 across the *pinned* portion only.
+  // Section is 300vh tall with a 100vh sticky child, so pin runs from
+  // `sectionTop` to `sectionTop + 200vh`. Mapping progress to the pinned
+  // window (not the full section) keeps every act on-screen while the
+  // sticky is anchored, and matches the magnet math `50 + center * 200`.
   const { scrollYProgress } = useScroll({
     target: sectionRef,
-    offset: ["start start", "end start"],
+    offset: ["start start", "end end"],
   });
 
   // Pre-build per-act opacity/y transforms — Motion drives DOM directly.
@@ -110,35 +151,80 @@ export function LandingHero() {
     { o: a4o, y: a4y },
   ];
 
-  // Cache duration once metadata loads, then warm the decoder by
-  // playing one frame and pausing — many browsers won't decode on
-  // a cold currentTime seek otherwise.
+  // Decide whether to load the heavy hero video. Runs once after mount
+  // so SSR stays neutral; the poster image is the visual fallback while
+  // we wait for the IntersectionObserver to fire.
+  useEffect(() => {
+    if (reduce) {
+      setEnableVideo(false);
+      return;
+    }
+    if (!shouldServeHeavyHero()) {
+      setEnableVideo(false);
+      return;
+    }
+    const section = sectionRef.current;
+    if (!section || typeof IntersectionObserver === "undefined") {
+      setEnableVideo(true);
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            setEnableVideo(true);
+            io.disconnect();
+            break;
+          }
+        }
+      },
+      { rootMargin: "200px" },
+    );
+    io.observe(section);
+    return () => io.disconnect();
+  }, [reduce]);
+
+  // Fetch the whole file as a single linear stream, then hand it to the
+  // <video> as a blob: URL. This sidesteps the HTML5 video element's
+  // default Range-request strategy: every scroll-driven currentTime
+  // change would otherwise open a new partial-content GET and cancel
+  // the in-flight one, which on slow networks shows up as a cascade of
+  // canceled hero.mp4 requests and the file never actually finishes.
+  // With a blob: URL there is no network during scrubbing — seeks read
+  // from memory.
+  useEffect(() => {
+    if (!enableVideo) return;
+    const ac = new AbortController();
+    let objectUrl: string | null = null;
+    fetch("/landing/hero.mp4", { signal: ac.signal, cache: "force-cache" })
+      .then((r) => {
+        if (!r.ok) throw new Error(`hero.mp4 ${r.status}`);
+        return r.blob();
+      })
+      .then((blob) => {
+        objectUrl = URL.createObjectURL(blob);
+        setVideoSrc(objectUrl);
+      })
+      .catch(() => {
+        /* aborted on unmount, or offline — poster stays */
+      });
+    return () => {
+      ac.abort();
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [enableVideo]);
+
+  // Cache duration once metadata for the in-memory blob is parsed.
   useEffect(() => {
     const v = videoRef.current;
-    if (!v) return;
-    let warmed = false;
-    const warm = async () => {
-      if (warmed) return;
-      warmed = true;
-      try {
-        v.muted = true;
-        await v.play();
-        v.pause();
-        v.currentTime = 0;
-        v.playbackRate = 0;
-      } catch {
-        /* ignore — first paint will still work */
-      }
-    };
+    if (!v || !videoSrc) return;
     const onMeta = () => {
       durationRef.current = v.duration || 0;
-      setVideoReady(true);
-      void warm();
     };
     if (v.readyState >= 1) onMeta();
     else v.addEventListener("loadedmetadata", onMeta, { once: true });
     return () => v.removeEventListener("loadedmetadata", onMeta);
-  }, []);
+  }, [videoSrc]);
 
   // Imperative DOM updates per scroll tick — no React re-renders.
   useMotionValueEvent(scrollYProgress, "change", (p) => {
@@ -207,25 +293,39 @@ export function LandingHero() {
         );
       })}
       <div className="sticky top-0 h-screen w-full overflow-hidden bg-[var(--landing-bg)]">
-        <video
-          ref={videoRef}
-          src="/landing/hero.mp4"
-          poster="/landing/hero-poster.jpg"
-          muted
-          playsInline
-          preload="auto"
-          disablePictureInPicture
-          aria-hidden="true"
-          className="absolute inset-0 h-full w-full object-cover"
-          style={{
-            filter: "saturate(1.05) contrast(1.02)",
-            opacity: videoReady ? 1 : 0,
-            transition: "opacity 600ms ease",
-            // Promote to its own compositor layer so seek redraws don't
-            // invalidate the rest of the section.
-            transform: "translateZ(0)",
-          }}
-        />
+        {/* Always-rendered poster — covers the slow-network fallback path
+            and shows immediately while the video (if any) is fetched. */}
+        <picture>
+          <source srcSet="/landing/hero-poster.webp" type="image/webp" />
+          <img
+            src="/landing/hero-poster.jpg"
+            alt=""
+            aria-hidden="true"
+            decoding="async"
+            fetchPriority="high"
+            className="absolute inset-0 h-full w-full object-cover"
+            style={{
+              filter: "saturate(1.05) contrast(1.02)",
+              transform: "translateZ(0)",
+            }}
+          />
+        </picture>
+        {enableVideo && videoSrc ? (
+          <video
+            ref={videoRef}
+            src={videoSrc}
+            muted
+            playsInline
+            preload="auto"
+            disablePictureInPicture
+            aria-hidden="true"
+            className="absolute inset-0 h-full w-full object-cover"
+            style={{
+              filter: "saturate(1.05) contrast(1.02)",
+              transform: "translateZ(0)",
+            }}
+          />
+        ) : null}
 
         {/* Vignette */}
         <div

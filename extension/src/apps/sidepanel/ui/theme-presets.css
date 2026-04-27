@@ -337,7 +337,7 @@
   --font-sans: Poppins, sans-serif;
   --font-serif: Lora, serif;
   --font-mono: Fira Code, monospace;
-  --shadow-color: #324859;
+  --shadow-color: hsl(206.15 28.06% 27.25%);
   --shadow-opacity: 1;
   --shadow-blur: 0px;
   --shadow-spread: 0px;

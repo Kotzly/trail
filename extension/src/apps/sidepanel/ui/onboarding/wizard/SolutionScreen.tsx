@@ -13,7 +13,6 @@
 
 import { i18n } from "#i18n";
 import { cn } from "@ui/lib/utils";
-import { Alert, AlertDescription } from "@ui/components/ui/alert";
 import { Badge } from "@ui/components/ui/badge";
 import type { OnboardingPersona } from "@shared/config/storage-items.js";
 import { SolutionVisual } from "./SolutionVisual.js";
@@ -50,20 +49,23 @@ export function SolutionScreen({ persona }: Props) {
         <SolutionVisual persona={persona} />
       </div>
 
-      <Alert
-        className={cn(
-          "animate-in fade-in-0 slide-in-from-bottom-1 fill-mode-both duration-500 ease-(--ease-out)",
-          "border-primary/30 bg-primary/5 rounded-none border-l-2 px-3 py-2",
-        )}
+      <figure
+        className="animate-in fade-in-0 slide-in-from-bottom-1 fill-mode-both flex flex-col gap-1 px-1 duration-500 ease-(--ease-out)"
         style={{ animationDelay: "320ms" }}
       >
-        <p className="text-muted-foreground/80 text-[10px] font-medium tracking-wider uppercase">
+        <figcaption className="text-muted-foreground/70 font-mono text-[10px] font-medium tracking-[0.18em] uppercase">
           {i18n.t("onboarding.v2.solution.imagineLabel" as I18nArg)}
-        </p>
-        <AlertDescription className="text-foreground/90 mt-0.5 text-[12.5px] leading-relaxed italic">
+        </figcaption>
+        <blockquote
+          cite=""
+          className={cn(
+            "text-foreground/90 font-serif text-[15px] leading-snug font-normal italic",
+            "max-w-[55ch]",
+          )}
+        >
           {i18n.t(`onboarding.v2.solution.${key}.imagine` as I18nArg)}
-        </AlertDescription>
-      </Alert>
+        </blockquote>
+      </figure>
 
       <div className="flex flex-wrap gap-1.5">
         {CHIP_KEYS.map((c, i) => (

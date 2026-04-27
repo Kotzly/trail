@@ -7,7 +7,7 @@
  * the thing?" logic lives in `useTourObserver` + `tour-machine`.
  */
 
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { NodeId } from "@shared/types/ids.js";
 import { onboardingStateItem } from "@shared/config/storage-items.js";
 import { i18n } from "#i18n";
@@ -20,7 +20,16 @@ import { i18n } from "#i18n";
 type I18nKey = string;
 type I18nArg = Parameters<typeof i18n.t>[0];
 import { Icons } from "@ui/components/icons";
-import { Avatar, AvatarFallback } from "@ui/components/ui/avatar";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@ui/components/ui/alert-dialog";
 import { Button } from "@ui/components/ui/button";
 import { Card } from "@ui/components/ui/card";
 import { Kbd, KbdGroup } from "@ui/components/ui/kbd";
@@ -100,6 +109,8 @@ export function TourCoach() {
   const stepId = stepAt(tourStepIndex);
   const content = stepId ? STEP_CONTENT[stepId] : null;
 
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
   const handleSkip = useCallback(async () => {
     // Dismiss — preserves tour tree + step + anchors. User can resume
     // from the sidepanel hint strip. `completedAt` stays null.
@@ -147,21 +158,19 @@ export function TourCoach() {
   }, []);
 
   // Pressing Esc always offers a gentle exit — not an instant kill, so
-  // an accidental keypress doesn't nuke the tour tree.
+  // an accidental keypress doesn't nuke the tour tree. Routed through
+  // the shadcn AlertDialog rather than the system `window.confirm` so
+  // the dismiss prompt stays inside Trail's visual language.
   useEffect(() => {
     if (!visible) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        // Simple confirm via browser dialog — cheap, unambiguous,
-        // and matches the dismissiveness of other modal-free flows.
-        if (window.confirm(i18n.t("onboarding.tour.confirmSkip"))) {
-          void handleSkip();
-        }
+        setConfirmOpen(true);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [visible, handleSkip]);
+  }, [visible]);
 
   if (!visible || !content) return null;
 
@@ -175,65 +184,59 @@ export function TourCoach() {
       role="region"
       aria-label={i18n.t("onboarding.tour.regionAriaLabel")}
       className={cn(
-        "pointer-events-auto absolute inset-x-3 bottom-3 z-40 gap-0 py-0 backdrop-blur",
+        "pointer-events-auto absolute inset-x-3 bottom-3 z-40 gap-0 py-0",
         "shadow-lg",
         "animate-in slide-in-from-bottom-2 fade-in-0 duration-300 ease-(--ease-out)",
       )}
     >
-      <div className="flex items-start gap-3 px-4 pt-3.5 pb-3">
-        <Avatar size="sm" className="mt-0.5 size-7">
-          <AvatarFallback className="bg-primary/15 text-primary">
-            <Icons.Compass className="size-4" aria-hidden />
-          </AvatarFallback>
-        </Avatar>
-        <div className="min-w-0 flex-1">
-          <div className="text-muted-foreground flex items-center gap-1.5 text-[10px] font-medium tracking-wider uppercase">
-            <span>{i18n.t("onboarding.tour.badge")}</span>
-            <span aria-hidden>·</span>
-            <span className="tabular-nums">{progressLabel}</span>
-          </div>
-          <h3 className="text-foreground mt-0.5 text-sm font-semibold tracking-tight">
-            {i18n.t(content.titleKey as I18nArg)}
-          </h3>
-          <p
-            key={`body-${stepId}`}
-            className="text-muted-foreground animate-in fade-in-0 mt-1 text-[13px] leading-relaxed duration-200 ease-(--ease-out)"
-          >
-            {i18n.t(content.bodyKey as I18nArg)}
-          </p>
-          {content.kbd ? (
-            <KbdGroup className="mt-2">
-              <Kbd>{isMac ? content.kbd.macKey : content.kbd.pcKey}</Kbd>
-            </KbdGroup>
+      <div className="flex flex-col gap-1 px-4 pt-3.5 pb-3">
+        <div className="text-muted-foreground flex items-center gap-1.5 font-mono text-[10px] font-medium tracking-[0.18em] uppercase">
+          <Icons.Compass className="size-3" aria-hidden strokeWidth={1.75} />
+          <span>{i18n.t("onboarding.tour.badge")}</span>
+          <span aria-hidden>·</span>
+          <span className="tabular-nums">{progressLabel}</span>
+        </div>
+        <h3 className="text-foreground font-serif text-[16px] leading-snug font-normal tracking-tight">
+          {i18n.t(content.titleKey as I18nArg)}
+        </h3>
+        <p
+          key={`body-${stepId}`}
+          className="text-muted-foreground animate-in fade-in-0 max-w-[55ch] text-[13px] leading-relaxed duration-200 ease-(--ease-out)"
+        >
+          {i18n.t(content.bodyKey as I18nArg)}
+        </p>
+        {content.kbd ? (
+          <KbdGroup className="mt-1">
+            <Kbd>{isMac ? content.kbd.macKey : content.kbd.pcKey}</Kbd>
+          </KbdGroup>
+        ) : null}
+        <div className="mt-2.5 flex items-center gap-2">
+          {content.cta?.kind === "advance" ? (
+            <Button type="button" size="sm" onClick={() => void handleUserAdvance()}>
+              {i18n.t(content.cta.labelKey as I18nArg)}
+            </Button>
           ) : null}
-          <div className="mt-3 flex items-center gap-2">
-            {content.cta?.kind === "advance" ? (
-              <Button type="button" size="sm" onClick={() => void handleUserAdvance()}>
-                {i18n.t(content.cta.labelKey as I18nArg)}
-              </Button>
-            ) : null}
-            {content.cta?.kind === "openUrl" ? (
-              <Button
-                type="button"
-                size="sm"
-                variant="secondary"
-                onClick={() => {
-                  if (content.cta?.kind === "openUrl") handleOpenUrl(content.cta.url);
-                }}
-              >
-                {i18n.t(content.cta.labelKey as I18nArg)}
-              </Button>
-            ) : null}
+          {content.cta?.kind === "openUrl" ? (
             <Button
               type="button"
               size="sm"
-              variant="ghost"
-              onClick={() => void handleSkip()}
-              className="text-muted-foreground hover:text-foreground ml-auto"
+              variant="secondary"
+              onClick={() => {
+                if (content.cta?.kind === "openUrl") handleOpenUrl(content.cta.url);
+              }}
             >
-              {i18n.t("onboarding.tour.skip")}
+              {i18n.t(content.cta.labelKey as I18nArg)}
             </Button>
-          </div>
+          ) : null}
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            onClick={() => void handleSkip()}
+            className="text-muted-foreground hover:text-foreground ml-auto"
+          >
+            {i18n.t("onboarding.tour.skip")}
+          </Button>
         </div>
       </div>
       {/* Progress rail */}
@@ -249,6 +252,31 @@ export function TourCoach() {
       >
         end
       </Button>
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {i18n.t("onboarding.tour.confirmSkipTitle" as I18nArg)}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {i18n.t("onboarding.tour.confirmSkipBody" as I18nArg)}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>
+              {i18n.t("onboarding.tour.confirmSkipCancel" as I18nArg)}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={() => {
+                void handleSkip();
+              }}
+            >
+              {i18n.t("onboarding.tour.confirmSkipConfirm" as I18nArg)}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }

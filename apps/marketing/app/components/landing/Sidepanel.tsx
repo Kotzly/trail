@@ -237,8 +237,6 @@ export function Sidepanel({
             style={{
               background: "rgba(20, 17, 12, 0.85)",
               border: "1px solid var(--landing-line-strong)",
-              backdropFilter: "blur(6px)",
-              WebkitBackdropFilter: "blur(6px)",
             }}
             aria-label="Switch tree"
           >
@@ -258,8 +256,6 @@ export function Sidepanel({
             style={{
               background: "rgba(20, 17, 12, 0.85)",
               border: "1px solid var(--landing-line-strong)",
-              backdropFilter: "blur(6px)",
-              WebkitBackdropFilter: "blur(6px)",
               color: "rgba(246, 239, 225, 0.7)",
             }}
             aria-label="Pinned"
@@ -273,8 +269,6 @@ export function Sidepanel({
             style={{
               background: "rgba(20, 17, 12, 0.85)",
               border: "1px solid var(--landing-line-strong)",
-              backdropFilter: "blur(6px)",
-              WebkitBackdropFilter: "blur(6px)",
               color: "rgba(246, 239, 225, 0.7)",
             }}
             aria-label="Search trail"
@@ -292,8 +286,6 @@ export function Sidepanel({
             style={{
               background: "rgba(20, 17, 12, 0.85)",
               border: "1px solid var(--landing-line-strong)",
-              backdropFilter: "blur(6px)",
-              WebkitBackdropFilter: "blur(6px)",
               color: "rgba(246, 239, 225, 0.7)",
             }}
             aria-label="Settings"
@@ -310,8 +302,6 @@ export function Sidepanel({
           style={{
             background: "rgba(20, 17, 12, 0.85)",
             border: "1px solid var(--landing-line-strong)",
-            backdropFilter: "blur(6px)",
-            WebkitBackdropFilter: "blur(6px)",
           }}
         >
           <button
@@ -332,8 +322,6 @@ export function Sidepanel({
           style={{
             background: "rgba(20, 17, 12, 0.85)",
             border: "1px solid var(--landing-line-strong)",
-            backdropFilter: "blur(6px)",
-            WebkitBackdropFilter: "blur(6px)",
           }}
           aria-label="New tab from this node"
         >
@@ -348,8 +336,6 @@ export function Sidepanel({
           style={{
             background: "rgba(20, 17, 12, 0.85)",
             border: "1px solid var(--landing-line-strong)",
-            backdropFilter: "blur(6px)",
-            WebkitBackdropFilter: "blur(6px)",
             color: "rgba(246, 239, 225, 0.55)",
           }}
         >
@@ -381,16 +367,34 @@ export function Sidepanel({
           aria-hidden="true"
         >
           <defs>
-            <linearGradient id="trailEdge" x1="0" y1="0" x2="0" y2="1">
+            {/* userSpaceOnUse — without it, a perfectly vertical edge
+                (e.g. arxiv → gh, both at x=318) has a zero-width bbox
+                and the default `objectBoundingBox` gradient renders
+                nothing, dropping the stroke entirely. */}
+            <linearGradient
+              id="trailEdge"
+              gradientUnits="userSpaceOnUse"
+              x1="0"
+              y1="60"
+              x2="0"
+              y2="344"
+            >
               <stop offset="0%" stopColor="#f8d364" stopOpacity="0.85" />
               <stop offset="100%" stopColor="#d2734e" stopOpacity="0.7" />
             </linearGradient>
+            {/* Same userSpaceOnUse story as the gradient above: with
+                the default `objectBoundingBox`, a perfectly vertical
+                edge has zero-width bbox, so `160%` of zero is zero —
+                the filter region collapses and the blurred stroke
+                renders nothing. Anchor the region to the SVG canvas
+                instead. */}
             <filter
               id="trailEdgeGlow"
-              x="-30%"
-              y="-30%"
-              width="160%"
-              height="160%"
+              filterUnits="userSpaceOnUse"
+              x="-50"
+              y="-50"
+              width="2000"
+              height="2000"
             >
               <feGaussianBlur stdDeviation="1.6" result="b" />
               <feMerge>

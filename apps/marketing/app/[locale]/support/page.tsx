@@ -26,7 +26,7 @@ const fallback = {
     description:
       "Get help with Trail. Check service status and contact our support team.",
   },
-  statusLabel: "All systems operational",
+  statusLabel: "Trees rooted, paths open",
   contactEmail: "support@gettrail.net",
 };
 
@@ -95,10 +95,10 @@ export default async function SupportPage({
                 className="group flex items-center justify-between rounded-2xl border border-border-subtle bg-surface px-6 py-4 transition-colors hover:border-border-strong"
               >
                 <div className="flex items-center gap-3">
-                  <span className="relative flex h-2.5 w-2.5">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                    <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
-                  </span>
+                  <span
+                    className="inline-flex h-2 w-2 rounded-full bg-ember"
+                    aria-hidden="true"
+                  />
                   <span className="text-sm font-medium text-text-primary">
                     {statusLabel}
                   </span>
@@ -110,10 +110,10 @@ export default async function SupportPage({
               </a>
             ) : (
               <div className="flex items-center gap-3 rounded-2xl border border-border-subtle bg-surface px-6 py-4">
-                <span className="relative flex h-2.5 w-2.5">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
-                </span>
+                <span
+                  className="inline-flex h-2 w-2 rounded-full bg-ember"
+                  aria-hidden="true"
+                />
                 <span className="text-sm font-medium text-text-primary">
                   {statusLabel}
                 </span>

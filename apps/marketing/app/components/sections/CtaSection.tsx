@@ -9,14 +9,14 @@ export function CtaSection({ section }: { section: CtaSectionData }) {
     <section id="cta" className="relative py-24 sm:py-32">
       {/* Subtle radial gradient background */}
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(10,10,10,1)_0%,_rgba(0,0,0,1)_70%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,_rgba(212,22,108,0.03)_0%,_transparent_50%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--background-2)_0%,_var(--background)_70%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,_var(--ember-subtle)_0%,_transparent_50%)]" />
       </div>
 
       <div className="relative z-10 mx-auto max-w-3xl px-6 text-center">
         {section.eyebrow && (
           <Reveal delay={0.1}>
-            <span className="inline-flex rounded-full border border-gold/20 bg-gold-subtle px-3 py-1 text-xs tracking-label uppercase text-gold">
+            <span className="inline-flex rounded-full border border-ember/20 bg-ember-subtle px-3 py-1 text-xs tracking-label uppercase text-ember">
               {section.eyebrow}
             </span>
           </Reveal>
@@ -43,7 +43,7 @@ export function CtaSection({ section }: { section: CtaSectionData }) {
             {section.primaryCta && (
               <a
                 href={section.primaryCta.href}
-                className="inline-flex rounded-full bg-primary px-8 py-3 text-base font-medium text-primary-foreground transition-shadow hover:shadow-[0_0_24px_rgba(212,22,108,0.25)] active:scale-[0.98]"
+                className="inline-flex rounded-full bg-primary px-8 py-3 text-base font-medium text-primary-foreground transition-shadow hover:shadow-[0_18px_48px_-12px_var(--ember-glow)] active:scale-[0.98]"
               >
                 {section.primaryCta.text}
               </a>

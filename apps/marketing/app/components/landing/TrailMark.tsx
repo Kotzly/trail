@@ -68,7 +68,10 @@ export function TrailMark({
           <path key={i} d={d} />
         ))}
       </g>
-      <g fill={`url(#${gradId})`}>
+      {/* Nodes punch through the gradient strokes as dark anchors —
+          deliberately matched to the page background so they read as
+          "stations on the line", not as part of the gradient itself. */}
+      <g fill="#0a0908">
         {NODES.map(([cx, cy], i) => (
           <circle key={i} cx={cx} cy={cy} r="4.4" />
         ))}
