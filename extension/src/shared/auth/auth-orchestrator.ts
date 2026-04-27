@@ -58,6 +58,7 @@ import {
 import { treeStorage } from "@background/services/tree-storage.js";
 import { captureError, captureEvent, resetTelemetryIdentity } from "@shared/lib/observability.js";
 import { createLogger } from "@shared/lib/logger.js";
+import { EXTENSION_MESSAGE, fireExtensionEvent } from "@shared/transport/extension-messaging.js";
 
 /**
  * How often `devices.last_seen_at` is refreshed once the user has been
@@ -83,6 +84,18 @@ export const PASSWORD_MIN_LENGTH = 8;
 
 let cachedState: AuthState | null = null;
 const listeners = new Set<(state: AuthState) => void>();
+
+const transitionListeners = new Set<() => void>();
+
+let authReadyResolve: ((state: AuthState) => void) | null = null;
+/**
+ * Resolves on the first `notify(...)` call. Background message handlers
+ * for `getTreeState` / `getTrees` `await` this so a cold service worker
+ * doesn't serve the previous user's tree before `initAuth()` resolves.
+ */
+export const authReady: Promise<AuthState> = new Promise<AuthState>((resolve) => {
+  authReadyResolve = resolve;
+});
 
 /**
  * While true, the orchestrator suppresses `signed-in` broadcasts even
@@ -135,6 +148,7 @@ async function wipeUserScopedLocalState(): Promise<void> {
   // `devices` row instead of upserting on top of the previous user's
   // row (which silently fails RLS USING and leaves an orphan).
   await safeRun("deviceId", () => deviceIdItem.setValue(null));
+  await safeRun("provisionedUsers", () => provisionedUsersItem.setValue({}));
 }
 
 function detectOs(ua: string): string | null {
@@ -217,6 +231,7 @@ async function runUserChangeWipeIfNeeded(identity: AuthIdentity): Promise<void> 
       to: identity.userId,
     });
     await wipeUserScopedLocalState();
+    fireAuthTransition("account-switched");
     captureEvent("auth_user_changed_wipe");
   }
   // Always advance the discriminator — first sign-in on a fresh
@@ -323,6 +338,11 @@ function sessionToIdentity(session: Session | null): AuthIdentity | null {
 
 function notify(state: AuthState): void {
   cachedState = state;
+  if (authReadyResolve) {
+    const resolve = authReadyResolve;
+    authReadyResolve = null;
+    resolve(state);
+  }
   listeners.forEach((cb) => {
     try {
       cb(state);
@@ -559,6 +579,36 @@ export function subscribeAuthState(cb: (state: AuthState) => void): () => void {
   return () => {
     listeners.delete(cb);
   };
+}
+
+/**
+ * Subscribe to in-process "per-user state must be invalidated" signals.
+ * Fired from the wipe path (account switch, sign-out). Distinct from
+ * `subscribeAuthState`: that broadcasts identity, this broadcasts
+ * "drop your caches now". Sync engine, tree-storage in-memory caches,
+ * and sidepanel UI all subscribe.
+ */
+export function subscribeAuthTransition(cb: () => void): () => void {
+  transitionListeners.add(cb);
+  return () => {
+    transitionListeners.delete(cb);
+  };
+}
+
+function fireAuthTransition(reason: "signed-out" | "account-switched" | "first-signin"): void {
+  transitionListeners.forEach((cb) => {
+    try {
+      cb();
+    } catch (error) {
+      log.error("auth transition listener threw", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+  // Cross-context broadcast for UI surfaces (sidepanel/settings/login)
+  // to drop their queryClient + Zustand caches. The SW is also a
+  // subscriber of this message — harmless duplicate, idempotent.
+  fireExtensionEvent(EXTENSION_MESSAGE.AUTH_TRANSITION, { reason });
 }
 
 // ---------------------------------------------------------------------------
@@ -998,10 +1048,15 @@ export async function signOut(): Promise<void> {
     captureError(error, { kind: "auth_signout" });
   }
   await authIdentityItem.setValue(null);
-  // Drop provisioning cache so a re-sign-in (possibly as a different
-  // user, possibly after a server-side account deletion) runs the full
-  // ensurePublicUser path again.
-  await provisionedUsersItem.setValue({});
+  // Wipe per-user persisted state (trees, sync metadata, queued ops,
+  // tombstones, conflict picks, layout cache, device id, provisioning
+  // cache). Without this, the previous user's data sits on disk until
+  // the next sign-in as a different user triggers `runUserChangeWipeIfNeeded`.
+  await wipeUserScopedLocalState();
+  // Notify in-process subscribers (sync engine, tree-storage memory
+  // cache) and fire the cross-context AUTH_TRANSITION event so the
+  // sidepanel can clear its React Query cache + Zustand per-user slice.
+  fireAuthTransition("signed-out");
   captureEvent("auth_signout");
   await resetTelemetryIdentity();
   notify({ status: "signed-out" });

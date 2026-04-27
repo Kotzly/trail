@@ -18,6 +18,7 @@ export const EXTENSION_MESSAGE = {
   SYNC_CONFLICT: "event/sync-conflict",
   SYNC_CONFLICT_RESOLVED: "event/sync-conflict-resolved",
   AUTH_STATE: "event/auth-state",
+  AUTH_TRANSITION: "event/auth-transition",
   CONTENT_BRIDGE_ERROR: "event/content-bridge-error",
 } as const;
 
@@ -54,6 +55,10 @@ export type AuthStateEvent =
       };
     };
 
+export type AuthTransitionEvent = {
+  reason: "signed-out" | "account-switched" | "first-signin";
+};
+
 export interface ExtensionProtocolMap {
   [EXTENSION_MESSAGE.OPEN_PANEL](): void;
   [EXTENSION_MESSAGE.TITLE_OR_FAVICON_CHANGED](data: TitleOrFaviconChangedInput): void;
@@ -64,6 +69,7 @@ export interface ExtensionProtocolMap {
   [EXTENSION_MESSAGE.SYNC_CONFLICT](data: SyncConflictEvent): void;
   [EXTENSION_MESSAGE.SYNC_CONFLICT_RESOLVED](data: SyncConflictResolvedEvent): void;
   [EXTENSION_MESSAGE.AUTH_STATE](data: AuthStateEvent): void;
+  [EXTENSION_MESSAGE.AUTH_TRANSITION](data: AuthTransitionEvent): void;
   [EXTENSION_MESSAGE.CONTENT_BRIDGE_ERROR](data: ContentBridgeErrorEvent): void;
 }
 

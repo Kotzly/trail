@@ -34,7 +34,11 @@
 import type { PostgrestError } from "@supabase/supabase-js";
 import pDebounce from "p-debounce";
 import { getSupabaseClient } from "@shared/lib/supabase.js";
-import { getAuthState, subscribeAuthState } from "@shared/auth/auth-orchestrator.js";
+import {
+  getAuthState,
+  subscribeAuthState,
+  subscribeAuthTransition,
+} from "@shared/auth/auth-orchestrator.js";
 import {
   deviceIdItem,
   localDeleteTombstonesItem,
@@ -1461,6 +1465,21 @@ export async function handlePullAlarm(): Promise<void> {
 }
 
 /**
+ * Reset all module-level sync state. Called from the auth-transition
+ * listener so a sign-out or account switch doesn't leave stale
+ * `lastPulledAt`, in-flight tracking, conflict snapshots, or rate-limit
+ * history pointing at the previous user's data.
+ */
+function resetSyncMemory(): void {
+  lastPulledAt = null;
+  pendingConflicts.clear();
+  mergeInFlight.clear();
+  deleteInFlight.clear();
+  pushHistory = [];
+  setStatus("idle");
+}
+
+/**
  * Start the background sync engine. Idempotent — second call is a no-op.
  * The pull timer only runs while signed-in; sign-out tears it down so the
  * service worker isn't woken once per minute for nothing.
@@ -1468,6 +1487,10 @@ export async function handlePullAlarm(): Promise<void> {
 export function startSyncEngine(): void {
   if (running) return;
   running = true;
+
+  subscribeAuthTransition(() => {
+    resetSyncMemory();
+  });
 
   subscribeAuthState((state) => {
     if (!running) return;

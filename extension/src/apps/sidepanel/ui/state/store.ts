@@ -223,6 +223,12 @@ type StoreActions = {
   clearConflict: () => void;
   setOnboarding: (patch: Partial<StoreState["onboarding"]>) => void;
   setSpotlight: (nodeId: NodeId | null, kind: "pulse" | "target" | null) => void;
+  /**
+   * Reset per-user Zustand slices on auth transition (sign-out, account
+   * switch). Device-scoped fields (settings, flags, ui, onboarding,
+   * authState) are deliberately preserved.
+   */
+  resetForAuth: () => void;
 };
 
 export type AuthUiState =
@@ -1041,6 +1047,52 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
         spotlight: { nodeId, kind },
       },
     })),
+
+  resetForAuth: () =>
+    set({
+      tree: null,
+      treeJSON: null,
+      precomputedPositions: null,
+      treeUpdate: null,
+      trees: { active: null, others: [] },
+      pins: null,
+      tabStates: {},
+      nodeTabCounts: {},
+      nodeRecency: {},
+      openNodeIds: new Set<NodeId>(),
+      currentNodeId: null,
+      nodeCount: 0,
+      commandState: null,
+      tagFilter: { selected: new Set<Tag>() },
+      search: {
+        query: "",
+        results: [],
+        index: 0,
+        navStep: 0,
+        active: false,
+        baseCurrentId: null,
+      },
+      graph: {
+        tool: "select" as GraphTool,
+        selectedNodeIds: new Set<NodeId>(),
+        view: { translateX: 0, translateY: 0, scale: 1 },
+        resetVersion: 0,
+        viewIntent: null,
+        hoverNodeId: null,
+        collapsedNodeIds: new Set<NodeId>(),
+        collapsedByTree: new Map<NodeId, Set<NodeId>>(),
+        collapseVersion: 0,
+        collapseAction: null,
+        unfoldedChainIds: new Set<NodeId>(),
+        unfoldedChainsByTree: new Map<NodeId, Set<NodeId>>(),
+        badgeExpandedIds: new Set<NodeId>(),
+        badgeExpandedByTree: new Map<NodeId, Set<NodeId>>(),
+      },
+      syncConflict: null,
+      renameTarget: null,
+      pickTarget: null,
+      contextMenu: null,
+    }),
 }));
 
 function emptyConflictPicks(treeId: string, serverUpdatedAt: string): ConflictPickState {

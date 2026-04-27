@@ -35,7 +35,7 @@ import {
   periodicPull,
   scheduleDelete,
 } from "../../sync/sync-engine.js";
-import { getAuthState } from "@shared/auth/auth-orchestrator.js";
+import { authReady, getAuthState } from "@shared/auth/auth-orchestrator.js";
 import { isTreeStub, type NavigationTreeJSON, type TreeMeta } from "@shared/types/tree.js";
 import { EXPORT_SCHEMA, type TrailExportBundle } from "@shared/types/export.js";
 import { settingsManager } from "../../services/settings.js";
@@ -444,10 +444,12 @@ export async function openTreeAndFocusNode(treeId: string, nodeId: NodeId): Prom
 
 export const treeHandlers = defineRpcHandlers({
   async [RPC_METHOD.GET_TREE]() {
+    await authReady;
     return await buildTreeSnapshot();
   },
 
   async [RPC_METHOD.GET_TREES]() {
+    await authReady;
     return await buildTreesSnapshot();
   },
 

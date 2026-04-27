@@ -12,6 +12,7 @@ import ContextMenus from "./components/ContextMenus.js";
 import TrailLogo from "@ui/components/trail-logo";
 import { Toaster } from "@ui/components/ui/sonner.js";
 import { useAuthTransitionToast } from "./hooks/useAuthTransitionToast.js";
+import { useAuthReset } from "./hooks/useAuthReset.js";
 import { useBootstrap } from "./hooks/useBootstrap.js";
 import { useClearButtonFocusOnBlur } from "./hooks/useClearButtonFocusOnBlur.js";
 import { useRuntimeMessages } from "./hooks/useRuntimeMessages.js";
@@ -79,6 +80,7 @@ export default function App() {
   useThemePresetSync(settings?.themePreset);
   useShortcuts();
   useAuthTransitionToast();
+  useAuthReset();
   useClearButtonFocusOnBlur();
 
   const treeJSON = useStore((s) => s.treeJSON);
