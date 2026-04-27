@@ -148,7 +148,6 @@ async function wipeUserScopedLocalState(): Promise<void> {
   // `devices` row instead of upserting on top of the previous user's
   // row (which silently fails RLS USING and leaves an orphan).
   await safeRun("deviceId", () => deviceIdItem.setValue(null));
-  await safeRun("provisionedUsers", () => provisionedUsersItem.setValue({}));
 }
 
 function detectOs(ua: string): string | null {
@@ -1048,14 +1047,22 @@ export async function signOut(): Promise<void> {
     captureError(error, { kind: "auth_signout" });
   }
   await authIdentityItem.setValue(null);
-  // Wipe per-user persisted state (trees, sync metadata, queued ops,
-  // tombstones, conflict picks, layout cache, device id, provisioning
-  // cache). Without this, the previous user's data sits on disk until
-  // the next sign-in as a different user triggers `runUserChangeWipeIfNeeded`.
-  await wipeUserScopedLocalState();
-  // Notify in-process subscribers (sync engine, tree-storage memory
-  // cache) and fire the cross-context AUTH_TRANSITION event so the
-  // sidepanel can clear its React Query cache + Zustand per-user slice.
+  // Drop the provisioning cache so a re-sign-in (possibly as a different
+  // user, possibly after a server-side account deletion) re-runs the full
+  // ensurePublicUser path.
+  await provisionedUsersItem.setValue({});
+  // Drop server-only data: stub entries in the tree index (pointers to
+  // trees we never downloaded; useless when signed out) and the per-tree
+  // sync state map (lastSyncedAt / lastRemoteUpdatedAt are all
+  // server-relative; resync from scratch on next sign-in). Local trees
+  // with full payload remain intact and accessible offline. The
+  // account-switch wipe (runUserChangeWipeIfNeeded) is still the
+  // authoritative point at which the previous user's local data is
+  // invalidated.
+  await treeStorage.dropRemoteStubs();
+  await syncStateItem.setValue({});
+  // Notify subscribers (sync engine resets module state, sidepanel
+  // refreshes the now-stub-free tree list) without touching disk.
   fireAuthTransition("signed-out");
   captureEvent("auth_signout");
   await resetTelemetryIdentity();

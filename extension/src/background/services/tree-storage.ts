@@ -619,6 +619,29 @@ class TreeStorageService {
     });
   }
 
+  /**
+   * Drop every remote-only stub entry from the local tree index. Stubs
+   * are pointers to trees that exist on the server but were never
+   * downloaded locally — they're inaccessible while signed out and
+   * showing them as "available" would mislead. Trees with local
+   * payload are preserved.
+   */
+  async dropRemoteStubs(): Promise<void> {
+    return withTreeLock(async () => {
+      const index = await this.getTreeIndex();
+      const localOnly = index.filter((entry) => !isTreeStub(entry));
+      if (localOnly.length === index.length) return;
+      this.cachedIndex = localOnly;
+      try {
+        await treeIndexItem.setValue(localOnly);
+      } catch (error) {
+        log.error("Error dropping remote stubs", {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    });
+  }
+
   // -----------------------------------------------------------------------
   // Per-tree compressed blobs
   // -----------------------------------------------------------------------
