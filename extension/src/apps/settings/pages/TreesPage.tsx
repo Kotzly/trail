@@ -6,7 +6,7 @@ import { useTrees } from "../hooks/useTrees.js";
 import { Button } from "@ui/components/ui/button";
 import { Input } from "@ui/components/ui/input";
 import { Field, FieldGroup, FieldLabel } from "@ui/components/ui/field";
-import { PageHeader } from "../components/PageHeader.js";
+import { PageHeader, SectionHeader } from "../components/PageHeader.js";
 import {
   Dialog,
   DialogContent,
@@ -140,7 +140,7 @@ export function TreesPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-8">
       <PageHeader title={i18n.t("trees.title")} description={i18n.t("trees.description")} />
 
       <div className="flex items-center justify-end gap-2">
@@ -162,59 +162,65 @@ export function TreesPage() {
         />
       </div>
 
-      <ItemGroup>
-        <Item variant="muted" size="sm">
-          <ItemMedia variant="icon">
-            <Icons.Bookmark className="text-muted-foreground" />
-          </ItemMedia>
-          <ItemContent>
-            <ItemTitle>{trees.active.label}</ItemTitle>
-            <ItemDescription>{i18n.t("trees.activeDescription")}</ItemDescription>
-          </ItemContent>
-          <ItemActions>
-            <TreeSyncBadge
-              treeId={trees.active.id}
-              isStub={false}
-              isActive
-              state={syncMap.get(trees.active.id)}
-              busy={false}
-              onDownload={handleDownload}
-              onUnload={handleUnload}
-            />
-            <ButtonTooltip label={i18n.t("trees.actions.exportTree")}>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                aria-label={i18n.t("trees.actions.exportTree")}
-                onClick={() => void exportTree()}
-              >
-                <Icons.Upload />
-              </Button>
-            </ButtonTooltip>
-          </ItemActions>
-        </Item>
-      </ItemGroup>
+      <section className="flex flex-col gap-3">
+        <SectionHeader eyebrow={i18n.t("trees.groupHeading.active")} />
+        <ItemGroup>
+          <Item variant="muted" size="sm">
+            <ItemMedia variant="icon">
+              <Icons.Bookmark className="text-muted-foreground" />
+            </ItemMedia>
+            <ItemContent>
+              <ItemTitle>{trees.active.label}</ItemTitle>
+              <ItemDescription>{i18n.t("trees.activeDescription")}</ItemDescription>
+            </ItemContent>
+            <ItemActions>
+              <TreeSyncBadge
+                treeId={trees.active.id}
+                isStub={false}
+                isActive
+                state={syncMap.get(trees.active.id)}
+                busy={false}
+                onDownload={handleDownload}
+                onUnload={handleUnload}
+              />
+              <ButtonTooltip label={i18n.t("trees.actions.exportTree")}>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={i18n.t("trees.actions.exportTree")}
+                  onClick={() => void exportTree()}
+                >
+                  <Icons.Upload />
+                </Button>
+              </ButtonTooltip>
+            </ItemActions>
+          </Item>
+        </ItemGroup>
+      </section>
 
       {trees.others.length > 0 && (
-        <ItemGroup>
-          {trees.others.map((tree) => (
-            <OtherTreeRow
-              key={tree.id}
-              tree={tree}
-              isEditing={editingId === tree.id}
-              syncState={syncMap.get(tree.id)}
-              busy={(downloadPending || unloadPending) && busyId === tree.id}
-              onStartEdit={handleStartEdit}
-              onCancelEdit={handleCancelEdit}
-              onCommitRename={handleCommitRename}
-              onOpen={openTree}
-              onExport={exportTree}
-              onDelete={deleteTree}
-              onDownload={handleDownload}
-              onUnload={handleUnload}
-            />
-          ))}
-        </ItemGroup>
+        <section className="flex flex-col gap-3">
+          <SectionHeader eyebrow={i18n.t("trees.groupHeading.otherTrees")} />
+          <ItemGroup>
+            {trees.others.map((tree) => (
+              <OtherTreeRow
+                key={tree.id}
+                tree={tree}
+                isEditing={editingId === tree.id}
+                syncState={syncMap.get(tree.id)}
+                busy={(downloadPending || unloadPending) && busyId === tree.id}
+                onStartEdit={handleStartEdit}
+                onCancelEdit={handleCancelEdit}
+                onCommitRename={handleCommitRename}
+                onOpen={openTree}
+                onExport={exportTree}
+                onDelete={deleteTree}
+                onDownload={handleDownload}
+                onUnload={handleUnload}
+              />
+            ))}
+          </ItemGroup>
+        </section>
       )}
     </div>
   );

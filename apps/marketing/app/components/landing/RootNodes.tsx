@@ -499,7 +499,7 @@ export function RootNodes({ progress }: { progress: MotionValue<number> }) {
   const [pinned, setPinned] = useState<number | null>(null);
 
   return (
-    <div className="absolute inset-0 z-[3] pointer-events-none">
+    <div className="absolute inset-0 z-[2] pointer-events-none">
       {NODES.map((n, i) => (
         <NodeWaypoint
           key={i}

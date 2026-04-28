@@ -8,8 +8,8 @@ const COLUMNS: Array<{
   {
     label: "Product",
     links: [
-      { label: "Features", href: "#features" },
-      { label: "Try it", href: "#try" },
+      { label: "Features", href: "/#features" },
+      { label: "Try it", href: "/#try" },
       { label: "Changelog", href: "/changelog" },
     ],
   },
@@ -32,9 +32,11 @@ const COLUMNS: Array<{
 
 export function LandingFooter({
   contactEmail = "hello@gettrail.net",
+  copyright,
 }: {
   contactEmail?: string;
-}) {
+  copyright?: string;
+} = {}) {
   return (
     <footer
       className="border-t border-[var(--landing-line)] bg-[var(--landing-bg)]"
@@ -140,7 +142,7 @@ export function LandingFooter({
           color: "rgba(246,239,225,0.36)",
         }}
       >
-        <span>© {new Date().getFullYear()} Trail</span>
+        <span>{copyright ?? `© ${new Date().getFullYear()} Trail`}</span>
         <span>Local-first, on purpose</span>
       </div>
     </footer>

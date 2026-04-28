@@ -1,7 +1,6 @@
 import { i18n } from "#i18n";
-import { Card, CardContent, CardHeader, CardTitle } from "@ui/components/ui/card";
 import { Shortcut, type ShortcutKey } from "@ui/components/shortcut";
-import { PageHeader } from "../components/PageHeader.js";
+import { PageHeader, SectionHeader } from "../components/PageHeader.js";
 
 type ShortcutRow = {
   keys: readonly ShortcutKey[];
@@ -9,14 +8,14 @@ type ShortcutRow = {
 };
 
 type ShortcutGroup = {
-  title: string;
+  eyebrow: string;
   items: readonly ShortcutRow[];
 };
 
 function buildGroups(): readonly ShortcutGroup[] {
   return [
     {
-      title: i18n.t("settings.shortcuts.groupNavigation"),
+      eyebrow: i18n.t("settings.shortcuts.groupNavigation"),
       items: [
         { keys: ["meta", "K"], label: i18n.t("settings.shortcuts.openPaletteSearch") },
         { keys: ["meta", "F"], label: i18n.t("settings.shortcuts.openPalette") },
@@ -31,7 +30,7 @@ function buildGroups(): readonly ShortcutGroup[] {
       ],
     },
     {
-      title: i18n.t("settings.shortcuts.groupEditing"),
+      eyebrow: i18n.t("settings.shortcuts.groupEditing"),
       items: [
         { keys: ["F2"], label: i18n.t("settings.shortcuts.renameNode") },
         { keys: ["delete"], label: i18n.t("settings.shortcuts.deleteNode") },
@@ -46,7 +45,7 @@ function buildGroups(): readonly ShortcutGroup[] {
       ],
     },
     {
-      title: i18n.t("settings.shortcuts.groupViews"),
+      eyebrow: i18n.t("settings.shortcuts.groupViews"),
       items: [
         { keys: ["shift", "P"], label: i18n.t("settings.shortcuts.togglePinned") },
         { keys: ["shift", "T"], label: i18n.t("settings.shortcuts.toggleTreeSwitcher") },
@@ -63,26 +62,27 @@ function buildGroups(): readonly ShortcutGroup[] {
 export function ShortcutsPage() {
   const groups = buildGroups();
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-10">
       <PageHeader
         title={i18n.t("settings.shortcuts.title")}
         description={i18n.t("settings.shortcuts.description")}
       />
 
       {groups.map((group) => (
-        <Card key={group.title}>
-          <CardHeader>
-            <CardTitle className="text-base">{group.title}</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-2">
-            {group.items.map((item) => (
-              <div key={item.label} className="flex items-center justify-between gap-4 text-sm">
-                <span>{item.label}</span>
+        <section key={group.eyebrow} className="flex flex-col gap-3">
+          <SectionHeader eyebrow={group.eyebrow} />
+          <ul className="divide-border divide-y">
+            {group.items.map((item, idx) => (
+              <li
+                key={`${item.label}-${idx}`}
+                className="flex items-center justify-between gap-4 py-2 text-sm"
+              >
+                <span className="text-foreground">{item.label}</span>
                 <Shortcut keys={item.keys} />
-              </div>
+              </li>
             ))}
-          </CardContent>
-        </Card>
+          </ul>
+        </section>
       ))}
     </div>
   );

@@ -14,6 +14,7 @@ import "@xyflow/react/dist/style.css";
 import "../motion/relayout.css";
 import "../motion/hover.css";
 import "../motion/lifecycle.css";
+import "../motion/focus.css";
 import "../pane.css";
 import type { TrailGraphProps, TrailNode as TrailNodeType, TrailNodeData } from "../types.js";
 import { TrailNode } from "./TrailNode.js";
@@ -30,6 +31,10 @@ import { selectShowBackground } from "../lod.js";
 import { useRelayoutEnabled } from "../motion/useRelayoutEnabled.js";
 import { useHoverHighlightEnabled } from "../motion/useHoverHighlightEnabled.js";
 import { useNodeLifecycle, useNodeLifecycleEnabled } from "../motion/useNodeLifecycle.js";
+import {
+  useFocusOrchestrator,
+  useFocusOrchestratorEnabled,
+} from "../motion/useFocusOrchestrator.js";
 import { useCameraControls } from "../motion/useCameraControls.js";
 import { useMotionFlag } from "../motion/store.js";
 import { useLatest } from "@ui/hooks/use-latest";
@@ -137,6 +142,22 @@ function TrailGraphInner(props: TrailGraphProps) {
     metadata,
     precomputedPositions,
   });
+
+  // Focus orchestration — adds the cinematic arrival pulse, fork-parent
+  // halo, and trail edge classification on top of the existing camera
+  // tween. Gated on FPS tier + reduced motion only; no extra flag.
+  const focusEnabled = useFocusOrchestratorEnabled();
+  const { arrivingNodeId, forkParentIds, trailReactFlowIds, genesisEdgeIds } = useFocusOrchestrator(
+    {
+      layoutNodes: layout.nodes,
+      layoutEdges: layout.edges,
+      currentNodeId,
+      enabled: focusEnabled,
+    },
+  );
+  // Gate class for focus.css: trail dimming + arrival animation only
+  // apply when there's a current node AND the orchestrator is on.
+  const focusActive = focusEnabled && currentNodeId !== null;
 
   const spotlightId = spotlight?.nodeId ?? null;
   const spotlightKind = spotlight?.kind ?? null;
@@ -280,10 +301,29 @@ function TrailGraphInner(props: TrailGraphProps) {
         // visual "drag then snap back" gesture before it starts.
         const isDraggable = n.data.nodeId !== rootId;
 
+        // Focus orchestration: only annotate when there's a current
+        // node AND the orchestrator gate is on. Off-trail dim/saturate
+        // is the visible signal that the active path is the figure
+        // and the rest is ground. Spotlighted nodes (onboarding tour)
+        // are always elevated to full vibrancy — the tour callout must
+        // remain legible regardless of trail position.
+        let trailFocus: TrailNodeData["trailFocus"] = undefined;
+        if (focusActive) {
+          if (n.data.isCurrent) trailFocus = "active";
+          else if (sp !== undefined) trailFocus = "trail";
+          else if (n.data.onActivePath) trailFocus = "trail";
+          else trailFocus = "dim";
+        }
+        const isArriving = focusActive && arrivingNodeId === n.data.nodeId;
+        const isForkParent = forkParentIds.has(n.data.nodeId);
+
         if (
           n.selected === sel &&
           n.data.spotlight === sp &&
           n.data.dragRole === dragRole &&
+          n.data.trailFocus === trailFocus &&
+          (n.data.isArriving ?? false) === isArriving &&
+          (n.data.isForkParent ?? false) === isForkParent &&
           n.draggable === isDraggable &&
           !overridePos
         ) {
@@ -294,7 +334,14 @@ function TrailGraphInner(props: TrailGraphProps) {
           selected: sel,
           draggable: isDraggable,
           ...(overridePos ? { position: { x: overridePos.x, y: overridePos.y } } : {}),
-          data: { ...n.data, spotlight: sp, dragRole },
+          data: {
+            ...n.data,
+            spotlight: sp,
+            dragRole,
+            trailFocus,
+            isArriving,
+            isForkParent,
+          },
         };
       }),
     [
@@ -307,8 +354,32 @@ function TrailGraphInner(props: TrailGraphProps) {
       dragValid,
       dragOverride,
       rootId,
+      focusActive,
+      arrivingNodeId,
+      forkParentIds,
     ],
   );
+
+  // Edge classification: trail edges (both endpoints on active path)
+  // get `graph-edge--trail` for the brightness/thickness lift in
+  // focus.css. Newly-created edges (genesis) get `graph-edge--entering`
+  // for the ink-draw keyframe in lifecycle.css. Both classes can stack.
+  const displayEdges = useMemo(() => {
+    if (!focusActive && genesisEdgeIds.size === 0) return layout.edges;
+    return layout.edges.map((e) => {
+      const isTrail =
+        focusActive && trailReactFlowIds.has(e.source) && trailReactFlowIds.has(e.target);
+      const isGenesis = genesisEdgeIds.has(e.id);
+      if (!isTrail && !isGenesis) return e;
+      const extras = [
+        isTrail ? "graph-edge--trail" : null,
+        isGenesis ? "graph-edge--entering" : null,
+      ]
+        .filter(Boolean)
+        .join(" ");
+      return { ...e, className: e.className ? `${e.className} ${extras}` : extras };
+    });
+  }, [layout.edges, focusActive, trailReactFlowIds, genesisEdgeIds]);
 
   const lifecycleEnabled = useNodeLifecycleEnabled();
   const lifecycleNodes = useNodeLifecycle(displayNodes, lifecycleEnabled);
@@ -690,6 +761,7 @@ function TrailGraphInner(props: TrailGraphProps) {
           relayoutAnimated && "graph--relayout-animated",
           hoverGlow && "graph--hover-glow",
           lifecycleEnabled && "graph--lifecycle-on",
+          focusActive && "graph--focus-on",
           isReshaping && "graph--reshaping",
         )}
         onPointerDownCapture={handleContainerPointerDown}
@@ -697,7 +769,7 @@ function TrailGraphInner(props: TrailGraphProps) {
       >
         <ReactFlow
           nodes={lifecycleNodes}
-          edges={layout.edges}
+          edges={displayEdges}
           nodeTypes={nodeTypes}
           onNodeClick={handleNodeClick}
           onNodeContextMenu={handleNodeContextMenu}

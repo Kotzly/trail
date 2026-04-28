@@ -69,16 +69,6 @@ function pageFromHash(): Page | null {
   return VALID_PAGES.has(hash as Page) ? (hash as Page) : null;
 }
 
-const PAGE_TITLES: Record<Page, string> = {
-  account: "Account",
-  trees: "Trees",
-  appearance: "Appearance",
-  behavior: "Behavior",
-  shortcuts: "Shortcuts",
-  privacy: "Privacy",
-  about: "About",
-};
-
 export default function SettingsApp() {
   const [page, setPage] = useState<Page>(() => pageFromHash() ?? "trees");
   const { settings, loading, updateSettings } = useSettings();
@@ -166,14 +156,10 @@ export default function SettingsApp() {
             <SidebarGroup>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {NAV_ITEMS.map((item, index) => {
+                  {NAV_ITEMS.map((item) => {
                     const Icon = item.Icon;
                     return (
-                      <SidebarMenuItem
-                        key={item.id}
-                        className="animate-in fade-in-0 slide-in-from-left-1 fill-mode-both duration-(--dur-fast) ease-(--ease-out)"
-                        style={{ animationDelay: `${index * 50}ms` }}
-                      >
+                      <SidebarMenuItem key={item.id}>
                         <SidebarMenuButton
                           isActive={page === item.id}
                           tooltip={item.label}
@@ -204,7 +190,6 @@ export default function SettingsApp() {
         <SidebarInset className="min-w-0">
           <header className="bg-background sticky top-0 z-10 flex h-12 shrink-0 items-center gap-2 border-b px-3">
             <SidebarTrigger className="-ml-1" />
-            <span className="text-muted-foreground text-sm">{PAGE_TITLES[page]}</span>
           </header>
           <div className="flex-1 overflow-y-auto">
             <div className="animate-in fade-in-0 mx-auto w-full max-w-2xl p-6 duration-(--dur-base) ease-(--ease-out) md:p-8">

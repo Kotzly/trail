@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { i18n } from "#i18n";
 import { Avatar, AvatarFallback, AvatarImage } from "@ui/components/ui/avatar";
 import {
   DropdownMenu,
@@ -60,14 +61,18 @@ export function AccountFooterChip({ onOpenAccount }: Props) {
     try {
       await signOut();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Sign out failed");
+      toast.error(err instanceof Error ? err.message : i18n.t("accountFooter.signOutFailed"));
     }
   });
 
   const isSignedIn = state.status === "signed-in";
   const { email, displayName, avatarUrl, initial } = deriveDisplay(state);
-  const primaryLabel = isSignedIn ? (displayName ?? email ?? "Signed in") : "Sign in";
-  const secondaryLabel = isSignedIn ? (email ?? "Account") : "Not signed in";
+  const primaryLabel = isSignedIn
+    ? (displayName ?? email ?? i18n.t("accountFooter.signedIn"))
+    : i18n.t("accountFooter.signIn");
+  const secondaryLabel = isSignedIn
+    ? (email ?? i18n.t("accountFooter.account"))
+    : i18n.t("accountFooter.notSignedIn");
 
   return (
     <DropdownMenu>
@@ -109,14 +114,14 @@ export function AccountFooterChip({ onOpenAccount }: Props) {
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={onOpenAccount}>
           <Icons.Settings />
-          {isSignedIn ? "Account settings" : "Sign in"}
+          {isSignedIn ? i18n.t("accountFooter.accountSettings") : i18n.t("accountFooter.signIn")}
         </DropdownMenuItem>
         {isSignedIn ? (
           <>
             <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={() => void handleSignOut()}>
               <Icons.X />
-              Sign out
+              {i18n.t("accountFooter.signOut")}
             </DropdownMenuItem>
           </>
         ) : null}

@@ -63,6 +63,31 @@ export type TrailNodeData = {
    * Layout merges this from the Zustand `onboarding.spotlight` slice.
    */
   spotlight?: "pulse" | "target";
+  /**
+   * Focus orchestration level. Set transiently by useFocusOrchestrator
+   * during navigation so the active path reads as the dominant figure
+   * against a softly desaturated ground.
+   *   • "active" — this is the current node
+   *   • "trail"  — this is on the ancestor path from root → current
+   *   • "dim"    — this is off the active trail
+   * Undefined when orchestration is disabled (low FPS / reduced motion
+   * / no current node) — node renders at full vibrancy.
+   */
+  trailFocus?: "active" | "trail" | "dim";
+  /**
+   * True for the ~360ms window immediately after currentNodeId changes
+   * to this node. Triggers a one-shot scale pulse (see focus.css). The
+   * orchestrator clears it on the next navigation; coalesced if the
+   * user navigates again before the pulse completes.
+   */
+  isArriving?: boolean;
+  /**
+   * True for the ~360ms window after a child of this node enters the
+   * graph (fork creation). Triggers a soft outward halo pulse — the
+   * "branching genesis" beat. Cleared by the orchestrator after the
+   * keyframe duration.
+   */
+  isForkParent?: boolean;
 };
 
 // ── React Flow node/edge aliases ───────────────────────────────────

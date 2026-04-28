@@ -60,77 +60,82 @@ export function BehaviorPage({ settings, onUpdate }: BehaviorPageProps) {
     onUpdate({ cleanup: patchCleanup(cleanup, patch) });
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-10">
       <PageHeader
         title={i18n.t("settings.behavior.title")}
         description={i18n.t("settings.behavior.description")}
       />
 
-      <FieldGroup>
-        <Field orientation="horizontal">
-          <FieldContent>
-            <FieldLabel htmlFor="shortcuts-enabled">
-              {i18n.t("settings.behavior.shortcutsLabel")}
-            </FieldLabel>
-            <FieldDescription>{i18n.t("settings.behavior.shortcutsDescription")}</FieldDescription>
-          </FieldContent>
-          <Switch
-            id="shortcuts-enabled"
-            checked={settings.shortcutsEnabled}
-            onCheckedChange={(v) => onUpdate({ shortcutsEnabled: v })}
-          />
-        </Field>
+      <section className="flex flex-col gap-4">
+        <SectionHeader eyebrow={i18n.t("settings.behavior.generalEyebrow")} />
+        <FieldGroup>
+          <Field orientation="horizontal">
+            <FieldContent>
+              <FieldLabel htmlFor="shortcuts-enabled">
+                {i18n.t("settings.behavior.shortcutsLabel")}
+              </FieldLabel>
+              <FieldDescription>
+                {i18n.t("settings.behavior.shortcutsDescription")}
+              </FieldDescription>
+            </FieldContent>
+            <Switch
+              id="shortcuts-enabled"
+              checked={settings.shortcutsEnabled}
+              onCheckedChange={(v) => onUpdate({ shortcutsEnabled: v })}
+            />
+          </Field>
 
-        <Field orientation="horizontal">
-          <FieldContent>
-            <FieldLabel htmlFor="confirm-new-tree">
-              {i18n.t("settings.behavior.confirmNewTreeLabel")}
-            </FieldLabel>
-            <FieldDescription>
-              {i18n.t("settings.behavior.confirmNewTreeDescription")}
-            </FieldDescription>
-          </FieldContent>
-          <Switch
-            id="confirm-new-tree"
-            checked={settings.confirmNewTree}
-            onCheckedChange={(v) => onUpdate({ confirmNewTree: v })}
-          />
-        </Field>
+          <Field orientation="horizontal">
+            <FieldContent>
+              <FieldLabel htmlFor="confirm-new-tree">
+                {i18n.t("settings.behavior.confirmNewTreeLabel")}
+              </FieldLabel>
+              <FieldDescription>
+                {i18n.t("settings.behavior.confirmNewTreeDescription")}
+              </FieldDescription>
+            </FieldContent>
+            <Switch
+              id="confirm-new-tree"
+              checked={settings.confirmNewTree}
+              onCheckedChange={(v) => onUpdate({ confirmNewTree: v })}
+            />
+          </Field>
 
-        <Field orientation="horizontal">
-          <FieldContent>
-            <FieldLabel htmlFor="keep-tabs-on-switch">
-              {i18n.t("settings.behavior.keepTabsLabel")}
-            </FieldLabel>
-            <FieldDescription>{i18n.t("settings.behavior.keepTabsDescription")}</FieldDescription>
-          </FieldContent>
-          <Switch
-            id="keep-tabs-on-switch"
-            checked={settings.keepTabsOnSwitch}
-            onCheckedChange={(v) => onUpdate({ keepTabsOnSwitch: v })}
-          />
-        </Field>
+          <Field orientation="horizontal">
+            <FieldContent>
+              <FieldLabel htmlFor="keep-tabs-on-switch">
+                {i18n.t("settings.behavior.keepTabsLabel")}
+              </FieldLabel>
+              <FieldDescription>{i18n.t("settings.behavior.keepTabsDescription")}</FieldDescription>
+            </FieldContent>
+            <Switch
+              id="keep-tabs-on-switch"
+              checked={settings.keepTabsOnSwitch}
+              onCheckedChange={(v) => onUpdate({ keepTabsOnSwitch: v })}
+            />
+          </Field>
 
-        <Field orientation="horizontal">
-          <FieldContent>
-            <FieldLabel htmlFor="adaptive-performance">
-              {i18n.t("settings.behavior.adaptivePerfLabel")}
-            </FieldLabel>
-            <FieldDescription>
-              {i18n.t("settings.behavior.adaptivePerfDescription")}
-            </FieldDescription>
-          </FieldContent>
-          <Switch
-            id="adaptive-performance"
-            checked={settings.adaptivePerformance}
-            onCheckedChange={(v) => onUpdate({ adaptivePerformance: v })}
-          />
-        </Field>
-      </FieldGroup>
+          <Field orientation="horizontal">
+            <FieldContent>
+              <FieldLabel htmlFor="adaptive-performance">
+                {i18n.t("settings.behavior.adaptivePerfLabel")}
+              </FieldLabel>
+              <FieldDescription>
+                {i18n.t("settings.behavior.adaptivePerfDescription")}
+              </FieldDescription>
+            </FieldContent>
+            <Switch
+              id="adaptive-performance"
+              checked={settings.adaptivePerformance}
+              onCheckedChange={(v) => onUpdate({ adaptivePerformance: v })}
+            />
+          </Field>
+        </FieldGroup>
+      </section>
 
-      <div className="flex flex-col gap-4">
+      <section className="flex flex-col gap-4">
         <SectionHeader
-          title={i18n.t("settings.behavior.cleanupTitle")}
+          eyebrow={i18n.t("settings.behavior.cleanupTitle")}
           description={i18n.t("settings.behavior.cleanupDescription")}
         />
         <FieldGroup>
@@ -197,7 +202,7 @@ export function BehaviorPage({ settings, onUpdate }: BehaviorPageProps) {
             />
           </Field>
         </FieldGroup>
-      </div>
+      </section>
     </div>
   );
 }

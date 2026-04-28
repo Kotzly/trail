@@ -99,17 +99,38 @@
   background-size: 256px 256px;
 }
 
+/* Tuned to match the landing's actual usage so tokens and inline styles
+   agree. Tighter than this reads as marketing-cliché on Spectral; looser
+   than tracking-label loses the editorial mono-eyebrow voice. */
 .tracking-display {
-  letter-spacing: -0.075em;
+  letter-spacing: -0.025em;
 }
 .tracking-heading {
-  letter-spacing: -0.05em;
+  letter-spacing: -0.015em;
 }
 .tracking-body {
-  letter-spacing: -0.02em;
+  letter-spacing: -0.005em;
 }
 .tracking-label {
-  letter-spacing: 0.05em;
+  letter-spacing: 0.18em;
+}
+
+/* Editorial mono eyebrow — landing uses this exact recipe in five
+   places (Hero acts, Features, Demo, Cta, Footer columns). Token-ize it
+   so secondary surfaces inherit the voice instead of redeclaring it. */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ember);
+}
+.eyebrow-muted {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
 }
 
 ::selection {

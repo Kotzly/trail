@@ -1,0 +1,134 @@
+/*
+ * Focus orchestration — the "cinematic camera arrival" choreography.
+ *
+ * On top of the existing ReactFlow camera tween (useCameraControls),
+ * three layered effects compose the "this is the trail you took"
+ * reading of the graph:
+ *
+ *   1. Off-trail nodes desaturate slightly + drop opacity. Subtle —
+ *      power-user respect, no hiding of data, all metadata still
+ *      readable. The eye lands on the active path first.
+ *   2. Ancestor-path edges hold a measurable lift in stroke (toward
+ *      --primary, slightly thicker) so the trail from root to current
+ *      reads as one continuous line at any zoom.
+ *   3. The current node briefly pulses on arrival when currentNodeId
+ *      changes — single 360ms ease-out, no overshoot.
+ *
+ * Gate: parent carries `graph--focus-on` (composed in TrailGraph from
+ * reduced-motion + FPS tier). When the gate is off, every node renders
+ * at full vibrancy and edges keep their default stroke.
+ *
+ * Why data attributes on the inner card instead of classes on the
+ * .react-flow__node wrapper: xyflow owns the wrapper transform and
+ * mutating its className from outside the lifecycle hook is fragile.
+ * data-trail-card already exists as the styling hook; we extend it.
+ */
+
+.graph--focus-on [data-trail-card][data-trail-focus="dim"] {
+  opacity: 0.62;
+  filter: saturate(0.78);
+  transition:
+    opacity 320ms var(--ease-out),
+    filter 320ms var(--ease-out);
+}
+
+.graph--focus-on [data-trail-card][data-trail-focus="trail"],
+.graph--focus-on [data-trail-card][data-trail-focus="active"] {
+  opacity: 1;
+  filter: none;
+  transition:
+    opacity 320ms var(--ease-out),
+    filter 320ms var(--ease-out);
+}
+
+/*
+ * Active-trail edges: shifted toward --primary against the default
+ * --border stroke, with a 0.5px stroke-width lift. Thick enough that
+ * the trail reads as a continuous ribbon at the typical zoom level
+ * but never crosses into "highlighted callout" territory.
+ */
+.graph--focus-on .react-flow__edge.graph-edge--trail .react-flow__edge-path {
+  stroke: color-mix(in oklab, var(--primary) 38%, var(--border));
+  stroke-width: 2;
+}
+
+/*
+ * Off-trail edges fade their stroke opacity by ~45% so the trail edges
+ * read as the dominant graph structure. Keeping stroke color the same
+ * (var(--border)) preserves theme neutrality across the 40 presets.
+ */
+.graph--focus-on .react-flow__edge:not(.graph-edge--trail) .react-flow__edge-path {
+  stroke-opacity: 0.55;
+}
+
+/*
+ * Arrival pulse — fires once when currentNodeId changes. The pulse is
+ * a scale beat (1 → 1.035 → 1) on ease-out, deliberately small. The
+ * intent is "the camera has settled here", not "look at me wiggling."
+ *
+ * The 200ms animation-delay coordinates with the camera tween (350ms
+ * in useCameraControls). The pulse peak (~45% of 360ms = 162ms after
+ * delay = ~360ms after click) lands almost exactly on camera settle,
+ * so the node is the last visible element to resolve — "focused node
+ * settles last."
+ *
+ * The data-focus-arriving attribute is set by the orchestrator for
+ * the full 600ms window (delay + duration + slack); the keyframe
+ * starts and ends at identity scale, so the resting state matches
+ * either side of the animation.
+ */
+@keyframes graph-node-focus-arrival {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.035);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.graph--focus-on [data-trail-card][data-focus-arriving="true"] {
+  animation: graph-node-focus-arrival 360ms var(--ease-out) 200ms;
+  transform-origin: center;
+}
+
+/*
+ * Fork-parent pulse — when a child node enters via the lifecycle hook,
+ * the parent flashes a soft outward halo for 360ms. This is the
+ * "branching genesis" beat: a fork is the brand-defining act, and the
+ * parent gets its own subtle acknowledgement that a new branch grew
+ * from it.
+ *
+ * Gated on graph--lifecycle-on (not graph--focus-on) because it's tied
+ * to node-creation lifecycle, which is already governed by that flag
+ * + reduced-motion + FPS tier in useNodeLifecycleEnabled.
+ */
+@keyframes graph-parent-fork-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 0%, transparent);
+  }
+  35% {
+    box-shadow: 0 0 0 4px color-mix(in oklab, var(--primary) 28%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 0%, transparent);
+  }
+}
+
+.graph--lifecycle-on [data-trail-card][data-fork-pulse="true"] {
+  animation: graph-parent-fork-pulse 360ms var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .graph--focus-on [data-trail-card][data-trail-focus="dim"],
+  .graph--focus-on [data-trail-card][data-trail-focus="trail"],
+  .graph--focus-on [data-trail-card][data-trail-focus="active"] {
+    transition: none;
+  }
+  .graph--focus-on [data-trail-card][data-focus-arriving="true"],
+  .graph--lifecycle-on [data-trail-card][data-fork-pulse="true"] {
+    animation: none;
+  }
+}

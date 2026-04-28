@@ -24,17 +24,20 @@ type AppearancePageProps = {
   onUpdate: (patch: Partial<Settings>) => void;
 };
 
+const SELECT_CONTENT_CLASS =
+  "data-closed:duration-[80ms] data-closed:ease-(--ease-out) data-open:duration-(--dur-fast) data-open:ease-(--ease-out)";
+
 export function AppearancePage({ settings, onUpdate }: AppearancePageProps) {
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-10">
       <PageHeader
         title={i18n.t("settings.appearance.title")}
         description={i18n.t("settings.appearance.description")}
       />
 
-      <div className="flex flex-col gap-4">
+      <section className="flex flex-col gap-4">
         <SectionHeader
-          title={i18n.t("settings.appearance.themeTitle")}
+          eyebrow={i18n.t("settings.appearance.themeTitle")}
           description={i18n.t("settings.appearance.themeDescription")}
         />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -44,11 +47,7 @@ export function AppearancePage({ settings, onUpdate }: AppearancePageProps) {
               <SelectTrigger id="theme-mode" className="w-full">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent
-                position="popper"
-                sideOffset={6}
-                className="data-closed:duration-[80ms] data-closed:ease-(--ease-out) data-open:duration-(--dur-fast) data-open:ease-(--ease-out)"
-              >
+              <SelectContent position="popper" sideOffset={6} className={SELECT_CONTENT_CLASS}>
                 <SelectGroup>
                   <SelectItem value="light">{i18n.t("settings.appearance.modeLight")}</SelectItem>
                   <SelectItem value="dark">{i18n.t("settings.appearance.modeDark")}</SelectItem>
@@ -69,11 +68,7 @@ export function AppearancePage({ settings, onUpdate }: AppearancePageProps) {
               <SelectTrigger id="theme-preset" className="w-full">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent
-                position="popper"
-                sideOffset={6}
-                className="data-closed:duration-[80ms] data-closed:ease-(--ease-out) data-open:duration-(--dur-fast) data-open:ease-(--ease-out)"
-              >
+              <SelectContent position="popper" sideOffset={6} className={SELECT_CONTENT_CLASS}>
                 <SelectGroup>
                   {THEME_PRESETS.map((p) => (
                     <SelectItem key={p.id} value={p.id}>
@@ -82,7 +77,7 @@ export function AppearancePage({ settings, onUpdate }: AppearancePageProps) {
                           {p.swatch.map((color, i) => (
                             <span
                               key={i}
-                              className="border-border ring-background inline-block size-3 rounded-full border ring-1"
+                              className="border-border ring-popover inline-block size-3 rounded-full border ring-1"
                               style={{ background: color }}
                             />
                           ))}
@@ -96,99 +91,92 @@ export function AppearancePage({ settings, onUpdate }: AppearancePageProps) {
             </Select>
           </Field>
         </div>
-      </div>
+      </section>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Field>
-          <FieldLabel htmlFor="layout-mode">{i18n.t("settings.appearance.layoutLabel")}</FieldLabel>
-          <Select
-            value={settings.layout.mode}
-            onValueChange={(v) =>
-              onUpdate({ layout: { ...settings.layout, mode: v as LayoutMode } })
-            }
-          >
-            <SelectTrigger id="layout-mode" className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent
-              position="popper"
-              sideOffset={6}
-              className="data-closed:duration-[80ms] data-closed:ease-(--ease-out) data-open:duration-(--dur-fast) data-open:ease-(--ease-out)"
+      <section className="flex flex-col gap-4">
+        <SectionHeader eyebrow={i18n.t("settings.appearance.layoutEyebrow")} />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field>
+            <FieldLabel htmlFor="layout-mode">
+              {i18n.t("settings.appearance.layoutLabel")}
+            </FieldLabel>
+            <Select
+              value={settings.layout.mode}
+              onValueChange={(v) =>
+                onUpdate({ layout: { ...settings.layout, mode: v as LayoutMode } })
+              }
             >
-              <SelectGroup>
-                <SelectItem value="tree">{i18n.t("settings.appearance.layoutTree")}</SelectItem>
-                <SelectItem value="mindmap">
-                  {i18n.t("settings.appearance.layoutMindmap")}
-                </SelectItem>
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-        </Field>
+              <SelectTrigger id="layout-mode" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent position="popper" sideOffset={6} className={SELECT_CONTENT_CLASS}>
+                <SelectGroup>
+                  <SelectItem value="tree">{i18n.t("settings.appearance.layoutTree")}</SelectItem>
+                  <SelectItem value="mindmap">
+                    {i18n.t("settings.appearance.layoutMindmap")}
+                  </SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </Field>
 
-        <Field>
-          <FieldLabel htmlFor="graph-density">
-            {i18n.t("settings.appearance.densityLabel")}
-          </FieldLabel>
-          <Select
-            value={settings.graphDensity}
-            onValueChange={(v) => onUpdate({ graphDensity: v as GraphDensity })}
-          >
-            <SelectTrigger id="graph-density" className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent
-              position="popper"
-              sideOffset={6}
-              className="data-closed:duration-[80ms] data-closed:ease-(--ease-out) data-open:duration-(--dur-fast) data-open:ease-(--ease-out)"
+          <Field>
+            <FieldLabel htmlFor="graph-density">
+              {i18n.t("settings.appearance.densityLabel")}
+            </FieldLabel>
+            <Select
+              value={settings.graphDensity}
+              onValueChange={(v) => onUpdate({ graphDensity: v as GraphDensity })}
             >
-              <SelectGroup>
-                <SelectItem value="compact">
-                  {i18n.t("settings.appearance.densityCompact")}
-                </SelectItem>
-                <SelectItem value="comfortable">
-                  {i18n.t("settings.appearance.densityComfortable")}
-                </SelectItem>
-                <SelectItem value="spacious">
-                  {i18n.t("settings.appearance.densitySpacious")}
-                </SelectItem>
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-        </Field>
+              <SelectTrigger id="graph-density" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent position="popper" sideOffset={6} className={SELECT_CONTENT_CLASS}>
+                <SelectGroup>
+                  <SelectItem value="compact">
+                    {i18n.t("settings.appearance.densityCompact")}
+                  </SelectItem>
+                  <SelectItem value="comfortable">
+                    {i18n.t("settings.appearance.densityComfortable")}
+                  </SelectItem>
+                  <SelectItem value="spacious">
+                    {i18n.t("settings.appearance.densitySpacious")}
+                  </SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </Field>
 
-        <Field>
-          <FieldLabel htmlFor="title-truncation">
-            {i18n.t("settings.appearance.truncationLabel")}
-          </FieldLabel>
-          <Select
-            value={settings.titleTruncation}
-            onValueChange={(v) => onUpdate({ titleTruncation: v as TitleTruncation })}
-          >
-            <SelectTrigger id="title-truncation" className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent
-              position="popper"
-              sideOffset={6}
-              className="data-closed:duration-[80ms] data-closed:ease-(--ease-out) data-open:duration-(--dur-fast) data-open:ease-(--ease-out)"
+          <Field>
+            <FieldLabel htmlFor="title-truncation">
+              {i18n.t("settings.appearance.truncationLabel")}
+            </FieldLabel>
+            <Select
+              value={settings.titleTruncation}
+              onValueChange={(v) => onUpdate({ titleTruncation: v as TitleTruncation })}
             >
-              <SelectGroup>
-                <SelectItem value="start">
-                  {i18n.t("settings.appearance.truncationStart")}
-                </SelectItem>
-                <SelectItem value="middle">
-                  {i18n.t("settings.appearance.truncationMiddle")}
-                </SelectItem>
-                <SelectItem value="end">{i18n.t("settings.appearance.truncationEnd")}</SelectItem>
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-        </Field>
-      </div>
+              <SelectTrigger id="title-truncation" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent position="popper" sideOffset={6} className={SELECT_CONTENT_CLASS}>
+                <SelectGroup>
+                  <SelectItem value="start">
+                    {i18n.t("settings.appearance.truncationStart")}
+                  </SelectItem>
+                  <SelectItem value="middle">
+                    {i18n.t("settings.appearance.truncationMiddle")}
+                  </SelectItem>
+                  <SelectItem value="end">{i18n.t("settings.appearance.truncationEnd")}</SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </Field>
+        </div>
+      </section>
 
-      <div className="flex flex-col gap-4">
+      <section className="flex flex-col gap-4">
         <SectionHeader
-          title={i18n.t("settings.appearance.displayTitle")}
+          eyebrow={i18n.t("settings.appearance.displayTitle")}
           description={i18n.t("settings.appearance.displayDescription")}
         />
         <FieldGroup>
@@ -251,7 +239,7 @@ export function AppearancePage({ settings, onUpdate }: AppearancePageProps) {
             />
           </Field>
         </FieldGroup>
-      </div>
+      </section>
     </div>
   );
 }

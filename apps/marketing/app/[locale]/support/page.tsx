@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
-import { Mail, ArrowUpRight } from "lucide-react";
-import type { ComponentType } from "react";
+import { ArrowUpRight } from "lucide-react";
 import { setRequestLocale } from "next-intl/server";
 import { fetchSupportPage } from "@/lib/sanity/queries";
 import { buildMetadata } from "@/lib/seo";
-import { Reveal } from "@/app/components/ui/reveal";
 import { SiteChrome } from "@/app/components/SiteChrome";
 import { LeaveNoteButton } from "./LeaveNoteButton";
 
@@ -18,9 +16,9 @@ type SupportPageData = {
 };
 
 const fallback = {
-  title: "Support",
+  title: "Help with Trail",
   description:
-    "Need help with Trail? Check our service status or reach out to the team.",
+    "Service status, how to reach us, and where to send the bug you just hit.",
   seo: {
     title: "Support – Trail",
     description:
@@ -66,119 +64,181 @@ export default async function SupportPage({
 
   return (
     <SiteChrome locale={locale}>
-      <section className="relative mx-auto max-w-3xl px-6 pb-24 pt-32">
-        {/* Hero */}
-        <Reveal>
-          <div className="text-center">
-            <span className="inline-block text-xs font-medium uppercase tracking-widest text-text-tertiary">
-              Support
-            </span>
-            <h1 className="mt-4 font-serif text-4xl italic leading-tight text-text-primary md:text-5xl">
-              {title}
-            </h1>
-            {description && (
-              <p className="mx-auto mt-4 max-w-lg text-base text-text-secondary leading-relaxed">
-                {description}
-              </p>
-            )}
+      <section
+        className="relative mx-auto max-w-[920px]"
+        style={{
+          padding: "clamp(64px, 10vh, 120px) clamp(24px, 6vw, 96px) 120px",
+        }}
+      >
+        <header className="mb-16 max-w-[640px]">
+          <div
+            className="font-mono uppercase mb-[22px]"
+            style={{
+              fontSize: 11,
+              letterSpacing: "0.2em",
+              color: "var(--landing-ember)",
+            }}
+          >
+            Support
           </div>
-        </Reveal>
+          <h1
+            className="font-serif text-[var(--landing-ink)]"
+            style={{
+              fontSize: "clamp(40px, 5.5vw, 72px)",
+              fontWeight: 400,
+              lineHeight: 0.98,
+              letterSpacing: "-0.025em",
+            }}
+          >
+            {title}
+          </h1>
+          {description ? (
+            <p
+              className="mt-7 max-w-[540px]"
+              style={{
+                fontSize: 17,
+                lineHeight: 1.55,
+                color: "rgba(246,239,225,0.65)",
+              }}
+            >
+              {description}
+            </p>
+          ) : null}
+        </header>
 
-        {/* Status Banner */}
-        <Reveal delay={0.1}>
-          <div className="mt-12">
-            {statusPageUrl ? (
-              <a
-                href={statusPageUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group flex items-center justify-between rounded-2xl border border-border-subtle bg-surface px-6 py-4 transition-colors hover:border-border-strong"
-              >
-                <div className="flex items-center gap-3">
-                  <span
-                    className="inline-flex h-2 w-2 rounded-full bg-ember"
-                    aria-hidden="true"
-                  />
-                  <span className="text-sm font-medium text-text-primary">
-                    {statusLabel}
-                  </span>
-                </div>
-                <span className="flex items-center gap-1 text-xs text-text-tertiary transition-colors group-hover:text-text-secondary">
-                  Status page
-                  <ArrowUpRight size={12} />
-                </span>
-              </a>
-            ) : (
-              <div className="flex items-center gap-3 rounded-2xl border border-border-subtle bg-surface px-6 py-4">
-                <span
-                  className="inline-flex h-2 w-2 rounded-full bg-ember"
-                  aria-hidden="true"
-                />
-                <span className="text-sm font-medium text-text-primary">
-                  {statusLabel}
-                </span>
-              </div>
-            )}
-          </div>
-        </Reveal>
+        <StatusRow label={statusLabel} href={statusPageUrl} />
 
-        {/* Contact Section */}
-        <Reveal delay={0.2}>
-          <div className="mt-12">
-            <h2 className="text-center text-xs font-medium uppercase tracking-widest text-text-tertiary">
-              Get in touch
-            </h2>
-
-            <div className="mt-6 grid gap-4 sm:grid-cols-2">
-              <ContactCard
-                icon={Mail}
-                label="Email"
-                description="Send us a message and we'll get back to you"
-                href={`mailto:${contactEmail}`}
-                cta={contactEmail}
-              />
-
-              <LeaveNoteButton />
-            </div>
-          </div>
-        </Reveal>
+        <div
+          className="mt-12 grid grid-cols-1 sm:grid-cols-2"
+          style={{
+            gap: 1,
+            background: "var(--landing-line)",
+            border: "1px solid var(--landing-line)",
+          }}
+        >
+          <ContactCell
+            label="01 — Email"
+            description="A real person reads every one. Usually under a day."
+            href={`mailto:${contactEmail}`}
+            cta={contactEmail}
+          />
+          <LeaveNoteButton />
+        </div>
       </section>
     </SiteChrome>
   );
 }
 
-function ContactCard({
-  icon: Icon,
+function StatusRow({ label, href }: { label: string; href?: string }) {
+  const content = (
+    <div className="flex items-center justify-between gap-4">
+      <div className="flex items-center gap-3">
+        <span
+          aria-hidden="true"
+          className="inline-block h-2 w-2 rounded-full bg-[var(--landing-ember)]"
+          style={{
+            boxShadow: "0 0 8px rgba(248,211,100,0.55)",
+          }}
+        />
+        <span
+          style={{
+            fontSize: 14,
+            color: "var(--landing-ink)",
+            letterSpacing: "-0.005em",
+          }}
+        >
+          {label}
+        </span>
+      </div>
+      {href ? (
+        <span
+          className="inline-flex items-center gap-1.5 font-mono uppercase"
+          style={{
+            fontSize: 10,
+            letterSpacing: "0.18em",
+            color: "rgba(246,239,225,0.5)",
+          }}
+        >
+          Status
+          <ArrowUpRight size={12} aria-hidden />
+        </span>
+      ) : null}
+    </div>
+  );
+
+  if (href) {
+    return (
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="block border-y border-[var(--landing-line)] py-5 transition-colors duration-200 hover:bg-[rgba(248,211,100,0.04)]"
+      >
+        {content}
+      </a>
+    );
+  }
+  return (
+    <div className="block border-y border-[var(--landing-line)] py-5">
+      {content}
+    </div>
+  );
+}
+
+function ContactCell({
   label,
   description,
   href,
   cta,
 }: {
-  icon: ComponentType<{ size?: number }>;
   label: string;
-  description?: string;
+  description: string;
   href: string;
   cta: string;
 }) {
   return (
     <a
       href={href}
-      className="group flex flex-col rounded-2xl border border-border-subtle bg-surface p-6 transition-colors hover:border-border-strong"
+      className="group relative flex flex-col bg-[var(--landing-bg)] transition-colors duration-300 hover:bg-[rgba(20,17,12,0.85)]"
+      style={{ padding: "clamp(28px, 3.2vw, 44px)", minHeight: 220 }}
     >
-      <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-border-subtle bg-elevated text-text-secondary transition-colors group-hover:text-text-primary group-hover:border-border-strong">
-        <Icon size={18} />
+      <div
+        className="font-mono uppercase"
+        style={{
+          fontSize: 11,
+          letterSpacing: "0.22em",
+          color: "rgba(246,239,225,0.4)",
+          marginBottom: 16,
+          transition: "color .4s ease",
+        }}
+      >
+        {label}
       </div>
-      <h3 className="mt-4 text-sm font-semibold text-text-primary">{label}</h3>
-      {description && (
-        <p className="mt-1 text-sm leading-relaxed text-text-tertiary">
-          {description}
-        </p>
-      )}
-      <span className="mt-auto flex items-center gap-1 pt-4 text-xs font-medium text-text-secondary transition-colors group-hover:text-text-primary">
+      <h3
+        className="font-serif text-[var(--landing-ink)]"
+        style={{
+          fontSize: 22,
+          fontWeight: 500,
+          letterSpacing: "-0.015em",
+          lineHeight: 1.15,
+          marginBottom: 12,
+        }}
+      >
+        {description}
+      </h3>
+      <span
+        className="mt-auto inline-flex items-center gap-1.5 font-mono"
+        style={{
+          fontSize: 12,
+          color: "var(--landing-ember)",
+          letterSpacing: "0.04em",
+        }}
+      >
         {cta}
         <ArrowUpRight
           size={12}
-          className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+          className="transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+          aria-hidden
         />
       </span>
     </a>

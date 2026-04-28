@@ -86,7 +86,7 @@ export function SidepanelPeek() {
       className={cn(
         "fixed top-1/2 right-0 z-40 h-auto -translate-y-1/2 gap-2",
         "rounded-l-full border-r-0 py-2 pr-3 pl-2 shadow-sm",
-        "transition-[transform,background-color,color] duration-200 ease-out",
+        "transition-[transform,background-color,color] duration-(--dur-base) ease-(--ease-out)",
         hover ? "translate-x-0" : "translate-x-[calc(100%-18px)]",
       )}
     >
@@ -94,7 +94,7 @@ export function SidepanelPeek() {
       <span
         className={cn(
           "text-foreground inline-grid grid-cols-[0fr] overflow-hidden text-xs whitespace-nowrap",
-          "transition-[grid-template-columns,opacity] duration-200 ease-out",
+          "transition-[grid-template-columns,opacity] duration-(--dur-base) ease-(--ease-out)",
           hover ? "grid-cols-[1fr] opacity-100" : "opacity-0",
         )}
       >

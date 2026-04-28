@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from "react";
+import { i18n } from "#i18n";
 import { useSidebar } from "@ui/components/ui/sidebar";
 import { cn } from "@ui/lib/utils";
 
@@ -102,8 +103,12 @@ export function SidebarResizeHandle() {
   return (
     <button
       type="button"
-      aria-label="Resize sidebar"
-      title={state === "expanded" ? "Drag to resize · click to collapse" : "Click to expand"}
+      aria-label={i18n.t("settings.sidebar.resizeAria")}
+      title={
+        state === "expanded"
+          ? i18n.t("settings.sidebar.dragToResize")
+          : i18n.t("settings.sidebar.clickToExpand")
+      }
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { i18n } from "#i18n";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@ui/components/ui/card";
-import { PageHeader } from "../components/PageHeader.js";
+import { PageHeader, SectionHeader } from "../components/PageHeader.js";
 import { Button } from "@ui/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@ui/components/ui/avatar";
 import { Alert, AlertDescription, AlertTitle } from "@ui/components/ui/alert";
@@ -92,7 +92,7 @@ export function AccountPage() {
 
   if (!isSupabaseConfigured()) {
     return (
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-10">
         <PageHeader
           title={i18n.t("account.title")}
           description={i18n.t("account.descriptionCloudOff")}
@@ -113,74 +113,101 @@ export function AccountPage() {
   const signedIn = state.status === "signed-in";
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-10">
       <PageHeader
         title={i18n.t("account.title")}
         description={i18n.t("account.descriptionCloudOn")}
       />
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">{i18n.t("account.cardTitle")}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex items-center gap-3">
-              <Skeleton className="size-10 rounded-full" />
-              <Skeleton className="h-4 w-40" />
-            </div>
-          ) : state.status === "signed-in" ? (
-            <div className="flex items-center gap-3">
-              <Avatar className="size-10">
-                {state.identity.avatarUrl ? (
-                  <AvatarImage src={state.identity.avatarUrl} alt="" />
-                ) : null}
-                <AvatarFallback>
-                  {(state.identity.displayName ?? state.identity.email ?? "?")
-                    .slice(0, 1)
-                    .toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <span className="truncate text-sm">
-                  {state.identity.displayName ?? i18n.t("account.signedInFallback")}
-                </span>
-                <span className="text-muted-foreground truncate text-xs">
-                  {state.identity.email ?? state.identity.userId}
-                </span>
-              </div>
-              <ProviderBadge provider={state.identity.provider} />
-              <Button variant="outline" size="sm" disabled={busy} onClick={handleSignOut}>
-                {busy ? i18n.t("account.signingOut") : i18n.t("account.signOut")}
-              </Button>
-            </div>
-          ) : (
-            <div className="flex flex-col items-start gap-3">
-              <p className="text-muted-foreground text-sm">{i18n.t("account.notSignedInBody")}</p>
-              <Button onClick={openLoginTab}>
-                <Icons.ExternalLink data-icon="inline-start" />
-                {i18n.t("account.openSignIn")}
-              </Button>
-            </div>
-          )}
-          {error ? (
-            <Alert variant="destructive" className="mt-4">
-              <Icons.AlertTriangle aria-hidden />
-              <AlertTitle>{i18n.t("account.signOutFailed")}</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          ) : null}
-        </CardContent>
-      </Card>
+      <ProfileSection
+        loading={loading}
+        state={state}
+        busy={busy}
+        error={error}
+        onSignOut={handleSignOut}
+        onOpenLogin={openLoginTab}
+      />
 
-      {signedIn ? <SyncSummaryCard /> : null}
+      {signedIn ? <SyncSection /> : null}
 
       {signedIn && state.status === "signed-in" && state.identity.provider === "email" ? (
-        <SecurityCard />
+        <SecuritySection />
       ) : null}
 
       <DangerZoneCard signedIn={signedIn} />
     </div>
+  );
+}
+
+/* ─── Profile section ────────────────────────────────────────── */
+
+type ProfileSectionProps = {
+  loading: boolean;
+  state: AuthState;
+  busy: boolean;
+  error: string | null;
+  onSignOut: () => void;
+  onOpenLogin: () => void;
+};
+
+function ProfileSection({
+  loading,
+  state,
+  busy,
+  error,
+  onSignOut,
+  onOpenLogin,
+}: ProfileSectionProps) {
+  return (
+    <section className="flex flex-col gap-4">
+      <SectionHeader eyebrow={i18n.t("account.cardTitle")} />
+      {loading ? (
+        <div className="flex items-center gap-3">
+          <Skeleton className="size-10 rounded-full" />
+          <Skeleton className="h-4 w-40" />
+        </div>
+      ) : state.status === "signed-in" ? (
+        <div className="flex items-center gap-3">
+          <Avatar className="size-10">
+            {state.identity.avatarUrl ? (
+              <AvatarImage src={state.identity.avatarUrl} alt="" />
+            ) : null}
+            <AvatarFallback>
+              {(state.identity.displayName ?? state.identity.email ?? "?")
+                .slice(0, 1)
+                .toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <span className="truncate text-sm">
+              {state.identity.displayName ?? i18n.t("account.signedInFallback")}
+            </span>
+            <span className="text-muted-foreground truncate text-xs">
+              {state.identity.email ?? state.identity.userId}
+            </span>
+          </div>
+          <ProviderBadge provider={state.identity.provider} />
+          <Button variant="outline" size="sm" disabled={busy} onClick={onSignOut}>
+            {busy ? i18n.t("account.signingOut") : i18n.t("account.signOut")}
+          </Button>
+        </div>
+      ) : (
+        <div className="flex flex-col items-start gap-3">
+          <p className="text-muted-foreground text-sm">{i18n.t("account.notSignedInBody")}</p>
+          <Button onClick={onOpenLogin}>
+            <Icons.ExternalLink data-icon="inline-start" />
+            {i18n.t("account.openSignIn")}
+          </Button>
+        </div>
+      )}
+      {error ? (
+        <Alert variant="destructive">
+          <Icons.AlertTriangle aria-hidden />
+          <AlertTitle>{i18n.t("account.signOutFailed")}</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      ) : null}
+    </section>
   );
 }
 
@@ -196,9 +223,9 @@ function ProviderBadge({ provider }: { provider: "email" | "google" | "other" })
   return null;
 }
 
-/* ─── Sync summary card ──────────────────────────────────────── */
+/* ─── Sync summary section ───────────────────────────────────── */
 
-function SyncSummaryCard() {
+function SyncSection() {
   const summary = useSyncSummary();
 
   const statusLabel = {
@@ -216,38 +243,45 @@ function SyncSummaryCard() {
         ? "secondary"
         : "default";
 
+  const lastSynced = summary.lastSyncedAt ? new Date(summary.lastSyncedAt) : null;
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">{i18n.t("account.sync.title")}</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <span className="text-muted-foreground text-sm">
-            {i18n.t("account.sync.statusLabel")}
-          </span>
+    <section className="flex flex-col gap-3">
+      <SectionHeader eyebrow={i18n.t("account.sync.title")} />
+      <dl className="divide-border divide-y">
+        <SyncRow label={i18n.t("account.sync.statusLabel")}>
           <Badge variant={statusVariant}>{statusLabel}</Badge>
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-muted-foreground text-sm">
-            {i18n.t("account.sync.treesSynced")}
-          </span>
+        </SyncRow>
+        <SyncRow label={i18n.t("account.sync.treesSynced")}>
           <span className="text-sm tabular-nums">{summary.syncedTreeCount}</span>
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-muted-foreground text-sm">{i18n.t("account.sync.pending")}</span>
+        </SyncRow>
+        <SyncRow label={i18n.t("account.sync.pending")}>
           <span className="text-sm tabular-nums">{summary.pendingOpCount}</span>
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-muted-foreground text-sm">{i18n.t("account.sync.lastSync")}</span>
-          <span className="text-muted-foreground text-sm">
-            {summary.lastSyncedAt
-              ? formatRelative(summary.lastSyncedAt)
-              : i18n.t("account.sync.dash")}
-          </span>
-        </div>
-      </CardContent>
-    </Card>
+        </SyncRow>
+        <SyncRow label={i18n.t("account.sync.lastSync")}>
+          {lastSynced ? (
+            <time
+              className="text-muted-foreground text-sm tabular-nums"
+              dateTime={lastSynced.toISOString()}
+              title={lastSynced.toLocaleString()}
+            >
+              {formatRelative(summary.lastSyncedAt!)}
+            </time>
+          ) : (
+            <span className="text-muted-foreground text-sm">{i18n.t("account.sync.dash")}</span>
+          )}
+        </SyncRow>
+      </dl>
+    </section>
+  );
+}
+
+function SyncRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between py-2">
+      <dt className="text-muted-foreground text-sm">{label}</dt>
+      <dd>{children}</dd>
+    </div>
   );
 }
 
@@ -264,7 +298,7 @@ function formatRelative(iso: string): string {
 
 /* ─── Security (change password) ─────────────────────────────── */
 
-function SecurityCard() {
+function SecuritySection() {
   const [open, setOpen] = useState(false);
   const [next, setNext] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -293,83 +327,84 @@ function SecurityCard() {
   });
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">{i18n.t("account.security.title")}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button variant="outline">{i18n.t("account.security.changePassword")}</Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>{i18n.t("account.security.changePassword")}</DialogTitle>
-              <DialogDescription>{i18n.t("account.security.dialogDescription")}</DialogDescription>
-            </DialogHeader>
-            <form
-              className="flex flex-col gap-3"
-              onSubmit={(e) => {
-                e.preventDefault();
-                void submit();
-              }}
-            >
-              <FieldGroup>
-                <Field>
-                  <FieldLabel htmlFor="new-password">
-                    {i18n.t("account.security.newPassword")}
-                  </FieldLabel>
-                  <Input
-                    id="new-password"
-                    type="password"
-                    autoComplete="new-password"
-                    value={next}
-                    onChange={(e) => setNext(e.target.value)}
-                    disabled={submitting}
-                  />
-                  <p className="text-muted-foreground text-xs">
-                    At least 8 characters with uppercase, lowercase, a number, and a symbol.
-                  </p>
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="confirm-password">
-                    {i18n.t("account.security.confirmPassword")}
-                  </FieldLabel>
-                  <Input
-                    id="confirm-password"
-                    type="password"
-                    autoComplete="new-password"
-                    value={confirm}
-                    onChange={(e) => setConfirm(e.target.value)}
-                    disabled={submitting}
-                  />
-                </Field>
-              </FieldGroup>
-              {localError ? (
-                <Alert variant="destructive">
-                  <Icons.AlertTriangle aria-hidden />
-                  <AlertDescription>{localError}</AlertDescription>
-                </Alert>
-              ) : null}
-              <DialogFooter>
-                <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
-                  {i18n.t("account.security.cancel")}
-                </Button>
-                <Button type="submit" disabled={submitting}>
-                  {submitting
-                    ? i18n.t("account.security.updating")
-                    : i18n.t("account.security.updatePassword")}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </CardContent>
-    </Card>
+    <section className="flex flex-col gap-3">
+      <SectionHeader
+        eyebrow={i18n.t("account.security.title")}
+        description={i18n.t("account.security.sectionDescription")}
+      />
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger asChild>
+          <Button variant="outline" className="self-start">
+            {i18n.t("account.security.changePassword")}
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{i18n.t("account.security.changePassword")}</DialogTitle>
+            <DialogDescription>{i18n.t("account.security.dialogDescription")}</DialogDescription>
+          </DialogHeader>
+          <form
+            className="flex flex-col gap-3"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void submit();
+            }}
+          >
+            <FieldGroup>
+              <Field>
+                <FieldLabel htmlFor="new-password">
+                  {i18n.t("account.security.newPassword")}
+                </FieldLabel>
+                <Input
+                  id="new-password"
+                  type="password"
+                  autoComplete="new-password"
+                  value={next}
+                  onChange={(e) => setNext(e.target.value)}
+                  disabled={submitting}
+                />
+                <p className="text-muted-foreground text-xs">
+                  {i18n.t("account.security.passwordHint")}
+                </p>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="confirm-password">
+                  {i18n.t("account.security.confirmPassword")}
+                </FieldLabel>
+                <Input
+                  id="confirm-password"
+                  type="password"
+                  autoComplete="new-password"
+                  value={confirm}
+                  onChange={(e) => setConfirm(e.target.value)}
+                  disabled={submitting}
+                />
+              </Field>
+            </FieldGroup>
+            {localError ? (
+              <Alert variant="destructive">
+                <Icons.AlertTriangle aria-hidden />
+                <AlertDescription>{localError}</AlertDescription>
+              </Alert>
+            ) : null}
+            <DialogFooter>
+              <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+                {i18n.t("account.security.cancel")}
+              </Button>
+              <Button type="submit" disabled={submitting}>
+                {submitting
+                  ? i18n.t("account.security.updating")
+                  : i18n.t("account.security.updatePassword")}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </section>
   );
 }
 
-/* ─── Danger zone (moved from DataPage) ──────────────────────── */
+/* ─── Danger zone ────────────────────────────────────────────── */
 
 function DangerZoneCard({ signedIn }: { signedIn: boolean }) {
   const [clearing, clearingActions] = useBoolean(false);

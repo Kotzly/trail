@@ -61,6 +61,9 @@ function TrailNodeComponent({
     dragRole,
     handles,
     spotlight,
+    trailFocus,
+    isArriving,
+    isForkParent,
   } = data;
 
   // One xyflow subscription per node instead of two independent boolean
@@ -103,6 +106,9 @@ function TrailNodeComponent({
         ))}
         <div
           data-trail-card
+          data-trail-focus={trailFocus}
+          data-focus-arriving={isArriving ? "true" : undefined}
+          data-fork-pulse={isForkParent ? "true" : undefined}
           className={cn(
             "h-[60px] w-[160px] rounded-md border",
             "transition-colors duration-150 ease-out",
@@ -132,6 +138,9 @@ function TrailNodeComponent({
       <Card
         size="default"
         data-trail-card
+        data-trail-focus={trailFocus}
+        data-focus-arriving={isArriving ? "true" : undefined}
+        data-fork-pulse={isForkParent ? "true" : undefined}
         className={cn(
           "relative flex min-h-[60px] w-[160px] flex-row items-center gap-2 px-2.5 py-2",
           "cursor-default select-none",
@@ -294,7 +303,10 @@ export const TrailNode = memo(TrailNodeComponent, (prev, next) => {
     a.dragRole === b.dragRole &&
     a.handles.length === b.handles.length &&
     a.handles.every((h, i) => h === b.handles[i]) &&
-    a.spotlight === b.spotlight
+    a.spotlight === b.spotlight &&
+    a.trailFocus === b.trailFocus &&
+    a.isArriving === b.isArriving &&
+    a.isForkParent === b.isForkParent
   );
 });
 

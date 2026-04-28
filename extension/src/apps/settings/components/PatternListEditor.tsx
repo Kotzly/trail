@@ -1,4 +1,5 @@
 import { useState, type KeyboardEvent } from "react";
+import { i18n } from "#i18n";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   InputGroup,
@@ -27,11 +28,12 @@ export function PatternListEditor({
   values,
   onChange,
   placeholder,
-  addLabel = "Add",
+  addLabel,
   emptyText,
   normalize = identity,
   disabled = false,
 }: PatternListEditorProps) {
+  const resolvedAddLabel = addLabel ?? i18n.t("patternList.add");
   const [draft, setDraft] = useState("");
   const reduce = useReducedMotion();
 
@@ -118,7 +120,7 @@ export function PatternListEditor({
           <InputGroupButton
             size="icon-xs"
             variant="default"
-            aria-label={addLabel}
+            aria-label={resolvedAddLabel}
             onClick={commitAdd}
             disabled={disabled || draft.trim().length === 0}
             className="press-feedback"
@@ -128,7 +130,8 @@ export function PatternListEditor({
         </InputGroupAddon>
       </InputGroup>
       <FieldDescription className="text-[0.7rem]">
-        Press <Kbd>Enter</Kbd> or click <Icons.Plus className="inline size-3" /> to add.
+        {i18n.t("patternList.helperPrefix")} <Kbd>Enter</Kbd> {i18n.t("patternList.helperMiddle")}{" "}
+        <Icons.Plus className="inline size-3" /> {i18n.t("patternList.helperSuffix")}
       </FieldDescription>
     </div>
   );
@@ -173,7 +176,7 @@ function PatternRow({ value, disabled, onCommit, onRemove }: PatternRowProps) {
       <InputGroupAddon align="inline-end">
         <InputGroupButton
           size="icon-xs"
-          aria-label={`Remove ${value}`}
+          aria-label={i18n.t("patternList.removeAria", [value])}
           onClick={onRemove}
           disabled={disabled}
           className="press-feedback"

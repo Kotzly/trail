@@ -1,13 +1,12 @@
 import { useState } from "react";
 import { i18n } from "#i18n";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@ui/components/ui/card";
 import { Button } from "@ui/components/ui/button";
 import TrailLogo from "@ui/components/trail-logo";
 import { INITIAL_ONBOARDING_STATE, onboardingStateItem } from "@shared/config/storage-items.js";
 import { MARKETING_URLS, openExternal } from "@shared/config/marketing-urls.js";
 import { toast } from "sonner";
 import { FeedbackDialog, type FeedbackKind } from "@ui/components/feedback-dialog.js";
-import { PageHeader } from "../components/PageHeader.js";
+import { PageHeader, SectionHeader } from "../components/PageHeader.js";
 
 const MANIFEST_VERSION = chrome.runtime.getManifest?.()?.version ?? "dev";
 
@@ -40,23 +39,24 @@ export function AboutPage() {
   };
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-10">
       <PageHeader
         title={i18n.t("settings.about.title")}
         description={i18n.t("settings.about.description")}
       />
 
-      <Card>
-        <CardHeader className="flex flex-row items-center gap-3">
+      <section className="flex flex-col gap-4">
+        <SectionHeader eyebrow={i18n.t("settings.about.appEyebrow")} />
+        <div className="flex items-center gap-3">
           <TrailLogo className="size-10" label="Trail" />
-          <div className="flex flex-col">
-            <CardTitle className="text-base">Trail</CardTitle>
-            <CardDescription>
+          <div className="flex flex-col leading-tight">
+            <span className="text-foreground text-base font-medium tracking-tight">Trail</span>
+            <span className="text-muted-foreground text-xs tabular-nums">
               {i18n.t("settings.about.version", [MANIFEST_VERSION])}
-            </CardDescription>
+            </span>
           </div>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-2">
+        </div>
+        <div className="flex flex-col gap-2">
           <Button
             variant="outline"
             className="justify-start"
@@ -74,15 +74,15 @@ export function AboutPage() {
           <Button variant="outline" className="justify-start" onClick={replayOnboarding}>
             {i18n.t("settings.about.replayWalkthrough")}
           </Button>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">{i18n.t("settings.about.feedbackTitle")}</CardTitle>
-          <CardDescription>{i18n.t("settings.about.feedbackDescription")}</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-2">
+      <section className="flex flex-col gap-4">
+        <SectionHeader
+          eyebrow={i18n.t("settings.about.feedbackEyebrow")}
+          description={i18n.t("settings.about.feedbackDescription")}
+        />
+        <div className="flex flex-col gap-2">
           <Button
             variant="outline"
             className="justify-start"
@@ -104,8 +104,8 @@ export function AboutPage() {
           >
             {i18n.t("settings.about.contactSupport")}
           </Button>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
       <FeedbackDialog
         kind={feedbackKind}

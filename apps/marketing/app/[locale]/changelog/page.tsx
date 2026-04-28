@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { setRequestLocale } from "next-intl/server";
 import { buildMetadata } from "@/lib/seo";
-import { Reveal } from "@/app/components/ui/reveal";
 import { SiteChrome } from "@/app/components/SiteChrome";
 import {
   changelog,
@@ -40,36 +39,56 @@ export default async function ChangelogPage({
 
   return (
     <SiteChrome locale={locale}>
-      <section className="relative mx-auto max-w-3xl px-6 pb-24 pt-32">
-        <Reveal>
-          <div className="text-center">
-            <span className="inline-block text-xs font-medium uppercase tracking-widest text-text-tertiary">
-              Changelog
-            </span>
-            <h1 className="mt-4 font-serif text-4xl italic leading-tight text-text-primary md:text-5xl">
-              What&rsquo;s new in Trail
-            </h1>
-            <p className="mx-auto mt-4 max-w-lg text-base text-text-secondary leading-relaxed">
-              New features, improvements, and fixes — in the order we shipped
-              them.
-            </p>
+      <section
+        className="relative mx-auto max-w-[920px]"
+        style={{
+          padding: "clamp(64px, 10vh, 120px) clamp(24px, 6vw, 96px) 120px",
+        }}
+      >
+        <header className="mb-16 max-w-[640px]">
+          <div
+            className="font-mono uppercase mb-[22px]"
+            style={{
+              fontSize: 11,
+              letterSpacing: "0.2em",
+              color: "var(--landing-ember)",
+            }}
+          >
+            Changelog
           </div>
-        </Reveal>
+          <h1
+            className="font-serif text-[var(--landing-ink)]"
+            style={{
+              fontSize: "clamp(40px, 5.5vw, 72px)",
+              fontWeight: 400,
+              lineHeight: 0.98,
+              letterSpacing: "-0.025em",
+            }}
+          >
+            What we shipped, in the order we shipped it.
+          </h1>
+        </header>
 
         {entries.length === 0 ? (
-          <Reveal delay={0.1}>
-            <div className="mt-12 rounded-2xl border border-border-subtle bg-surface p-8 text-center">
-              <p className="text-sm text-text-tertiary">
-                Nothing to report yet. Check back soon.
-              </p>
-            </div>
-          </Reveal>
+          <p
+            className="font-mono uppercase"
+            style={{
+              fontSize: 11,
+              letterSpacing: "0.18em",
+              color: "rgba(246,239,225,0.42)",
+            }}
+          >
+            Nothing to report yet — check back soon.
+          </p>
         ) : (
-          <ol className="mt-12 space-y-6">
+          <ol className="flex flex-col">
             {entries.map((entry, index) => (
-              <Reveal key={entry.version} delay={0.05 + index * 0.05}>
-                <ChangelogCard entry={entry} locale={locale} />
-              </Reveal>
+              <ChangelogEntryRow
+                key={entry.version}
+                entry={entry}
+                locale={locale}
+                isFirst={index === 0}
+              />
             ))}
           </ol>
         )}
@@ -78,69 +97,109 @@ export default async function ChangelogPage({
   );
 }
 
-function ChangelogCard({
+function ChangelogEntryRow({
   entry,
   locale,
+  isFirst,
 }: {
   entry: ChangelogEntry;
   locale: string;
+  isFirst: boolean;
 }) {
   return (
-    <li className="rounded-2xl border border-border-subtle bg-surface p-7 md:p-8">
-      <header className="flex flex-wrap items-baseline justify-between gap-3">
-        <div className="flex items-baseline gap-3">
-          <span className="font-serif text-2xl italic text-text-primary">
+    <li
+      className={
+        isFirst ? "py-12" : "border-t border-[var(--landing-line)] py-12"
+      }
+    >
+      <div className="grid gap-8 md:grid-cols-[180px_1fr]">
+        <div className="flex flex-col gap-2">
+          <time
+            dateTime={entry.date}
+            className="font-mono uppercase"
+            style={{
+              fontSize: 10.5,
+              letterSpacing: "0.2em",
+              color: "rgba(246,239,225,0.45)",
+            }}
+          >
+            {formatDate(entry.date, locale)}
+          </time>
+          <span
+            className="font-serif text-[var(--landing-ink)]"
+            style={{
+              fontSize: 28,
+              fontWeight: 400,
+              letterSpacing: "-0.02em",
+              lineHeight: 1.05,
+            }}
+          >
             v{entry.version}
           </span>
-          {entry.title && (
-            <span className="text-sm text-text-secondary">{entry.title}</span>
-          )}
+          {entry.title ? (
+            <span
+              style={{
+                fontSize: 14,
+                color: "rgba(246,239,225,0.6)",
+                lineHeight: 1.45,
+              }}
+            >
+              {entry.title}
+            </span>
+          ) : null}
         </div>
-        <time
-          dateTime={entry.date}
-          className="text-xs font-medium uppercase tracking-widest text-text-tertiary"
-        >
-          {formatDate(entry.date, locale)}
-        </time>
-      </header>
 
-      <ul className="mt-5 space-y-3">
-        {entry.changes.map((change, i) => (
-          <li key={i} className="flex items-start gap-3">
-            <ChangeBadge type={change.type} />
-            <p className="flex-1 text-sm leading-relaxed text-text-secondary">
-              {change.description}
-            </p>
-          </li>
-        ))}
-      </ul>
+        <ul className="flex flex-col gap-3">
+          {entry.changes.map((change, i) => (
+            <li
+              key={i}
+              className="grid gap-x-5 gap-y-1"
+              style={{ gridTemplateColumns: "minmax(72px,auto) 1fr" }}
+            >
+              <span
+                className="font-mono uppercase pt-[3px]"
+                style={{
+                  fontSize: 10,
+                  letterSpacing: "0.22em",
+                  color: CHANGE_COLOR[change.type],
+                }}
+              >
+                {CHANGE_LABEL[change.type]}
+              </span>
+              <p
+                style={{
+                  fontSize: 15,
+                  lineHeight: 1.55,
+                  color: "rgba(246,239,225,0.78)",
+                }}
+              >
+                {change.description}
+              </p>
+            </li>
+          ))}
+        </ul>
+      </div>
     </li>
   );
 }
 
-const BADGE_STYLES: Record<ChangelogChangeType, string> = {
-  added: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
-  changed: "border-sky-500/30 bg-sky-500/10 text-sky-300",
-  fixed: "border-amber-500/30 bg-amber-500/10 text-amber-300",
-  removed: "border-rose-500/30 bg-rose-500/10 text-rose-300",
-};
-
-const BADGE_LABELS: Record<ChangelogChangeType, string> = {
+const CHANGE_LABEL: Record<ChangelogChangeType, string> = {
   added: "Added",
   changed: "Changed",
   fixed: "Fixed",
   removed: "Removed",
 };
 
-function ChangeBadge({ type }: { type: ChangelogChangeType }) {
-  return (
-    <span
-      className={`mt-0.5 inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider ${BADGE_STYLES[type]}`}
-    >
-      {BADGE_LABELS[type]}
-    </span>
-  );
-}
+// All four labels live in the warm-ember palette family — no rainbow
+// status chips. "Removed" reaches for the deep ember (the brand's only
+// allowed warning hue); "Added" gets the bright ember as the strongest
+// positive signal; the middle two settle into the cream neutrals.
+const CHANGE_COLOR: Record<ChangelogChangeType, string> = {
+  added: "var(--ember)",
+  changed: "rgba(246,239,225,0.85)",
+  fixed: "rgba(246,239,225,0.55)",
+  removed: "var(--ember-deep)",
+};
 
 function formatDate(iso: string, locale: string): string {
   const date = new Date(`${iso}T00:00:00Z`);

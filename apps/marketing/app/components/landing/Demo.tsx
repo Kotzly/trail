@@ -146,7 +146,13 @@ export function LandingDemo() {
         viewport={{ once: true, margin: "-50px" }}
         transition={{ duration: 0.9, ease: easeOut }}
         className="mx-auto max-w-[1280px] overflow-hidden rounded-[14px] border border-[var(--landing-line-strong)] bg-[#0c0a08]"
-        style={{ boxShadow: "0 30px 80px rgba(0,0,0,0.55)" }}
+        style={{
+          // Warm-tinted lift — the brand's neutrals walk toward ember,
+          // so the shadow under the demo does too. Pure-black would feel
+          // disconnected from the cream ink and the ember accents.
+          boxShadow:
+            "0 32px 80px rgba(8, 4, 2, 0.65), 0 12px 28px rgba(70, 30, 8, 0.18)",
+        }}
       >
         {/* Browser chrome — tabs + URL */}
         <div className="border-b border-[var(--landing-line)] bg-[#1a1612] pt-2">

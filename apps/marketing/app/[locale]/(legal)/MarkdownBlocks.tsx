@@ -33,7 +33,7 @@ function renderEmailNodes(
       <a
         key={`${kp}${start}-e`}
         href={`mailto:${email}`}
-        className="font-semibold text-text-primary underline underline-offset-4"
+        className="text-[var(--landing-ember)] underline underline-offset-4 decoration-[rgba(248,211,100,0.4)] transition-colors hover:decoration-[var(--landing-ember)]"
       >
         {opts.strong ? <strong>{email}</strong> : email}
       </a>,
@@ -144,17 +144,28 @@ export function MarkdownBlocks({ markdown }: { markdown: string }) {
   const blocks = parseMarkdown(markdown);
 
   return (
-    <article className="space-y-8">
+    <article className="space-y-7">
       {blocks.map((block, index) => {
         if (block.type === "hr") {
-          return <hr key={`hr-${index}`} className="border-border-subtle" />;
+          return (
+            <hr
+              key={`hr-${index}`}
+              className="border-0 border-t border-[var(--landing-line)]"
+            />
+          );
         }
 
         if (block.type === "h2") {
           return (
             <h2
               key={`h2-${index}`}
-              className="font-sans text-xl font-semibold tracking-tight text-text-primary md:text-2xl"
+              className="font-serif text-[var(--landing-ink)] pt-6"
+              style={{
+                fontSize: "clamp(24px, 2.4vw, 30px)",
+                fontWeight: 500,
+                letterSpacing: "-0.02em",
+                lineHeight: 1.15,
+              }}
             >
               {renderInline(block.text)}
             </h2>
@@ -165,7 +176,13 @@ export function MarkdownBlocks({ markdown }: { markdown: string }) {
           return (
             <h3
               key={`h3-${index}`}
-              className="font-sans font-semibold tracking-tight text-text-primary md:text-lg"
+              className="font-serif text-[var(--landing-ink)]"
+              style={{
+                fontSize: 18,
+                fontWeight: 500,
+                letterSpacing: "-0.01em",
+                lineHeight: 1.2,
+              }}
             >
               {renderInline(block.text)}
             </h3>
@@ -176,10 +193,31 @@ export function MarkdownBlocks({ markdown }: { markdown: string }) {
           return (
             <ul
               key={`ul-${index}`}
-              className="list-disc space-y-2 pl-5 text-sm leading-7 text-text-secondary"
+              className="flex flex-col gap-2.5"
+              style={{ color: "rgba(246,239,225,0.78)" }}
             >
               {block.items.map((item, itemIndex) => (
-                <li key={`li-${index}-${itemIndex}`}>{renderInline(item)}</li>
+                <li
+                  key={`li-${index}-${itemIndex}`}
+                  className="grid gap-x-3"
+                  style={{
+                    gridTemplateColumns: "auto 1fr",
+                    fontSize: 15,
+                    lineHeight: 1.65,
+                  }}
+                >
+                  <span
+                    aria-hidden="true"
+                    className="select-none pt-px"
+                    style={{
+                      color: "var(--landing-ember)",
+                      fontFamily: "var(--font-mono)",
+                    }}
+                  >
+                    —
+                  </span>
+                  <span>{renderInline(item)}</span>
+                </li>
               ))}
             </ul>
           );
@@ -188,7 +226,12 @@ export function MarkdownBlocks({ markdown }: { markdown: string }) {
         return (
           <p
             key={`p-${index}`}
-            className="text-sm leading-7 text-text-secondary"
+            style={{
+              fontSize: 15,
+              lineHeight: 1.7,
+              color: "rgba(246,239,225,0.78)",
+              maxWidth: "70ch",
+            }}
           >
             {renderInline(block.text)}
           </p>

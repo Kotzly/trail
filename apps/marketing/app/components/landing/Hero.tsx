@@ -11,36 +11,19 @@ import {
 import { RootNodes } from "./RootNodes";
 import { RootTraces } from "./RootTraces";
 
-type NetworkInfo = {
-  saveData?: boolean;
-  effectiveType?: "slow-2g" | "2g" | "3g" | "4g";
-  downlink?: number; // Mbps
-  rtt?: number; // ms
-};
-
-// Decide whether to load the scroll-driven hero video. Skip on Save-Data,
-// 2G/3G effective types, or any 4G that's slower than ~2 Mbps downlink
-// (DevTools "Slow 4G" reports effectiveType=4g but downlink≈0.4 Mbps —
-// without the downlink check we'd ship 10MB to a 50 KB/s pipe and
-// produce a cascade of canceled range requests as scroll seeks thrash
-// the buffer).
-function shouldServeHeavyHero(): boolean {
-  if (typeof navigator === "undefined") return true;
-  const conn = (navigator as Navigator & { connection?: NetworkInfo })
-    .connection;
-  if (!conn) return true; // Safari/Firefox: opt in by default
-  if (conn.saveData) return false;
-  const t = conn.effectiveType;
-  if (t === "slow-2g" || t === "2g" || t === "3g") return false;
-  if (
-    typeof conn.downlink === "number" &&
-    conn.downlink > 0 &&
-    conn.downlink < 2
-  ) {
-    return false;
-  }
-  if (typeof conn.rtt === "number" && conn.rtt > 600) return false;
-  return true;
+// Honor only the explicit user signal — Save-Data means the user has
+// opted into a low-bandwidth experience, so we shouldn't fetch a 10MB
+// video for them. Everything else (slow 4G, high RTT, etc.) doesn't
+// need to gate the video: the file is fetched as a single linear blob
+// after the section enters the viewport, the static poster + scroll-
+// driven SVG roots + node cards fill the time, and there are no
+// range-request cancellations to worry about.
+function userOptedOutOfHeavyAssets(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const conn = (
+    navigator as Navigator & { connection?: { saveData?: boolean } }
+  ).connection;
+  return Boolean(conn?.saveData);
 }
 
 const ACTS = [
@@ -152,15 +135,12 @@ export function LandingHero() {
     { o: a4o, y: a4y },
   ];
 
-  // Decide whether to load the heavy hero video. Runs once after mount
-  // so SSR stays neutral; the poster image is the visual fallback while
-  // we wait for the IntersectionObserver to fire.
+  // Defer the video fetch until the hero section is approaching the
+  // viewport. Everything except an explicit Save-Data opt-out gets the
+  // video — slow connections will just take longer, and during the wait
+  // the poster + scroll-driven SVG roots + nodes still tell the story.
   useEffect(() => {
-    if (reduce) {
-      setEnableVideo(false);
-      return;
-    }
-    if (!shouldServeHeavyHero()) {
+    if (reduce || userOptedOutOfHeavyAssets()) {
       setEnableVideo(false);
       return;
     }
@@ -299,7 +279,7 @@ export function LandingHero() {
             preload="auto"
             disablePictureInPicture
             aria-hidden="true"
-            className="absolute inset-0 h-full w-full object-cover"
+            className="absolute inset-0 h-full w-full object-cover hero-fade-in"
             style={{
               filter: "saturate(1.05) contrast(1.02)",
               transform: "translateZ(0)",
@@ -317,17 +297,26 @@ export function LandingHero() {
           }}
         />
 
-        {/* SVG root traces — visible whenever the video isn't (slow
-            connection, reduced motion, or while it's still loading).
-            Provides scroll-driven motion that matches the hero metaphor
-            without any extra network. */}
-        {!videoSrc ? <RootTraces progress={scrollYProgress} /> : null}
+        {/* SVG root traces — visible whenever the video isn't on screen
+            (Save-Data opt-out, reduced motion, or while the blob is
+            still being fetched). Cross-fades out smoothly once the
+            video takes over. */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            opacity: videoSrc ? 0 : 1,
+            transition: "opacity 500ms ease-out",
+          }}
+        >
+          <RootTraces progress={scrollYProgress} />
+        </div>
 
         {/* Root-tip nodes — receives a quantized motion value */}
         <RootNodes progress={scrollYProgress} />
 
-        {/* Left text rail with five overlapping acts */}
-        <div className="pointer-events-none absolute inset-0 flex items-center px-6 sm:px-10 md:px-16 lg:px-24">
+        {/* Left text rail with five overlapping acts — sits above the
+            node cards so the headline always stays legible. */}
+        <div className="pointer-events-none absolute inset-0 z-[5] flex items-center px-6 sm:px-10 md:px-16 lg:px-24">
           <div className="relative w-full max-w-[560px] sm:w-[min(560px,50vw)] min-h-[280px]">
             {ACTS.map((a, i) => (
               <motion.div
@@ -409,6 +398,17 @@ export function LandingHero() {
             }
             50% {
               transform: translateY(4px);
+              opacity: 1;
+            }
+          }
+          .hero-fade-in {
+            animation: heroFadeIn 600ms ease-out both;
+          }
+          @keyframes heroFadeIn {
+            from {
+              opacity: 0;
+            }
+            to {
               opacity: 1;
             }
           }

@@ -1,6 +1,12 @@
 import { fetchSiteSettings } from "@/lib/sanity/queries";
-import { Header } from "./Header";
-import { Footer } from "./Footer";
+import { LandingNav, type NavLink } from "./landing/Nav";
+import { LandingFooter } from "./landing/Footer";
+
+const FALLBACK_LINKS: NavLink[] = [
+  { label: "Features", href: "/#features" },
+  { label: "Try it", href: "/#try" },
+  { label: "Changelog", href: "/changelog" },
+];
 
 export async function SiteChrome({
   locale,
@@ -10,16 +16,17 @@ export async function SiteChrome({
   children: React.ReactNode;
 }) {
   const settings = await fetchSiteSettings(locale);
+  const links: NavLink[] = settings?.nav?.length
+    ? settings.nav
+    : FALLBACK_LINKS;
+  const ctaText = settings?.navCta?.text ?? "Add to Chrome";
+  const ctaHref = settings?.navCta?.href ?? "/#cta";
   return (
     <>
-      <Header
-        navLinks={settings?.nav}
-        ctaText={settings?.navCta?.text}
-        ctaHref={settings?.navCta?.href}
-      />
-      <main className="flex-1">{children}</main>
-      <Footer
-        links={settings?.footerLinks}
+      <LandingNav links={links} ctaText={ctaText} ctaHref={ctaHref} />
+      <main className="flex-1 pt-20">{children}</main>
+      <LandingFooter
+        contactEmail={settings?.supportEmail}
         copyright={settings?.footerCopyright}
       />
     </>
