@@ -1,29 +1,93 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createHmac } from "crypto";
 
-const dbMocks = vi.hoisted(() => {
-  const billingCheckoutSession = {
-    findUnique: vi.fn(),
-    findFirst: vi.fn(),
-    update: vi.fn(),
-    updateMany: vi.fn(),
+// ---------------------------------------------------------------------------
+// Supabase fluent builder mock
+// ---------------------------------------------------------------------------
+
+type QueryResult = {
+  data: unknown;
+  error: null | { message: string; code?: string };
+};
+
+interface CallRecord {
+  table: string;
+  op: "select" | "update" | "upsert" | "insert" | "delete" | "unknown";
+  args: unknown[];
+}
+
+const fluent = vi.hoisted(() => {
+  const calls: CallRecord[] = [];
+  const tableMocks: Record<string, () => QueryResult> = {};
+
+  const defaultResult = (): QueryResult => ({ data: null, error: null });
+
+  const ops = new Set(["select", "update", "upsert", "insert", "delete"]);
+  const passthrough = [
+    "select",
+    "eq",
+    "neq",
+    "is",
+    "not",
+    "in",
+    "gt",
+    "lt",
+    "gte",
+    "lte",
+    "or",
+    "order",
+    "limit",
+    "maybeSingle",
+    "single",
+    "upsert",
+    "insert",
+    "update",
+    "delete",
+    "ignoreDuplicates",
+  ] as const;
+
+  function makeChain(table: string, result: QueryResult) {
+    const current: CallRecord = { table, op: "unknown", args: [] };
+    const chain: Record<string, unknown> = {};
+    for (const m of passthrough) {
+      chain[m] = (...args: unknown[]) => {
+        if (ops.has(m)) {
+          current.op = m as CallRecord["op"];
+          current.args = args;
+        }
+        if (m === "maybeSingle" || m === "single") {
+          return Promise.resolve(result);
+        }
+        return chain;
+      };
+    }
+    chain.then = (
+      resolve: (v: QueryResult) => unknown,
+      reject: (e: unknown) => unknown,
+    ) => {
+      calls.push(current);
+      return Promise.resolve(result).then(resolve, reject);
+    };
+    return chain;
+  }
+
+  const dbMock = {
+    from: vi.fn((table: string) => {
+      const factory = tableMocks[table];
+      const result = factory ? factory() : defaultResult();
+      return makeChain(table, result);
+    }),
   };
-  const userSubscription = {
-    findUnique: vi.fn(),
-    upsert: vi.fn(),
-    update: vi.fn(),
-  };
-  return {
-    db: {
-      billingCheckoutSession,
-      userSubscription,
-      $transaction: vi.fn(async (fn: (tx: { billingCheckoutSession: typeof billingCheckoutSession; userSubscription: typeof userSubscription }) => Promise<unknown>) => fn({ billingCheckoutSession, userSubscription })),
-    },
-  };
+
+  return { calls, tableMocks, dbMock };
 });
 
-vi.mock("@trail/db", () => ({
-  ...dbMocks,
+const { calls, tableMocks, dbMock } = fluent;
+
+vi.mock("@trail/db", () => ({ db: fluent.dbMock }));
+
+vi.mock("@trail/db/helpers", () => ({
+  maybeRow: <T>(res: QueryResult) => (res.data as T) ?? null,
 }));
 
 vi.mock("@/src/env", () => ({
@@ -39,19 +103,16 @@ vi.mock("@/src/env", () => ({
 
 import { POST } from "../billing/webhooks/nowpayments/route";
 
+// ---------------------------------------------------------------------------
+// HMAC helper (NOWPayments uses sorted-keys JSON serialization)
+// ---------------------------------------------------------------------------
+
 function sortObject(value: unknown): unknown {
-  if (!value || typeof value !== "object") {
-    return value;
-  }
-  if (Array.isArray(value)) {
-    return value.map(sortObject);
-  }
+  if (!value || typeof value !== "object") return value;
+  if (Array.isArray(value)) return value.map(sortObject);
   const obj = value as Record<string, unknown>;
-  const sortedKeys = Object.keys(obj).sort();
   const result: Record<string, unknown> = {};
-  for (const key of sortedKeys) {
-    result[key] = sortObject(obj[key]);
-  }
+  for (const key of Object.keys(obj).sort()) result[key] = sortObject(obj[key]);
   return result;
 }
 
@@ -60,52 +121,61 @@ function sig(payload: unknown, secret: string): string {
   return createHmac("sha512", secret).update(message).digest("hex");
 }
 
+function setTable(table: string, result: QueryResult) {
+  tableMocks[table] = () => result;
+}
+
+function setTableSeq(table: string, results: QueryResult[]) {
+  let i = 0;
+  tableMocks[table] = () => {
+    const r = results[i] ?? results[results.length - 1];
+    i++;
+    return r;
+  };
+}
+
+function postWebhook(payload: unknown, signature: string) {
+  return POST(
+    new Request("http://localhost/api/v1/billing/webhooks/nowpayments", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-nowpayments-sig": signature,
+      },
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+
 describe("nowpayments webhook", () => {
   beforeEach(() => {
-    dbMocks.db.billingCheckoutSession.findUnique.mockReset();
-    dbMocks.db.billingCheckoutSession.findFirst.mockReset();
-    dbMocks.db.billingCheckoutSession.update.mockReset();
-    dbMocks.db.billingCheckoutSession.updateMany.mockReset();
-    dbMocks.db.userSubscription.findUnique.mockReset();
-    dbMocks.db.userSubscription.upsert.mockReset();
-    dbMocks.db.userSubscription.update.mockReset();
+    dbMock.from.mockClear();
+    calls.length = 0;
+    for (const k of Object.keys(tableMocks)) delete tableMocks[k];
   });
 
   it("rejects invalid signature", async () => {
     const payload = { order_id: "order-1", payment_status: "finished" };
-    dbMocks.db.billingCheckoutSession.findUnique.mockResolvedValue(null);
-
-    const response = await POST(
-      new Request("http://localhost/api/v1/billing/webhooks/nowpayments", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "x-nowpayments-sig": "deadbeef",
-        },
-        body: JSON.stringify(payload),
-      }),
-    );
-
+    const response = await postWebhook(payload, "deadbeef");
     expect(response.status).toBe(401);
+    expect(dbMock.from).not.toHaveBeenCalled();
   });
 
-  it("acknowledges unknown order ids", async () => {
+  it("acknowledges unknown order ids without mutating subscriptions", async () => {
     const payload = { order_id: "order-unknown", payment_status: "finished" };
-    dbMocks.db.billingCheckoutSession.findUnique.mockResolvedValue(null);
+    setTable("billing_checkout_sessions", { data: null, error: null });
 
-    const response = await POST(
-      new Request("http://localhost/api/v1/billing/webhooks/nowpayments", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "x-nowpayments-sig": sig(payload, "ipn-secret"),
-        },
-        body: JSON.stringify(payload),
-      }),
-    );
+    const response = await postWebhook(payload, sig(payload, "ipn-secret"));
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ ok: true });
+    expect(
+      calls.some((c) => c.table === "user_subscriptions" && c.op !== "select"),
+    ).toBe(false);
   });
 
   it("upgrades subscription when payment is finished", async () => {
@@ -115,45 +185,48 @@ describe("nowpayments webhook", () => {
       payment_status: "finished",
     };
 
-    dbMocks.db.billingCheckoutSession.findUnique.mockResolvedValue({
-      orderId: "order-1",
-      status: "PENDING",
-      userId: "user-1",
-      planId: "pro",
-      interval: "year",
-      requestedInterval: "year",
-    });
-    dbMocks.db.billingCheckoutSession.findFirst.mockResolvedValue(null);
-    dbMocks.db.billingCheckoutSession.updateMany.mockResolvedValue({ count: 1 });
-    dbMocks.db.billingCheckoutSession.update.mockResolvedValue({});
-    dbMocks.db.userSubscription.findUnique.mockResolvedValue(null);
-    dbMocks.db.userSubscription.upsert.mockResolvedValue({});
-
-    const response = await POST(
-      new Request("http://localhost/api/v1/billing/webhooks/nowpayments", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "x-nowpayments-sig": sig(payload, "ipn-secret"),
+    // Sequence of billing_checkout_sessions queries:
+    //   1) lookup existing session by order_id
+    //   2) atomic claim: update WEBHOOK_RECEIVED + .select() (returns rows)
+    //   3) duplicate-payment dedupe lookup → none
+    //   4) final SUCCEEDED status update
+    setTableSeq("billing_checkout_sessions", [
+      {
+        data: {
+          order_id: "order-1",
+          status: "PENDING",
+          user_id: "user-1",
+          plan_id: "pro",
+          interval: "year",
+          requested_interval: "year",
         },
-        body: JSON.stringify(payload),
-      }),
-    );
+        error: null,
+      },
+      { data: [{ order_id: "order-1" }], error: null },
+      { data: null, error: null },
+      { data: null, error: null },
+    ]);
+
+    // user_subscriptions: existing lookup → none, then upsert
+    setTableSeq("user_subscriptions", [
+      { data: null, error: null },
+      { data: null, error: null },
+    ]);
+
+    const response = await postWebhook(payload, sig(payload, "ipn-secret"));
 
     expect(response.status).toBe(200);
-    expect(dbMocks.db.userSubscription.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { userId: "user-1" },
-        create: expect.objectContaining({
-          userId: "user-1",
-          plan: "PRO",
-          status: "ACTIVE",
-        }),
-        update: expect.objectContaining({
-          plan: "PRO",
-          status: "ACTIVE",
-        }),
-      }),
+
+    const upsertCall = calls.find(
+      (c) => c.table === "user_subscriptions" && c.op === "upsert",
     );
+    expect(upsertCall, "expected user_subscriptions.upsert").toBeDefined();
+    const [row] = (upsertCall?.args ?? []) as [Record<string, unknown>];
+    expect(row).toMatchObject({
+      user_id: "user-1",
+      plan: "PRO",
+      status: "ACTIVE",
+      cancel_at_period_end: false,
+    });
   });
 });

@@ -4,27 +4,49 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // Supabase chainable query builder mock
 // ---------------------------------------------------------------------------
 
-type QueryResult = { data: unknown; error: null | { message: string; code?: string }; count?: number | null };
+type QueryResult = {
+  data: unknown;
+  error: null | { message: string; code?: string };
+  count?: number | null;
+};
 
 function makeChain(result: QueryResult) {
   const chain: Record<string, unknown> = {};
   const methods = [
-    "select", "eq", "neq", "is", "not", "in", "gt", "lt", "gte", "lte",
-    "or", "order", "limit", "maybeSingle", "single", "upsert", "insert",
-    "update", "delete", "ignoreDuplicates",
+    "select",
+    "eq",
+    "neq",
+    "is",
+    "not",
+    "in",
+    "gt",
+    "lt",
+    "gte",
+    "lte",
+    "or",
+    "order",
+    "limit",
+    "maybeSingle",
+    "single",
+    "upsert",
+    "insert",
+    "update",
+    "delete",
+    "ignoreDuplicates",
   ];
   for (const m of methods) {
     chain[m] = (..._args: unknown[]) => {
-      // maybeSingle / single resolve the chain
       if (m === "maybeSingle" || m === "single") {
         return Promise.resolve(result);
       }
       return chain;
     };
   }
-  // Make the chain itself thenable so `await db.from(...).select(...)` works
-  chain.then = (resolve: (v: QueryResult) => unknown, reject: (e: unknown) => unknown) =>
-    Promise.resolve(result).then(resolve, reject);
+  // thenable so `await db.from(...).select(...)` works
+  chain.then = (
+    resolve: (v: QueryResult) => unknown,
+    reject: (e: unknown) => unknown,
+  ) => Promise.resolve(result).then(resolve, reject);
   return chain;
 }
 
@@ -35,15 +57,22 @@ function defaultResult(): QueryResult {
   return { data: null, error: null };
 }
 
+const rpcMock = vi.fn(
+  async (_name: string, _args?: unknown): Promise<QueryResult> => ({
+    data: null,
+    error: null,
+  }),
+);
+
 const dbMock = {
   from: vi.fn((table: string) => {
     const factory = tableMocks[table];
     const result = factory ? factory() : defaultResult();
     const chain = makeChain(result);
-    // Attach from back so nested calls work
     (chain as Record<string, unknown>).from = dbMock.from;
     return chain;
   }),
+  rpc: rpcMock,
 };
 
 vi.mock("@trail/db", () => ({
@@ -101,21 +130,23 @@ function setupUserAndDevice(userId = "user-1", deviceId = "device-1") {
 describe("upsertTrail", () => {
   beforeEach(() => {
     dbMock.from.mockClear();
+    rpcMock.mockReset();
+    rpcMock.mockResolvedValue({ data: null, error: null });
     for (const key of Object.keys(tableMocks)) {
       delete tableMocks[key];
     }
   });
 
-  it("creates new trail when it does not exist", async () => {
+  it("calls upsert_trail RPC with the canonical payload (no read-then-write)", async () => {
     setupUserAndDevice();
-    // trails: first call returns no existing, second (insert) returns the created row
-    setTableSeq("trails", [
-      { data: null, error: null },
-      {
-        data: { id: "trail-1", updated_at: "2026-02-01T00:00:00.000Z" },
-        error: null,
+    rpcMock.mockResolvedValue({
+      data: {
+        id: "trail-1",
+        applied: true,
+        updated_at: "2026-02-01T00:00:00.000Z",
       },
-    ]);
+      error: null,
+    });
 
     const result = await upsertTrail({
       userId: "user-1",
@@ -125,39 +156,66 @@ describe("upsertTrail", () => {
 
     expect(result.applied).toBe(true);
     expect(result.updatedAt).toEqual(new Date("2026-02-01T00:00:00Z"));
+    expect(rpcMock).toHaveBeenCalledTimes(1);
+    expect(rpcMock).toHaveBeenCalledWith(
+      "upsert_trail",
+      expect.objectContaining({
+        p_trail: expect.objectContaining({
+          id: "trail-1",
+          user_id: "user-1",
+          device_id: "device-1",
+          label: "New",
+          label_source: "USER",
+          updated_at: "2026-02-01T00:00:00.000Z",
+        }),
+      }),
+    );
+    // Trails table should not be selected/updated directly — RPC owns it.
+    const fromCalls = dbMock.from.mock.calls.map((c) => c[0]);
+    expect(fromCalls).not.toContain("trails");
   });
 
-  it("creates new trail with client-provided id", async () => {
+  it("propagates client-provided trail id into the RPC payload", async () => {
     setupUserAndDevice();
-    setTableSeq("trails", [
-      { data: null, error: null },
-      {
-        data: { id: "trail-client-id", updated_at: "2026-02-01T00:00:00.000Z" },
-        error: null,
+    rpcMock.mockResolvedValue({
+      data: {
+        id: "trail-client-id",
+        applied: true,
+        updated_at: "2026-02-01T00:00:00.000Z",
       },
-    ]);
+      error: null,
+    });
 
-    const result = await upsertTrail({
+    await upsertTrail({
       userId: "user-1",
       deviceId: "device-1",
       trail: { ...BASE_TRAIL, id: "trail-client-id" },
     });
 
-    expect(result.applied).toBe(true);
+    expect(rpcMock).toHaveBeenCalledWith(
+      "upsert_trail",
+      expect.objectContaining({
+        p_trail: expect.objectContaining({ id: "trail-client-id" }),
+      }),
+    );
   });
 
-  it("creates missing device before trail upsert", async () => {
+  it("creates missing device before invoking the RPC", async () => {
     setTable("users", { data: { id: "user-1" }, error: null });
-    // devices: no existing → empty array
+    // devices: existing query → empty; subsequent upsert/update → ok
     setTableSeq("devices", [
-      { data: [], error: null },                              // select existing
-      { data: null, error: null },                           // upsert missing
-      { data: null, error: null },                           // update last_seen_at
-    ]);
-    setTableSeq("trails", [
+      { data: [], error: null },
       { data: null, error: null },
-      { data: { id: "trail-new", updated_at: "2026-02-01T00:00:00.000Z" }, error: null },
+      { data: null, error: null },
     ]);
+    rpcMock.mockResolvedValue({
+      data: {
+        id: "trail-new",
+        applied: true,
+        updated_at: "2026-02-01T00:00:00.000Z",
+      },
+      error: null,
+    });
 
     const result = await upsertTrail({
       userId: "user-1",
@@ -166,6 +224,11 @@ describe("upsertTrail", () => {
     });
 
     expect(result.applied).toBe(true);
+    const fromCalls = dbMock.from.mock.calls.map((c) => c[0]);
+    expect(
+      fromCalls.filter((t) => t === "devices").length,
+    ).toBeGreaterThanOrEqual(2);
+    expect(rpcMock).toHaveBeenCalledTimes(1);
   });
 
   it("throws user_not_found when user does not exist", async () => {
@@ -178,16 +241,33 @@ describe("upsertTrail", () => {
         trail: { ...BASE_TRAIL, id: "trail-1" },
       }),
     ).rejects.toThrowError("user_not_found");
+    expect(rpcMock).not.toHaveBeenCalled();
   });
 
-  it("skips update when server version is newer (LWW)", async () => {
+  it("rejects with device_user_mismatch when device belongs to a different user", async () => {
+    setTable("users", { data: { id: "user-1" }, error: null });
+    setTable("devices", {
+      data: [{ id: "device-1", user_id: "other-user" }],
+      error: null,
+    });
+
+    await expect(
+      upsertTrail({
+        userId: "user-1",
+        deviceId: "device-1",
+        trail: BASE_TRAIL,
+      }),
+    ).rejects.toMatchObject({ code: "device_user_mismatch", status: 409 });
+    expect(rpcMock).not.toHaveBeenCalled();
+  });
+
+  it("returns applied=false when the RPC LWW guard rejects an older write", async () => {
     setupUserAndDevice();
-    // Existing trail has newer updatedAt than client
-    setTable("trails", {
+    rpcMock.mockResolvedValue({
       data: {
         id: "trail-1",
+        applied: false,
         updated_at: "2026-03-01T00:00:00.000Z",
-        deleted_at: null,
       },
       error: null,
     });
@@ -195,12 +275,26 @@ describe("upsertTrail", () => {
     const result = await upsertTrail({
       userId: "user-1",
       deviceId: "device-1",
-      trail: {
-        ...BASE_TRAIL,
-        updatedAt: new Date("2026-01-01T00:00:00Z"), // older than server
-      },
+      trail: { ...BASE_TRAIL, updatedAt: new Date("2026-01-01T00:00:00Z") },
     });
 
     expect(result.applied).toBe(false);
+    expect(result.updatedAt).toEqual(new Date("2026-03-01T00:00:00Z"));
+  });
+
+  it("surfaces RPC errors as Error", async () => {
+    setupUserAndDevice();
+    rpcMock.mockResolvedValue({
+      data: null,
+      error: { message: "boom" },
+    });
+
+    await expect(
+      upsertTrail({
+        userId: "user-1",
+        deviceId: "device-1",
+        trail: BASE_TRAIL,
+      }),
+    ).rejects.toThrowError(/upsert_trail RPC failed/);
   });
 });
