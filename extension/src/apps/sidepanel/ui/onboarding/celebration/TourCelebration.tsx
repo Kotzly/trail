@@ -96,8 +96,8 @@ function CelebrationBody({ startedAt }: { startedAt: number | null }) {
 
   return (
     <div
-      role="dialog"
-      aria-modal="false"
+      role="status"
+      aria-live="polite"
       aria-label={i18n.t("onboarding.celebration.title" as I18nArg)}
       className="animate-in fade-in-0 bg-background/95 absolute inset-0 z-30 flex flex-col items-center justify-center overflow-hidden px-6 backdrop-blur-sm duration-500 ease-(--ease-out)"
     >
