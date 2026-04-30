@@ -1,40 +1,34 @@
-.PHONY: dev db-up db-down db-migrate dev-marketing dev-account lint typecheck test extension e2e
+.PHONY: help setup dev test lint typecheck build clean migrate types check
 
-db-up:
-	docker compose up -d postgres
+help: ## Show this help
+	@awk 'BEGIN {FS = ":.*##"; printf "Trail — make targets:\n\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 
-db-down:
-	docker compose down
+setup: ## Install all workspace deps (pnpm install)
+	pnpm install
 
-db-migrate:
-	pnpm db:migrate
-
-dev:
+dev: ## Run marketing + account + extension in parallel
 	pnpm dev
 
-dev-marketing:
-	pnpm --filter @trail/marketing dev
-
-dev-account:
-	pnpm --filter @trail/account dev
-
-lint:
-	pnpm lint
-
-typecheck:
-	pnpm typecheck
-
-test:
+test: ## Run all workspace tests
 	pnpm test
 
-extension:
-	pnpm --dir extension install --ignore-workspace --frozen-lockfile
-	pnpm --dir extension run build
+lint: ## Lint all workspaces
+	pnpm lint
 
-e2e: db-up
-	@set -a; \
-	if [ -f .env.e2e ]; then . ./.env.e2e; fi; \
-	set +a; \
-	pnpm --dir extension install --ignore-workspace --frozen-lockfile; \
-	pnpm db:migrate; \
-	pnpm dev
+typecheck: ## Typecheck all workspaces
+	pnpm typecheck
+
+build: ## Build all workspaces (apps + extension)
+	pnpm build
+
+clean: ## Remove node_modules and build artifacts
+	pnpm clean
+
+migrate: ## Push migrations to hosted Supabase (linked project)
+	npx supabase db push --linked
+
+types: ## Regenerate Supabase Database types
+	pnpm db:types
+
+check: ## Lint + typecheck + test (CI parity, fast feedback)
+	pnpm lint && pnpm typecheck && pnpm test

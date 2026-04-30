@@ -439,10 +439,7 @@ function DangerZoneCard({ signedIn }: { signedIn: boolean }) {
       if (supabase) {
         const rpcResult = await supabase.rpc("request_account_deletion");
         if (rpcResult.error) {
-          await supabase
-            .from("trails")
-            .update({ deleted_at: new Date().toISOString() })
-            .neq("id", "00000000-0000-0000-0000-000000000000");
+          throw rpcResult.error;
         }
       }
       await signOut();

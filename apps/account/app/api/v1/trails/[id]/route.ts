@@ -8,7 +8,7 @@ import {
   toTrailRecord,
 } from "@/src/server/backend/trail-serializers";
 import { isJsonValue } from "@/src/server/backend/json";
-import { upsertTrail } from "@/src/server/backend/trails-sync";
+import { upsertTrail, SyncError } from "@/src/server/backend/trails-sync";
 import type { TrailLabelSource } from "@/src/server/backend/trails-sync";
 import { db } from "@trail/db";
 import type { Database } from "@trail/db/types";
@@ -245,6 +245,13 @@ export async function PUT(
       applied: result.applied,
     });
   } catch (error) {
+    if (error instanceof SyncError) {
+      return jsonFail(error.code, error.message, {
+        status: error.status,
+        retryable: false,
+      });
+    }
+
     const message = error instanceof Error ? error.message : "";
 
     if (message === "user_not_found") {

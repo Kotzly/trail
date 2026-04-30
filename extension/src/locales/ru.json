@@ -472,73 +472,64 @@
     }
   },
   "login": {
-    "eyebrow": {
-      "signIn": "ACCESS — RETURN",
-      "signUp": "ACCESS — BEGIN",
-      "verify": "ACCESS — VERIFY",
-      "setPassword": "ACCESS — RESET",
-      "signedIn": "ACCESS — GRANTED",
-      "unconfigured": "ACCESS — OFFLINE"
-    },
-    "headline": {
-      "signIn": "Pick up the trail.",
-      "signUp": "Start a new trail.",
-      "verify": "Six digits, then in.",
-      "setPassword": "Choose a new password.",
-      "signedIn": "You're in, $1.",
-      "signedInFallbackName": "friend",
-      "unconfigured": "Cloud sync isn't configured."
-    },
-    "subhead": {
-      "signIn": "Continue where you left a thread.",
-      "signUp": "Your trees, kept across every device.",
-      "verify": "We sent a 6-digit code to $1.",
-      "setPassword": "Signed in as $1.",
-      "signedIn": "Trail is loading. Open it from the toolbar.",
-      "unconfigured": "Your trees still work locally on this machine."
-    },
     "form": {
-      "continueWithGoogle": "Continue with Google",
-      "or": "or",
+      "welcomeBack": "Welcome back",
+      "signInDescription": "Sign in with Google or email",
+      "loginWithGoogle": "Login with Google",
+      "orContinueWith": "Or continue with",
       "emailLabel": "Email",
-      "emailPlaceholder": "you@example.com",
+      "emailPlaceholder": "me@example.com",
       "passwordLabel": "Password",
-      "passwordHint": "8+ characters with upper, lower, a number, and a symbol.",
-      "forgotPassword": "Forgot password?",
-      "submitSignIn": "Sign in",
-      "submitSignUp": "Create account",
-      "newPasswordLabel": "New password",
-      "confirmPasswordLabel": "Confirm password",
-      "submitUpdatePassword": "Update password",
-      "submitUpdating": "Updating…",
-      "noAccount": "New to Trail?",
-      "switchToSignUp": "Create an account",
-      "haveAccount": "Already have an account?",
-      "switchToSignIn": "Sign in"
-    },
-    "verify": {
-      "codeLabel": "6-digit code",
-      "submit": "Verify",
-      "submitting": "Verifying…",
-      "didntGetIt": "Didn't get the code?",
-      "resendCode": "Resend",
-      "useDifferentEmail": "Use a different email"
-    },
-    "messages": {
-      "passwordRequired": "Password is required.",
-      "signupOtpSent": "Code sent. Check your inbox.",
-      "recoveryOtpSent": "Recovery code sent. Check your inbox.",
-      "otpInvalidFormat": "Enter the 6-digit code.",
-      "recoveryCodeAccepted": "Code accepted. Choose a new password.",
-      "codeResent": "Code re-sent. Check your inbox.",
-      "passwordsMismatch": "Passwords don't match."
-    },
-    "actions": {
-      "done": "Done",
-      "termsPrefix": "By continuing you agree to our",
+      "forgotPassword": "Forgot your password?",
+      "login": "Login",
+      "noAccount": "Don't have an account?",
+      "signUp": "Sign up",
+      "termsPrefix": "By clicking Login, you agree to our",
       "termsOfService": "Terms of Service",
       "and": "and",
       "privacyPolicy": "Privacy Policy"
+    },
+    "signupForm": {
+      "createAccount": "Create your account",
+      "createDescription": "Create account with Google or email",
+      "signUpWithGoogle": "Sign up with Google",
+      "passwordHint": "At least 8 characters with uppercase, lowercase, a number, and a symbol.",
+      "submit": "Create account",
+      "haveAccount": "Already have an account?",
+      "signIn": "Sign in",
+      "termsPrefix": "By clicking continue, you agree to our"
+    },
+    "passwordRequired": "Password is required.",
+    "signupOtpSent": "We sent a 6-digit code to your email. Enter it below to finish.",
+    "recoveryOtpSent": "We sent a recovery code to your email. Enter it below, then choose a new password.",
+    "otpInvalidFormat": "Enter the 6-digit code.",
+    "recoveryCodeAccepted": "Code accepted. Choose a new password to finish.",
+    "codeResent": "Code re-sent. Check your inbox.",
+    "passwordsMismatch": "Passwords don't match.",
+    "signedInTitle": "Welcome, $1",
+    "signedInFallbackName": "there",
+    "signedInDescription": "You're signed in. Your trees will start syncing across devices automatically. Open Trail from the extension icon in your toolbar.",
+    "done": "Done",
+    "cloudUnconfiguredTitle": "Cloud sync not configured",
+    "cloudUnconfiguredDescription": "This build of Trail has no Supabase credentials baked in. Sign-in is disabled — your trees still work locally.",
+    "setPassword": {
+      "title": "Choose a new password",
+      "signedInAs": "Signed in as",
+      "newPasswordLabel": "New password",
+      "passwordHelp": "At least 8 characters with uppercase, lowercase, a number, and a symbol.",
+      "confirmPasswordLabel": "Confirm password",
+      "updating": "Updating…",
+      "updatePassword": "Update password"
+    },
+    "verify": {
+      "title": "Confirm your email",
+      "descriptionPrefix": "We sent a 6-digit code to",
+      "codeLabel": "6-digit code",
+      "verifying": "Verifying…",
+      "verifyCode": "Verify code",
+      "didntGetIt": "Didn't get it?",
+      "resendCode": "Resend code",
+      "useDifferentEmail": "Use a different email"
     }
   },
   "settings": {

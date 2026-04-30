@@ -54,6 +54,7 @@ function testProtocolConstants(): void {
     'event/sync-conflict',
     'event/sync-conflict-resolved',
     'event/auth-state',
+    'event/auth-transition',
     'event/content-bridge-error',
   ]);
 

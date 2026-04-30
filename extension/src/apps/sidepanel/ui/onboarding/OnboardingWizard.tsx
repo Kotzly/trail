@@ -292,7 +292,8 @@ export default function OnboardingWizard() {
     >
       <DialogContent
         showCloseButton={false}
-        className="flex h-[480px] max-w-[400px] flex-col gap-0 overflow-hidden p-0"
+        data-testid="onboarding-wizard"
+        className="flex h-[480px] max-h-[calc(100dvh-2rem)] max-w-[400px] flex-col gap-0 overflow-hidden p-0"
       >
         <DialogHeader className="sr-only">
           <DialogTitle>{i18n.t(TITLE_KEYS[step] as I18nArg)}</DialogTitle>
@@ -316,13 +317,16 @@ export default function OnboardingWizard() {
             onClick={() => void handleSkip()}
             className="text-muted-foreground hover:text-foreground"
             aria-label={i18n.t("onboarding.skipAriaLabel")}
+            data-testid="onboarding-skip"
           >
             <Icons.X className="size-3.5" />
           </Button>
         </div>
 
         <div className="relative flex-1 overflow-y-auto px-5 pt-2 pb-5">
-          <div key={`step-${step}`}>{renderStep()}</div>
+          <div key={`step-${step}`} className="h-full">
+            {renderStep()}
+          </div>
         </div>
 
         <div className="border-border/60 bg-muted/30 flex shrink-0 items-center justify-between gap-2 border-t px-4 py-3">
@@ -360,6 +364,7 @@ export default function OnboardingWizard() {
                 type="button"
                 onClick={() => void goNext()}
                 className="gap-1"
+                data-testid="onboarding-next"
               >
                 {primaryLabel}
                 {step !== STEP.FEATURES ? <Icons.ChevronRight data-icon="inline-end" /> : null}

@@ -115,17 +115,25 @@
     }
   },
   "errors": {
-    "auth.unauthorized": "You need to be signed in.",
-    "auth.userNotFound": "User not found.",
-    "trail.notFound": "Trail not found.",
-    "trail.invalidInput": "The input looks wrong — try again.",
-    "trail.renameFailed": "Failed to rename trail.",
-    "trail.archiveFailed": "Failed to archive trail.",
-    "trail.restoreFailed": "Failed to restore trail.",
-    "billing.missingPlan": "Missing plan.",
-    "billing.cancelFailed": "Failed to cancel subscription.",
-    "billing.resumeFailed": "Failed to resume subscription.",
-    "onboarding.resetFailed": "Failed to reset onboarding.",
+    "auth": {
+      "unauthorized": "You need to be signed in.",
+      "userNotFound": "User not found."
+    },
+    "trail": {
+      "notFound": "Trail not found.",
+      "invalidInput": "The input looks wrong — try again.",
+      "renameFailed": "Failed to rename trail.",
+      "archiveFailed": "Failed to archive trail.",
+      "restoreFailed": "Failed to restore trail."
+    },
+    "billing": {
+      "missingPlan": "Missing plan.",
+      "cancelFailed": "Failed to cancel subscription.",
+      "resumeFailed": "Failed to resume subscription."
+    },
+    "onboarding": {
+      "resetFailed": "Failed to reset onboarding."
+    },
     "unknown": "Something went wrong. Please try again."
   }
 }

@@ -402,7 +402,7 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: Better Auth access token
+      description: Supabase JWT access token
     extensionAuth:
       type: http
       scheme: bearer

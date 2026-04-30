@@ -514,7 +514,7 @@ const TreeRow = memo(function TreeRow({
         {!isEditing && !loading && (
           <ItemActions
             className={cn(
-              "gap-0.5 transition-opacity",
+              "gap-0.5 transition-opacity focus-within:opacity-100",
               !tree.active &&
                 "opacity-0 group-hover/item:opacity-100 group-data-[selected=true]/item:opacity-100",
             )}

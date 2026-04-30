@@ -186,7 +186,6 @@ async function ensurePublicUser(identity: AuthIdentity): Promise<void> {
         id: identity.userId,
         email: identity.email ?? "",
         name: identity.displayName ?? identity.email ?? identity.userId,
-        email_verified: true,
         image: identity.avatarUrl,
         image_url: identity.avatarUrl,
         created_at: now,

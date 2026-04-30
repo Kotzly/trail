@@ -49,6 +49,8 @@ export function FeedbackWidget() {
   const [contact, setContact] = useState("");
   const [sent, setSent] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
 
   const reset = useCallback(() => {
     setMessage("");
@@ -58,6 +60,9 @@ export function FeedbackWidget() {
 
   const handleClose = useCallback(() => {
     setOpen(false);
+    // Restore focus to the trigger so keyboard users land back on a
+    // sensible focal point after the modal closes.
+    setTimeout(() => triggerRef.current?.focus(), 0);
     setTimeout(reset, 300);
   }, [reset]);
 
@@ -67,10 +72,34 @@ export function FeedbackWidget() {
     }
   }, [open]);
 
+  // Escape close + Tab focus trap — keeps keyboard users inside the modal
+  // while it's open and lets them exit cleanly with Esc.
   useEffect(() => {
     if (!open) return;
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") handleClose();
+      if (e.key === "Escape") {
+        handleClose();
+        return;
+      }
+      if (e.key !== "Tab") return;
+      const dialog = dialogRef.current;
+      if (!dialog) return;
+      const focusable = Array.from(
+        dialog.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+      if (e.shiftKey && active === first) {
+        last.focus();
+        e.preventDefault();
+      } else if (!e.shiftKey && active === last) {
+        first.focus();
+        e.preventDefault();
+      }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -105,6 +134,7 @@ export function FeedbackWidget() {
       <AnimatePresence>
         {!open && (
           <motion.button
+            ref={triggerRef}
             onClick={() => setOpen(true)}
             className="fixed bottom-6 right-6 z-[9990] flex items-center gap-2 rounded-full px-4 py-2.5 font-mono uppercase transition-colors duration-200"
             style={{
@@ -146,6 +176,7 @@ export function FeedbackWidget() {
               transition={{ duration: 0.18 }}
             >
               <motion.div
+                ref={dialogRef}
                 className="pointer-events-auto w-full max-w-md overflow-hidden rounded-[14px]"
                 style={{
                   background: "#0c0a08",

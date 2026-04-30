@@ -4,7 +4,9 @@ import FloatingControls from "./components/FloatingControls.js";
 import SelectionActionBar from "./components/SelectionActionBar.js";
 import SyncConflictToastMount from "./components/SyncConflictToast.js";
 import OnboardingWizard from "./onboarding/OnboardingWizard.js";
-import TourCoach from "./onboarding/tour/TourCoach.js";
+import TourFlyingCoach from "./onboarding/tour/TourFlyingCoach.js";
+import ResumeTourPopover from "./onboarding/tour/ResumeTourPopover.js";
+import PinFlyingPopover from "./onboarding/pin/PinFlyingPopover.js";
 import TourCelebration from "./onboarding/celebration/TourCelebration.js";
 import TourCommitments from "./onboarding/cta/TourCommitments.js";
 import OnboardingHintStrip from "./onboarding/hint-strip/OnboardingHintStrip.js";
@@ -218,11 +220,14 @@ export default function App() {
               onBadgeCollapseToggle={toggleBadgeCollapse}
               onChainUnfoldToggle={toggleChainUnfolded}
               onSelectionChange={handleSelectionChange}
-            />
+            >
+              <TourFlyingCoach />
+              <ResumeTourPopover />
+              <PinFlyingPopover />
+            </TrailGraph>
           </Suspense>
         )}
         <OnboardingWizard />
-        <TourCoach />
         <TourCelebration />
         <TourCommitments />
         <OnboardingHintStrip />

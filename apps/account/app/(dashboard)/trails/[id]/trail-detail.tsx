@@ -287,7 +287,7 @@ function TreeNodeRow({
             href={data.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="shrink-0 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground"
+            className="shrink-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-muted-foreground hover:text-foreground"
             onClick={(e) => e.stopPropagation()}
           >
             <ExternalLink className="h-3 w-3" />

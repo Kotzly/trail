@@ -76,14 +76,10 @@
   transform-origin: center;
 }
 
-/* Edges entering — ink-draw genesis. The path inks itself from start
-   to end via stroke-dashoffset. We use a dasharray larger than any
-   practical edge length so the visible portion is always a single
-   continuous segment — no need to measure path length per edge.
-   The animation runs on the wrapping <g> via the inner path selector
-   so it composes cleanly with the edge fade-out below. */
-.graph--lifecycle-on .react-flow__edge.graph-edge--entering .react-flow__edge-path {
-  animation: graph-edge-ink 320ms var(--ease-out) both;
+/* Edges entering/exiting alongside their nodes — fade only, since
+   path geometry can't be smoothly interpolated. */
+.graph--lifecycle-on .react-flow__edge.graph-edge--entering {
+  animation: graph-edge-fade-in 240ms var(--ease-out) both;
 }
 
 .graph--lifecycle-on .react-flow__edge.graph-edge--exiting {
@@ -91,14 +87,12 @@
   pointer-events: none;
 }
 
-@keyframes graph-edge-ink {
+@keyframes graph-edge-fade-in {
   from {
-    stroke-dasharray: 9999;
-    stroke-dashoffset: 9999;
+    opacity: 0;
   }
   to {
-    stroke-dasharray: 9999;
-    stroke-dashoffset: 0;
+    opacity: 1;
   }
 }
 

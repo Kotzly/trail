@@ -117,6 +117,7 @@ export default function SettingsApp() {
     <TooltipProvider delayDuration={250} skipDelayDuration={150}>
       <Toaster />
       <SidebarProvider
+        data-testid="settings-app"
         style={
           {
             "--sidebar-width": "14rem",
@@ -164,6 +165,7 @@ export default function SettingsApp() {
                           isActive={page === item.id}
                           tooltip={item.label}
                           onClick={() => handleSelect(item.id)}
+                          data-testid={`settings-nav-${item.id}`}
                         >
                           <Icon />
                           <span>{item.label}</span>

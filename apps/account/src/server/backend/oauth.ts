@@ -502,25 +502,8 @@ export async function revokeAllExtensionSessionsForUser(
       .eq("status", "ACTIVE"),
   );
 
-  // Bump auth session version — read-modify-write
-  const current = maybeRow(
-    typed<{ auth_session_version: number } | null>(
-      await db
-        .from("users")
-        .select("auth_session_version")
-        .eq("id", userId)
-        .maybeSingle(),
-    ),
-  );
-
-  if (current) {
-    assertOk(
-      await db
-        .from("users")
-        .update({
-          auth_session_version: (current.auth_session_version ?? 0) + 1,
-        })
-        .eq("id", userId),
-    );
-  }
+  const { error: bumpError } = await db.rpc("bump_auth_session_version", {
+    p_user_id: userId,
+  });
+  if (bumpError) throw bumpError;
 }

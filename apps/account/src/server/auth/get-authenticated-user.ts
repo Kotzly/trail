@@ -36,28 +36,10 @@ export type AuthenticatedUser = {
   onboardingSeenAt: Date | null;
 };
 
-type Options = {
-  /**
-   * Accept the `internal:<uuid>` pseudo-token used by in-process
-   * billing proxy routes that have already verified a Supabase cookie
-   * session. Default: false — only the billing routes should opt in.
-   */
-  allowInternal?: boolean;
-};
-
-const INTERNAL_PREFIX = "internal:";
-
 export async function getAuthenticatedUser(
   token: string | null | undefined,
-  options: Options = {},
 ): Promise<AuthenticatedUser | null> {
   if (!token) return null;
-
-  if (options.allowInternal && token.startsWith(INTERNAL_PREFIX)) {
-    const userId = token.slice(INTERNAL_PREFIX.length);
-    if (!userId) return null;
-    return getUserById(userId, dbAsClient);
-  }
 
   const extension = await verifyExtensionToken(token);
   if (!extension?.sub) return null;
@@ -65,19 +47,9 @@ export async function getAuthenticatedUser(
   return getUserById(extension.sub, dbAsClient);
 }
 
-/**
- * Convenience wrapper when the caller only needs the user ID.
- * Avoids a database fetch when the route just wants to scope a query.
- *
- * Today this still calls `verifyExtensionToken` (which itself hits the
- * DB to validate the session row) and then `getUserById` for shape.
- * If the hot-path ever needs to skip the second fetch, we can split
- * this into a token-only path.
- */
 export async function getAuthenticatedUserId(
   token: string | null | undefined,
-  options: Options = {},
 ): Promise<string | null> {
-  const user = await getAuthenticatedUser(token, options);
+  const user = await getAuthenticatedUser(token);
   return user?.id ?? null;
 }

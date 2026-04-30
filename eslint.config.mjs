@@ -13,6 +13,7 @@ export default defineConfig([
     "**/next-env.d.ts",
     "**/*.tsbuildinfo",
     "packages/db/src/generated/**",
-    "extension/**"
+    "extension/**",
+    "apps/*/components/ui/**"
   ])
 ]);

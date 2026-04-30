@@ -276,10 +276,9 @@ describe("v1 billing endpoints", () => {
 
   it("accepts user tokens for checkout", async () => {
     // Post-A6: the three bearer-token resolvers collapsed into one
-    // (getAuthenticatedUser). The route opts in to `allowInternal` for
-    // billing proxy calls from logged-in web sessions; extension
-    // tokens go through the same resolver with `verifyExtensionToken`.
-    // Either path hydrates the same user row from `getUserById`.
+    // (getAuthenticatedUser). Extension tokens go through
+    // verifyExtensionToken; either path hydrates the same user row
+    // via getUserById.
     authMocks.verifyExtensionToken.mockResolvedValue({
       sub: "user-1",
       iat: 0,

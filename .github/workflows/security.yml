@@ -6,7 +6,6 @@ on:
   pull_request:
     paths:
       - "pnpm-lock.yaml"
-      - "extension/pnpm-lock.yaml"
   workflow_dispatch:
 
 jobs:
@@ -43,7 +42,7 @@ jobs:
         with:
           node-version: 20
           cache: pnpm
-          cache-dependency-path: extension/pnpm-lock.yaml
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install
         run: pnpm install --frozen-lockfile

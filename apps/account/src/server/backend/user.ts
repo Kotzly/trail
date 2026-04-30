@@ -87,7 +87,6 @@ export async function ensurePublicUser(
       name: user.name,
       image: user.imageUrl ?? null,
       image_url: user.imageUrl ?? null,
-      email_verified: true,
       created_at: now,
       updated_at: now,
       auth_session_version: 1,
@@ -96,6 +95,15 @@ export async function ensurePublicUser(
   );
   if (result.error) {
     throw new Error(`ensurePublicUser failed: ${result.error.message}`);
+  }
+  const { error: rpcError } = await client.rpc("sync_public_user_from_auth", {
+    p_user_id: user.id,
+  });
+  if (rpcError) {
+    console.error("[ensurePublicUser] sync_public_user_from_auth failed", {
+      userId: user.id,
+      error: rpcError,
+    });
   }
 }
 

@@ -26,6 +26,16 @@ function userOptedOutOfHeavyAssets(): boolean {
   return Boolean(conn?.saveData);
 }
 
+function prefersReducedMotionSync(): boolean {
+  if (
+    typeof window === "undefined" ||
+    typeof window.matchMedia !== "function"
+  ) {
+    return false;
+  }
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
 const ACTS = [
   {
     eyebrow: "01 — A SEED",
@@ -79,8 +89,16 @@ export function LandingHero() {
   const durationRef = useRef(0);
   const lastSeekTargetRef = useRef(-1);
   const reduce = useReducedMotion();
-  // null = undecided (SSR), false = static poster only, true = full video
-  const [enableVideo, setEnableVideo] = useState<boolean | null>(null);
+  // null = undecided (SSR or waiting on IntersectionObserver), false = static
+  // poster only, true = full video. Lazy initializer reads matchMedia +
+  // navigator.connection synchronously so the user-opted-out path bypasses
+  // the IO subscription entirely (no setState-in-effect).
+  const [enableVideo, setEnableVideo] = useState<boolean | null>(() => {
+    if (typeof window === "undefined") return null;
+    if (prefersReducedMotionSync() || userOptedOutOfHeavyAssets()) return false;
+    if (typeof IntersectionObserver === "undefined") return true;
+    return null;
+  });
   // Object URL of the fully-buffered MP4. The video element only gets a
   // src once this is set, which means scrubbing only ever reads from
   // memory — no Range: requests, no cancel cascade.
@@ -136,19 +154,13 @@ export function LandingHero() {
   ];
 
   // Defer the video fetch until the hero section is approaching the
-  // viewport. Everything except an explicit Save-Data opt-out gets the
-  // video — slow connections will just take longer, and during the wait
-  // the poster + scroll-driven SVG roots + nodes still tell the story.
+  // viewport. Skip entirely once a decision is already locked in (the lazy
+  // initializer flips opt-outs to `false` synchronously). IO callbacks run
+  // outside effect bodies, so setState here doesn't trip set-state-in-effect.
   useEffect(() => {
-    if (reduce || userOptedOutOfHeavyAssets()) {
-      setEnableVideo(false);
-      return;
-    }
+    if (enableVideo !== null) return;
     const section = sectionRef.current;
-    if (!section || typeof IntersectionObserver === "undefined") {
-      setEnableVideo(true);
-      return;
-    }
+    if (!section) return;
     const io = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
@@ -163,7 +175,7 @@ export function LandingHero() {
     );
     io.observe(section);
     return () => io.disconnect();
-  }, [reduce]);
+  }, [enableVideo]);
 
   // Fetch the whole file as a single linear stream, then hand it to the
   // <video> as a blob: URL. This sidesteps the HTML5 video element's

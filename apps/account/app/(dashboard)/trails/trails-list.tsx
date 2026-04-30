@@ -2,7 +2,7 @@
 
 import { useState, useActionState, useTransition } from "react";
 import { useLocale } from "next-intl";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { toast } from "sonner";
 import {
   GitBranch,
@@ -119,11 +119,9 @@ function RenameDialog({ open, trail, onClose }: RenameDialogProps) {
 
 type TrailCardProps = {
   trail: TrailSummary;
-  showArchived: boolean;
 };
 
-function TrailCard({ trail, showArchived }: TrailCardProps) {
-  const router = useRouter();
+function TrailCard({ trail }: TrailCardProps) {
   const locale = useLocale();
   const [renameOpen, setRenameOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -158,100 +156,102 @@ function TrailCard({ trail, showArchived }: TrailCardProps) {
 
   return (
     <>
-      <Card
-        className={cn(
-          "group cursor-pointer transition-colors hover:bg-accent/50",
-          isPending && "opacity-60 pointer-events-none",
-          isArchived && "opacity-75",
-        )}
-        onClick={() => router.push(`/trails/${trail.id}`)}
-      >
-        <CardHeader className="pb-2 flex flex-row items-start justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0">
-            {trail.rootFavicon ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={trail.rootFavicon}
-                alt=""
-                className="h-5 w-5 rounded shrink-0"
-                onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).style.display = "none";
-                }}
-              />
-            ) : (
-              <GitBranch className="h-5 w-5 shrink-0 text-muted-foreground" />
-            )}
-            <CardTitle className="text-sm font-medium leading-tight truncate">
-              {trail.label}
-            </CardTitle>
-          </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100"
-              >
-                <MoreHorizontal className="h-4 w-4" />
-                <span className="sr-only">Trail actions</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <DropdownMenuItem onSelect={() => setRenameOpen(true)}>
-                <Pencil className="h-4 w-4 mr-2" />
-                Rename
-              </DropdownMenuItem>
-              {trail.rootUrl && (
-                <DropdownMenuItem asChild>
-                  <a
-                    href={trail.rootUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    Open root URL
-                  </a>
-                </DropdownMenuItem>
-              )}
-              <Separator className="my-1" />
-              {isArchived ? (
-                <DropdownMenuItem onSelect={handleRestore}>
-                  <RotateCcw className="h-4 w-4 mr-2" />
-                  Restore
-                </DropdownMenuItem>
+      <Link href={`/trails/${trail.id}`} prefetch={false} className="block">
+        <Card
+          className={cn(
+            "group transition-colors hover:bg-accent/50 focus-within:ring-2 focus-within:ring-ring",
+            isPending && "opacity-60 pointer-events-none",
+            isArchived && "opacity-75",
+          )}
+        >
+          <CardHeader className="pb-2 flex flex-row items-start justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              {trail.rootFavicon ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={trail.rootFavicon}
+                  alt=""
+                  className="h-5 w-5 rounded shrink-0"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).style.display =
+                      "none";
+                  }}
+                />
               ) : (
-                <DropdownMenuItem
-                  onSelect={handleArchive}
-                  className="text-destructive focus:text-destructive"
-                >
-                  <Archive className="h-4 w-4 mr-2" />
-                  Archive
-                </DropdownMenuItem>
+                <GitBranch className="h-5 w-5 shrink-0 text-muted-foreground" />
               )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <CardDescription className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
-            <span>
-              {trail.nodeCount} {trail.nodeCount === 1 ? "node" : "nodes"}
-            </span>
-            <span className="text-muted-foreground/50">·</span>
-            <span>{formatRelativeTime(trail.updatedAt, locale)}</span>
-            {isArchived && (
-              <>
-                <span className="text-muted-foreground/50">·</span>
-                <Badge variant="outline" className="text-xs h-4 px-1 py-0">
-                  archived
-                </Badge>
-              </>
-            )}
-          </CardDescription>
-        </CardContent>
-      </Card>
+              <CardTitle className="text-sm font-medium leading-tight truncate">
+                {trail.label}
+              </CardTitle>
+            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100"
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                  <span className="sr-only">Trail actions</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <DropdownMenuItem onSelect={() => setRenameOpen(true)}>
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Rename
+                </DropdownMenuItem>
+                {trail.rootUrl && (
+                  <DropdownMenuItem asChild>
+                    <a
+                      href={trail.rootUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Open root URL
+                    </a>
+                  </DropdownMenuItem>
+                )}
+                <Separator className="my-1" />
+                {isArchived ? (
+                  <DropdownMenuItem onSelect={handleRestore}>
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    Restore
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem
+                    onSelect={handleArchive}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <Archive className="h-4 w-4 mr-2" />
+                    Archive
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <CardDescription className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+              <span>
+                {trail.nodeCount} {trail.nodeCount === 1 ? "node" : "nodes"}
+              </span>
+              <span className="text-muted-foreground/50">·</span>
+              <span>{formatRelativeTime(trail.updatedAt, locale)}</span>
+              {isArchived && (
+                <>
+                  <span className="text-muted-foreground/50">·</span>
+                  <Badge variant="outline" className="text-xs h-4 px-1 py-0">
+                    archived
+                  </Badge>
+                </>
+              )}
+            </CardDescription>
+          </CardContent>
+        </Card>
+      </Link>
       <RenameDialog
         open={renameOpen}
         trail={trail}
@@ -366,11 +366,7 @@ export function TrailsList({
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {visibleTrails.map((trail) => (
-            <TrailCard
-              key={trail.id}
-              trail={trail}
-              showArchived={showArchived}
-            />
+            <TrailCard key={trail.id} trail={trail} />
           ))}
         </div>
       )}

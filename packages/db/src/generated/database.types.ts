@@ -683,7 +683,28 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      bump_auth_session_version: {
+        Args: { p_user_id: string };
+        Returns: undefined;
+      };
+      insert_wishlist_lead: {
+        Args: {
+          p_email: string;
+          p_source?: string;
+          p_utm_campaign?: string;
+          p_utm_content?: string;
+          p_utm_medium?: string;
+          p_utm_source?: string;
+          p_utm_term?: string;
+        };
+        Returns: string;
+      };
       request_account_deletion: { Args: never; Returns: string };
+      sync_public_user_from_auth: {
+        Args: { p_user_id: string };
+        Returns: undefined;
+      };
+      upsert_trail: { Args: { p_trail: Json }; Returns: Json };
     };
     Enums: {
       billing_provider: "MANUAL" | "NOWPAYMENTS";

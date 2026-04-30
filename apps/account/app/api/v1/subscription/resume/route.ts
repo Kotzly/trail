@@ -26,7 +26,7 @@ export async function POST(request: Request) {
   }
 
   const token = getBearerToken(request.headers);
-  const user = await getAuthenticatedUser(token, { allowInternal: true });
+  const user = await getAuthenticatedUser(token);
   if (!user) {
     return jsonFail("unauthorized", "Unauthorized.", { status: 401 });
   }

@@ -1,5 +1,5 @@
 import { i18n } from "#i18n";
-import { Card, CardContent } from "@ui/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@ui/components/ui/card";
 import { Button } from "@ui/components/ui/button";
 import {
   Field,
@@ -12,6 +12,7 @@ import { Input } from "@ui/components/ui/input";
 import { Spinner } from "@ui/components/ui/spinner";
 
 type SetPasswordFormProps = {
+  email: string;
   password: string;
   confirmPassword: string;
   pending?: boolean;
@@ -22,6 +23,7 @@ type SetPasswordFormProps = {
 };
 
 export function SetPasswordForm({
+  email,
   password,
   confirmPassword,
   pending,
@@ -32,6 +34,13 @@ export function SetPasswordForm({
 }: SetPasswordFormProps) {
   return (
     <Card>
+      <CardHeader className="text-center">
+        <CardTitle className="text-xl">{i18n.t("login.setPassword.title")}</CardTitle>
+        <CardDescription>
+          {i18n.t("login.setPassword.signedInAs")}{" "}
+          <strong className="text-foreground">{email}</strong>
+        </CardDescription>
+      </CardHeader>
       <CardContent>
         <form
           onSubmit={(e) => {
@@ -42,7 +51,7 @@ export function SetPasswordForm({
           <FieldGroup>
             <Field>
               <FieldLabel htmlFor="new-password">
-                {i18n.t("login.form.newPasswordLabel")}
+                {i18n.t("login.setPassword.newPasswordLabel")}
               </FieldLabel>
               <Input
                 id="new-password"
@@ -54,11 +63,11 @@ export function SetPasswordForm({
                 disabled={pending}
                 autoFocus
               />
-              <FieldDescription>{i18n.t("login.form.passwordHint")}</FieldDescription>
+              <FieldDescription>{i18n.t("login.setPassword.passwordHelp")}</FieldDescription>
             </Field>
             <Field data-invalid={confirmError ? true : undefined}>
               <FieldLabel htmlFor="confirm-password">
-                {i18n.t("login.form.confirmPasswordLabel")}
+                {i18n.t("login.setPassword.confirmPasswordLabel")}
               </FieldLabel>
               <Input
                 id="confirm-password"
@@ -76,8 +85,8 @@ export function SetPasswordForm({
               <Button type="submit" disabled={pending} className="press-feedback">
                 {pending ? <Spinner data-icon="inline-start" /> : null}
                 {pending
-                  ? i18n.t("login.form.submitUpdating")
-                  : i18n.t("login.form.submitUpdatePassword")}
+                  ? i18n.t("login.setPassword.updating")
+                  : i18n.t("login.setPassword.updatePassword")}
               </Button>
             </Field>
           </FieldGroup>

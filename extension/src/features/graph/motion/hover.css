@@ -1,64 +1,39 @@
 /*
  * Hover glow on graph nodes.
  *
- * Rendered via a pseudo-element on the .react-flow__node wrapper —
- * NOT box-shadow on the inner Card — for three load-bearing reasons:
+ * Container class `graph--hover-glow` is toggled by TrailGraph based on
+ * the `hover_node_highlight` flag + reduced-motion + FPS tier. Gating
+ * happens once at the container level — TrailNode itself never reads
+ * the flag, so hover state doesn't trip a React re-render.
  *
- *   1. The Card carries state indicators via Tailwind ring-/shadow-
- *      utilities (active path, current tab, selected, drag-source,
- *      drop-target). Both compile to `box-shadow`. A wrapper-level
- *      pseudo owns its own box-shadow, so those indicators survive
- *      while the user hovers.
+ * Gated to pointer:fine + hover:hover so touch devices don't fire the
+ * glow on tap (Emil rule #Touch device hover states).
  *
- *   2. The Card has `overflow-hidden` (shadcn base). A pseudo placed
- *      on the Card itself would be clipped to its bounds and the glow
- *      couldn't extend outward. The wrapper has no overflow rule.
- *
- *   3. The wrapper's `transition` slot is owned by relayout.css for the
- *      transform tween. Animating opacity on a pseudo-element lives in
- *      a separate transition declaration on the pseudo itself, so the
- *      two never collide via `transition` shorthand replacement.
- *
- * Animating opacity (0 → 1) avoids the `filter: none → drop-shadow`
- * interpolation snap and doesn't allocate a stacking context per
- * hover (drop-shadow does, costing a paint layer on first frame —
- * the source of the perceived "delay" before).
- *
- * Border-radius matches the Card's rounded-2xl (1rem) so the glow
- * traces the visible card edge, not a square halo. The LOD rectangle
- * uses rounded-md, but at low zoom the glow is diffuse enough that
- * the slight radius mismatch reads as soft ambient bloom.
- *
- * Gated to pointer:fine + hover:hover so touch devices don't fire
- * the glow on tap.
+ * Only the hovered node glows — no neighbor dim on hover. Dimming on
+ * hover is aggressive visual noise for a state the user is just passing
+ * through with the cursor (see plan §1 pushback).
  */
 
 @media (hover: hover) and (pointer: fine) {
-  .graph--hover-glow .react-flow__node::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: 1rem;
-    pointer-events: none;
-    opacity: 0;
-    box-shadow:
-      0 0 0 1px color-mix(in oklab, var(--primary) 32%, transparent),
-      0 0 18px 2px color-mix(in oklab, var(--primary) 24%, transparent),
-      0 6px 14px -4px color-mix(in oklab, var(--foreground) 18%, transparent);
-    transition: opacity 150ms var(--ease-out);
+  /*
+   * Resting filter is a no-op `drop-shadow(0 0 0 transparent)` rather than
+   * `none` on purpose: Chrome interpolates `filter: none → drop-shadow(...)`
+   * via the lacuna value, but the first paint of a real drop-shadow forces
+   * layer promotion + mask rasterization on a complex node (favicon, badges,
+   * ring shadows under `contain: layout style`). That first-frame compositing
+   * cost makes the glow appear delayed by several frames. Pre-establishing
+   * a transparent drop-shadow keeps the filter list (and compositing layer)
+   * live, so the hover transition has nothing to set up.
+   */
+  .graph--hover-glow .react-flow__node {
+    filter: drop-shadow(0 0 0 transparent);
+    transition:
+      filter 140ms var(--ease-out),
+      z-index 0s;
   }
 
   .graph--hover-glow .react-flow__node:hover {
+    filter: drop-shadow(0 0 10px color-mix(in srgb, var(--primary) 35%, transparent));
     z-index: 1;
-  }
-
-  .graph--hover-glow .react-flow__node:hover::before {
-    opacity: 1;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .graph--hover-glow .react-flow__node::before {
-    transition: none;
   }
 }

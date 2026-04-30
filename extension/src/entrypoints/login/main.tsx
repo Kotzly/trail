@@ -1,7 +1,6 @@
 import { createRoot } from "react-dom/client";
 import { QueryClientProvider } from "@tanstack/react-query";
 import "@ui/panel/styles.css";
-import "@apps/login/login.css";
 import "@shared/styles/fonts.js";
 import LoginApp from "@apps/login/LoginApp.js";
 import ErrorBoundary from "@ui/components/error-boundary.js";

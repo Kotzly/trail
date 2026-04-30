@@ -67,6 +67,17 @@ type TrailUpsertOutput = {
   applied: boolean;
 };
 
+export class SyncError extends Error {
+  code: string;
+  status: number;
+  constructor(code: string, status = 400, message?: string) {
+    super(message ?? code);
+    this.name = "SyncError";
+    this.code = code;
+    this.status = status;
+  }
+}
+
 const TOMBSTONE_RETENTION_DAYS = 30;
 const TOMBSTONE_RETENTION_MS = TOMBSTONE_RETENTION_DAYS * 24 * 60 * 60 * 1000;
 
@@ -159,22 +170,14 @@ async function ensureSyncDevices(params: {
       missing.push(deviceId);
       continue;
     }
-    // Reassign device to the current user when the same device ID appears
-    // under a different account. This handles extension reinstalls and
-    // account switches on the same browser where the device ID persists.
+    // Hard reject when the same device id is presented under a different
+    // user. The extension is responsible for wiping per-user state on
+    // user-change (auth-orchestrator.runUserChangeWipeIfNeeded), which
+    // includes regenerating the device id. Silent reassignment used to
+    // mask cross-tenant data leakage and broke trails referencing the
+    // previous owner. (DATA-002)
     if (device.user_id !== userId) {
-      console.warn("[trails-sync] device ownership reassigned", {
-        deviceId,
-        previousUserId: device.user_id,
-        newUserId: userId,
-      });
-      const reassignResult = await db
-        .from("devices")
-        .update({ user_id: userId })
-        .eq("id", deviceId);
-      if (reassignResult.error) {
-        throw new Error(`Failed to reassign device: ${reassignResult.error.message}`);
-      }
+      throw new SyncError("device_user_mismatch", 409);
     }
   }
 
@@ -188,7 +191,9 @@ async function ensureSyncDevices(params: {
       { onConflict: "id", ignoreDuplicates: true },
     );
     if (upsertResult.error) {
-      throw new Error(`Failed to create devices: ${upsertResult.error.message}`);
+      throw new Error(
+        `Failed to create devices: ${upsertResult.error.message}`,
+      );
     }
   }
 
@@ -198,14 +203,13 @@ async function ensureSyncDevices(params: {
     .eq("id", primaryDeviceId);
 
   if (lastSeenResult.error) {
-    throw new Error(`Failed to update last_seen_at: ${lastSeenResult.error.message}`);
+    throw new Error(
+      `Failed to update last_seen_at: ${lastSeenResult.error.message}`,
+    );
   }
 }
 
-async function ensureUserExists(params: {
-  db: DbClient;
-  userId: string;
-}) {
+async function ensureUserExists(params: { db: DbClient; userId: string }) {
   const { db, userId } = params;
   const result = await db
     .from("users")
@@ -259,7 +263,9 @@ export async function syncTrailsIndex(
     .lt("deleted_at", cleanupBefore.toISOString());
 
   if (deleteResult.error) {
-    throw new Error(`Failed to clean up tombstones: ${deleteResult.error.message}`);
+    throw new Error(
+      `Failed to clean up tombstones: ${deleteResult.error.message}`,
+    );
   }
 
   // Return metadata-only updates since clientSyncAt
@@ -272,7 +278,9 @@ export async function syncTrailsIndex(
     .gt("updated_at", input.clientSyncAt.toISOString());
 
   if (updatesResult.error) {
-    throw new Error(`Failed to fetch trail updates: ${updatesResult.error.message}`);
+    throw new Error(
+      `Failed to fetch trail updates: ${updatesResult.error.message}`,
+    );
   }
 
   type DbTrailMetaRow = {
@@ -332,61 +340,26 @@ export async function upsertTrail(
 
   await ensureUserExists({ db, userId: input.userId });
 
-  const trailDeviceId = normalizeDeviceId(input.trail.deviceId) ?? primaryDeviceId;
+  const trailDeviceId =
+    normalizeDeviceId(input.trail.deviceId) ?? primaryDeviceId;
 
   await ensureSyncDevices({
     db,
     userId: input.userId,
     primaryDeviceId,
-    extraDeviceIds: trailDeviceId !== primaryDeviceId ? [trailDeviceId] : undefined,
+    extraDeviceIds:
+      trailDeviceId !== primaryDeviceId ? [trailDeviceId] : undefined,
     now: new Date(),
   });
 
-  // Check for existing trail
-  const existingResult = await db
-    .from("trails")
-    .select("id, updated_at, deleted_at")
-    .eq("id", input.trail.id)
-    .eq("user_id", input.userId)
-    .limit(1)
-    .maybeSingle();
-
-  if (existingResult.error) {
-    throw new Error(`Failed to fetch existing trail: ${existingResult.error.message}`);
-  }
-
-  type DbExistingTrail = {
-    id: string;
-    updated_at: string;
-    deleted_at: string | null;
-  };
-
-  const existingRow = existingResult.data as DbExistingTrail | null;
-  const existing = existingRow
-    ? {
-        updatedAt: new Date(existingRow.updated_at),
-        deletedAt: existingRow.deleted_at ? new Date(existingRow.deleted_at) : null,
-      }
-    : null;
-
-  const merge = mergeTrailUpdates(
-    existing,
-    { updatedAt: input.trail.updatedAt, deletedAt: input.trail.deletedAt },
-  );
-
-  if (!merge.applied) {
-    return {
-      updatedAt: existing?.updatedAt ?? input.trail.updatedAt,
-      applied: false,
-    };
-  }
-
-  const data = {
+  const payload = {
+    id: input.trail.id,
     user_id: input.userId,
     device_id: trailDeviceId,
     label: input.trail.label,
     label_source: input.trail.labelSource,
     label_updated_at: input.trail.labelUpdatedAt.toISOString(),
+    created_at: input.trail.createdAt.toISOString(),
     updated_at: input.trail.updatedAt.toISOString(),
     saved_at: input.trail.savedAt.toISOString(),
     node_count: input.trail.nodeCount,
@@ -394,44 +367,30 @@ export async function upsertTrail(
     root_title: input.trail.rootTitle ?? null,
     root_favicon: input.trail.rootFavicon ?? null,
     payload: input.trail.payload,
-    deleted_at: input.trail.deletedAt ? input.trail.deletedAt.toISOString() : null,
+    deleted_at: input.trail.deletedAt
+      ? input.trail.deletedAt.toISOString()
+      : null,
   };
 
-  if (existing) {
-    const updateResult = await db
-      .from("trails")
-      .update(data)
-      .eq("id", input.trail.id)
-      .select("updated_at")
-      .single();
-
-    if (updateResult.error) {
-      throw new Error(`Failed to update trail: ${updateResult.error.message}`);
-    }
-
-    return {
-      updatedAt: new Date((updateResult.data as { updated_at: string }).updated_at),
-      applied: true,
-    };
+  const { data, error } = await db.rpc("upsert_trail", {
+    p_trail: payload as never,
+  });
+  if (error) {
+    throw new Error(`upsert_trail RPC failed: ${error.message}`);
   }
-
-  const insertResult = await db
-    .from("trails")
-    .insert({
-      id: input.trail.id,
-      ...data,
-      created_at: input.trail.createdAt.toISOString(),
-    })
-    .select("updated_at")
-    .single();
-
-  if (insertResult.error) {
-    throw new Error(`Failed to create trail: ${insertResult.error.message}`);
+  // RPC returns jsonb; the generated type widens to Json. Narrow at the
+  // boundary — the SQL function in migration 016 always returns this shape.
+  const result = data as {
+    id: string;
+    applied: boolean;
+    updated_at: string;
+  } | null;
+  if (!result) {
+    throw new Error("upsert_trail returned no data");
   }
-
   return {
-    updatedAt: new Date((insertResult.data as { updated_at: string }).updated_at),
-    applied: true,
+    updatedAt: new Date(result.updated_at),
+    applied: result.applied,
   };
 }
 

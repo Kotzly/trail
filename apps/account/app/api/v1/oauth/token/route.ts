@@ -26,13 +26,40 @@ export async function POST(request: Request) {
 
   const body = await request.json().catch(() => null);
 
+  // OAuth2 RFC 6749 §5.2: an unrecognised grant_type must surface as
+  // `unsupported_grant_type`, not as a generic schema validation error.
+  // Pre-check before zod's discriminatedUnion strips it.
+  if (
+    body &&
+    typeof body === "object" &&
+    typeof (body as { grant_type?: unknown }).grant_type === "string"
+  ) {
+    const gt = (body as { grant_type: string }).grant_type;
+    if (gt !== "authorization_code" && gt !== "refresh_token") {
+      return jsonFail("unsupported_grant_type", "Unsupported grant type.", {
+        status: 400,
+        headers: cors,
+      });
+    }
+  }
+
   const parsed = parseBody(oauthTokenBodySchema, body);
   if (!parsed.ok) {
-    return jsonFail("VALIDATION_ERROR", parsed.error.issues[0]?.message ?? "Invalid input", { status: 400, headers: cors });
+    return jsonFail(
+      "VALIDATION_ERROR",
+      parsed.error.issues[0]?.message ?? "Invalid input",
+      { status: 400, headers: cors },
+    );
   }
 
   if (parsed.data.grant_type === "authorization_code") {
-    const { client_id: clientId, code, code_verifier: codeVerifier, redirect_uri: redirectUri, device_id: deviceId } = parsed.data;
+    const {
+      client_id: clientId,
+      code,
+      code_verifier: codeVerifier,
+      redirect_uri: redirectUri,
+      device_id: deviceId,
+    } = parsed.data;
 
     const result = await exchangeOAuthAuthorizationCode({
       code,
@@ -44,17 +71,23 @@ export async function POST(request: Request) {
 
     if (!result.ok) {
       const status = result.reason === "server_error" ? 500 : 400;
-      return jsonFail(result.reason, "Code exchange failed.", { status, headers: cors });
+      return jsonFail(result.reason, "Code exchange failed.", {
+        status,
+        headers: cors,
+      });
     }
 
-    return jsonOk({
-      access_token: result.tokens.accessToken,
-      token_type: result.tokens.tokenType,
-      expires_at: result.tokens.expiresAt,
-      refresh_token: result.tokens.refreshToken,
-      refresh_expires_at: result.tokens.refreshExpiresAt,
-      scope: result.tokens.scope,
-    }, { headers: cors });
+    return jsonOk(
+      {
+        access_token: result.tokens.accessToken,
+        token_type: result.tokens.tokenType,
+        expires_at: result.tokens.expiresAt,
+        refresh_token: result.tokens.refreshToken,
+        refresh_expires_at: result.tokens.refreshExpiresAt,
+        scope: result.tokens.scope,
+      },
+      { headers: cors },
+    );
   }
 
   if (parsed.data.grant_type === "refresh_token") {
@@ -66,17 +99,23 @@ export async function POST(request: Request) {
     });
 
     if (!result.ok) {
-      return jsonFail(result.reason, "Token refresh failed.", { status: 400, headers: cors });
+      return jsonFail(result.reason, "Token refresh failed.", {
+        status: 400,
+        headers: cors,
+      });
     }
 
-    return jsonOk({
-      access_token: result.tokens.accessToken,
-      token_type: result.tokens.tokenType,
-      expires_at: result.tokens.expiresAt,
-      refresh_token: result.tokens.refreshToken,
-      refresh_expires_at: result.tokens.refreshExpiresAt,
-      scope: result.tokens.scope,
-    }, { headers: cors });
+    return jsonOk(
+      {
+        access_token: result.tokens.accessToken,
+        token_type: result.tokens.tokenType,
+        expires_at: result.tokens.expiresAt,
+        refresh_token: result.tokens.refreshToken,
+        refresh_expires_at: result.tokens.refreshExpiresAt,
+        scope: result.tokens.scope,
+      },
+      { headers: cors },
+    );
   }
 
   return jsonFail("unsupported_grant_type", "Unsupported grant type.", {
@@ -84,4 +123,3 @@ export async function POST(request: Request) {
     headers: cors,
   });
 }
-

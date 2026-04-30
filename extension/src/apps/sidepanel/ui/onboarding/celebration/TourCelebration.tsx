@@ -10,6 +10,7 @@
 import "./confetti.css";
 import { useEffect, useMemo, useState } from "react";
 import { i18n } from "#i18n";
+import { Avatar, AvatarFallback } from "@ui/components/ui/avatar";
 import { Button } from "@ui/components/ui/button";
 import { Icons } from "@ui/components/icons";
 import { cn } from "@ui/lib/utils";
@@ -98,28 +99,29 @@ function CelebrationBody({ startedAt }: { startedAt: number | null }) {
       role="dialog"
       aria-modal="false"
       aria-label={i18n.t("onboarding.celebration.title" as I18nArg)}
-      className="animate-in fade-in-0 bg-background absolute inset-0 z-30 flex flex-col justify-end overflow-hidden px-6 pt-10 pb-12 duration-500 ease-(--ease-out)"
+      className="animate-in fade-in-0 bg-background/95 absolute inset-0 z-30 flex flex-col items-center justify-center overflow-hidden px-6 backdrop-blur-sm duration-500 ease-(--ease-out)"
     >
       <Confetti />
-      <div className="animate-in slide-in-from-bottom-2 relative z-10 flex w-full max-w-[55ch] flex-col items-start gap-3 duration-700 ease-(--ease-out)">
-        <div className="text-muted-foreground flex items-center gap-1.5 font-mono text-[10px] font-medium tracking-[0.18em] uppercase">
-          <Icons.Sparkles className="text-primary size-3" aria-hidden strokeWidth={1.75} />
-          <span>{i18n.t("onboarding.tour.badge")}</span>
-          <span aria-hidden>·</span>
-          <span>{i18n.t("onboarding.celebration.eyebrow" as I18nArg)}</span>
+      <div className="animate-in zoom-in-95 slide-in-from-bottom-2 relative z-10 flex w-full max-w-[320px] flex-col items-center gap-4 text-center duration-700 ease-(--ease-out)">
+        <Avatar size="lg" className="size-14">
+          <AvatarFallback className="bg-primary/15 text-primary">
+            <Icons.Sparkles className="size-7" aria-hidden />
+          </AvatarFallback>
+        </Avatar>
+        <div className="flex w-full flex-col gap-2">
+          <h2 className="text-foreground text-2xl font-semibold tracking-tight">
+            {i18n.t("onboarding.celebration.title", [String(nodeCount), secondsLabel])}
+          </h2>
+          <p className="text-muted-foreground mx-auto max-w-[260px] text-sm leading-relaxed">
+            {i18n.t(bodyKey)}
+          </p>
         </div>
-        <h2 className="text-foreground font-serif text-[clamp(28px,5vw,40px)] leading-[1.05] font-normal tracking-tight">
-          {i18n.t("onboarding.celebration.title", [String(nodeCount), secondsLabel])}
-        </h2>
-        <p className="text-muted-foreground max-w-[55ch] text-[14px] leading-relaxed">
-          {i18n.t(bodyKey)}
-        </p>
         <Button
           type="button"
-          size="default"
-          variant="default"
+          size="sm"
+          variant="secondary"
           onClick={handleContinue}
-          className="press-feedback mt-2"
+          className="press-feedback"
         >
           {i18n.t("onboarding.celebration.cta" as I18nArg)}
         </Button>

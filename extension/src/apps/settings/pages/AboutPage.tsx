@@ -87,6 +87,7 @@ export function AboutPage() {
             variant="outline"
             className="justify-start"
             onClick={() => setFeedbackKind("bug")}
+            data-testid="about-feedback-bug"
           >
             {i18n.t("settings.about.reportBug")}
           </Button>
@@ -94,6 +95,7 @@ export function AboutPage() {
             variant="outline"
             className="justify-start"
             onClick={() => setFeedbackKind("feature")}
+            data-testid="about-feedback-feature"
           >
             {i18n.t("settings.about.suggestFeature")}
           </Button>
@@ -101,6 +103,7 @@ export function AboutPage() {
             variant="outline"
             className="justify-start"
             onClick={() => setFeedbackKind("support")}
+            data-testid="about-feedback-support"
           >
             {i18n.t("settings.about.contactSupport")}
           </Button>

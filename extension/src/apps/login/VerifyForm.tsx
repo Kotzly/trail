@@ -1,19 +1,18 @@
 import { i18n } from "#i18n";
-import { Card, CardContent } from "@ui/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@ui/components/ui/card";
 import { Button } from "@ui/components/ui/button";
-import { Field, FieldError, FieldGroup, FieldLabel } from "@ui/components/ui/field";
 import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSeparator,
-  InputOTPSlot,
-} from "@ui/components/ui/input-otp";
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@ui/components/ui/field";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@ui/components/ui/input-otp";
 import { Spinner } from "@ui/components/ui/spinner";
 
-const SLOT_CLASS =
-  "size-12 text-base transition-[box-shadow,border-color] duration-(--dur-fast) ease-(--ease-out)";
-
 type VerifyFormProps = {
+  email: string;
   otp: string;
   pending?: boolean;
   otpError?: string;
@@ -24,6 +23,7 @@ type VerifyFormProps = {
 };
 
 export function VerifyForm({
+  email,
   otp,
   pending,
   otpError,
@@ -34,6 +34,13 @@ export function VerifyForm({
 }: VerifyFormProps) {
   return (
     <Card>
+      <CardHeader className="text-center">
+        <CardTitle className="text-xl">{i18n.t("login.verify.title")}</CardTitle>
+        <CardDescription>
+          {i18n.t("login.verify.descriptionPrefix")}{" "}
+          <strong className="text-foreground">{email}</strong>
+        </CardDescription>
+      </CardHeader>
       <CardContent>
         <form
           onSubmit={(e) => {
@@ -57,15 +64,30 @@ export function VerifyForm({
                 containerClassName="justify-center"
               >
                 <InputOTPGroup>
-                  <InputOTPSlot index={0} className={SLOT_CLASS} />
-                  <InputOTPSlot index={1} className={SLOT_CLASS} />
-                  <InputOTPSlot index={2} className={SLOT_CLASS} />
-                </InputOTPGroup>
-                <InputOTPSeparator />
-                <InputOTPGroup>
-                  <InputOTPSlot index={3} className={SLOT_CLASS} />
-                  <InputOTPSlot index={4} className={SLOT_CLASS} />
-                  <InputOTPSlot index={5} className={SLOT_CLASS} />
+                  <InputOTPSlot
+                    index={0}
+                    className="size-11 text-base transition-[box-shadow,border-color] duration-(--dur-fast) ease-(--ease-out)"
+                  />
+                  <InputOTPSlot
+                    index={1}
+                    className="size-11 text-base transition-[box-shadow,border-color] duration-(--dur-fast) ease-(--ease-out)"
+                  />
+                  <InputOTPSlot
+                    index={2}
+                    className="size-11 text-base transition-[box-shadow,border-color] duration-(--dur-fast) ease-(--ease-out)"
+                  />
+                  <InputOTPSlot
+                    index={3}
+                    className="size-11 text-base transition-[box-shadow,border-color] duration-(--dur-fast) ease-(--ease-out)"
+                  />
+                  <InputOTPSlot
+                    index={4}
+                    className="size-11 text-base transition-[box-shadow,border-color] duration-(--dur-fast) ease-(--ease-out)"
+                  />
+                  <InputOTPSlot
+                    index={5}
+                    className="size-11 text-base transition-[box-shadow,border-color] duration-(--dur-fast) ease-(--ease-out)"
+                  />
                 </InputOTPGroup>
               </InputOTP>
               {otpError ? <FieldError>{otpError}</FieldError> : null}
@@ -73,37 +95,31 @@ export function VerifyForm({
             <Field>
               <Button type="submit" disabled={pending} className="press-feedback">
                 {pending ? <Spinner data-icon="inline-start" /> : null}
-                {pending ? i18n.t("login.verify.submitting") : i18n.t("login.verify.submit")}
+                {pending ? i18n.t("login.verify.verifying") : i18n.t("login.verify.verifyCode")}
               </Button>
-            </Field>
-            <Field>
-              <div className="flex flex-col items-center gap-2 text-sm">
-                <span className="text-muted-foreground">{i18n.t("login.verify.didntGetIt")}</span>
-                <div className="flex items-center gap-3">
-                  <Button
-                    variant="link"
-                    size="sm"
-                    type="button"
-                    onClick={onResend}
-                    disabled={pending}
-                    className="h-auto px-0"
-                  >
-                    {i18n.t("login.verify.resendCode")}
-                  </Button>
-                  <span className="text-muted-foreground/50" aria-hidden>
-                    ·
-                  </span>
-                  <Button
-                    variant="link"
-                    size="sm"
-                    type="button"
-                    onClick={onChangeEmail}
-                    className="h-auto px-0"
-                  >
-                    {i18n.t("login.verify.useDifferentEmail")}
-                  </Button>
-                </div>
-              </div>
+              <FieldDescription className="text-center">
+                {i18n.t("login.verify.didntGetIt")}{" "}
+                <Button
+                  variant="link"
+                  size="sm"
+                  type="button"
+                  onClick={onResend}
+                  disabled={pending}
+                  className="press-feedback h-auto px-0"
+                >
+                  {i18n.t("login.verify.resendCode")}
+                </Button>
+                {" · "}
+                <Button
+                  variant="link"
+                  size="sm"
+                  type="button"
+                  onClick={onChangeEmail}
+                  className="press-feedback h-auto px-0"
+                >
+                  {i18n.t("login.verify.useDifferentEmail")}
+                </Button>
+              </FieldDescription>
             </Field>
           </FieldGroup>
         </form>

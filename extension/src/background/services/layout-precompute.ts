@@ -7,9 +7,12 @@ import { computeTreePositionsRecord } from "@features/graph/tree-layout.js";
 import { layoutPositionsCacheItem } from "@shared/config/storage-items.js";
 import { getSpacing } from "@shared/layout/spacing.js";
 import { createLogger } from "@shared/lib/logger.js";
+import { NavigationTreeMapper } from "@shared/lib/mapper.js";
 import type { NodeId } from "@shared/types/ids.js";
 import type { Settings } from "@shared/types/settings.js";
 import type { NavigationTreeJSON } from "@shared/types/tree.js";
+import { settingsManager } from "./settings.js";
+import { treeStorage } from "./tree-storage.js";
 import {
   createLayoutCacheContext,
   createLayoutCacheKey,
@@ -178,10 +181,6 @@ export async function ensureCachedPositions(
 }
 
 export async function warmLayoutPositions(): Promise<void> {
-  const { treeStorage } = await import("./tree-storage.js");
-  const { settingsManager } = await import("./settings.js");
-  const { NavigationTreeMapper } = await import("@shared/lib/mapper.js");
-
   try {
     const settings = settingsManager.get();
     const tree = await treeStorage.getOrCreateTree();

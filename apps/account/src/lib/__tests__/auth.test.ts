@@ -78,32 +78,10 @@ describe("getAuthenticatedUser", () => {
     await expect(getAuthenticatedUser("valid.ext.token")).resolves.toBeNull();
   });
 
-  it("refuses internal:<uuid> tokens by default", async () => {
-    // Without allowInternal, the internal-prefix token is treated as a
-    // regular bearer token, fails JWT verify (because it isn't one),
-    // and returns null.
+  it("treats internal:<uuid> tokens as regular bearer tokens (must fail JWT verify)", async () => {
     extensionAuthMocks.verifyExtensionToken.mockResolvedValue(null);
     await expect(getAuthenticatedUser("internal:abc-123")).resolves.toBeNull();
     expect(extensionAuthMocks.verifyExtensionToken).toHaveBeenCalledOnce();
-  });
-
-  it("resolves internal:<uuid> when allowInternal is set", async () => {
-    const dbUser = {
-      id: "abc-123",
-      email: "x@example.com",
-      name: "X",
-      imageUrl: null,
-      createdAt: new Date("2026-01-01T00:00:00.000Z"),
-      onboardingSeenAt: null,
-    };
-    userMocks.getUserById.mockResolvedValue(dbUser);
-
-    const user = await getAuthenticatedUser("internal:abc-123", {
-      allowInternal: true,
-    });
-    expect(user).toEqual(dbUser);
-    // In the internal-prefix path, verifyExtensionToken is not called.
-    expect(extensionAuthMocks.verifyExtensionToken).not.toHaveBeenCalled();
   });
 });
 
