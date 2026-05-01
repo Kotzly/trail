@@ -18,8 +18,26 @@ import { fetchSiteSettings } from "@/lib/sanity/queries";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { JsonLd } from "@/app/components/JsonLd";
-import { FeedbackWidget } from "@/app/components/FeedbackWidget";
+import dynamic from "next/dynamic";
+import { LandingNav, type NavLink } from "@/app/components/landing/Nav";
+import { LandingFooter } from "@/app/components/landing/Footer";
+import { INSTALL_URL } from "@/lib/install-url";
 import { routing } from "@/i18n/routing";
+
+// Below-the-fold floating button — defer its motion + lucide-react chunks
+// until the rest of the page paints. `ssr: false` isn't permitted from a
+// server component in Next 16, so leave SSR on; the win comes from the
+// hydration-time chunk being its own bundle separate from the layout.
+const FeedbackWidget = dynamic(() =>
+  import("@/app/components/FeedbackWidget").then((m) => ({
+    default: m.FeedbackWidget,
+  })),
+);
+
+const FALLBACK_NAV_LINKS: NavLink[] = [
+  { label: "Features", href: "/#features" },
+  { label: "Try it", href: "/#try" },
+];
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({
@@ -119,6 +137,11 @@ export default async function RootLayout({
     getMessages(),
   ]);
   const siteUrl = resolveSiteUrl(settings?.siteUrl);
+  const navLinks: NavLink[] = settings?.nav?.length
+    ? settings.nav
+    : FALLBACK_NAV_LINKS;
+  const ctaText = settings?.navCta?.text ?? "Add to Chrome";
+  const ctaHref = settings?.navCta?.href ?? INSTALL_URL;
 
   return (
     <html
@@ -143,10 +166,15 @@ export default async function RootLayout({
             siteUrl={siteUrl}
             description={settings?.defaultSeo?.description}
             supportEmail={settings?.supportEmail}
-            installUrl={settings?.navCta?.href}
+            installUrl={settings?.navCta?.href ?? INSTALL_URL}
           />
           <div className="relative z-10 min-h-screen flex flex-col">
-            {children}
+            <LandingNav links={navLinks} ctaText={ctaText} ctaHref={ctaHref} />
+            <main className="flex-1">{children}</main>
+            <LandingFooter
+              contactEmail={settings?.supportEmail}
+              copyright={settings?.footerCopyright}
+            />
           </div>
           <FeedbackWidget />
           <div className="noise" aria-hidden="true" />

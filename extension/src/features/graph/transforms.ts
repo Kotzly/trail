@@ -152,21 +152,26 @@ export function treeToEdges(
     const useSmoothStep = node.children.length >= SMOOTHSTEP_CHILD_THRESHOLD;
 
     for (const child of node.children) {
-      // Rewire: if child is a chain head, emit edge to the chain's tip
-      // instead. The hidden intermediates still live in the tree data,
-      // but visually the graph jumps straight to the latest URL.
-      const rewireTip = foldInfo.headToTip.get(child.id);
-      if (rewireTip !== undefined) {
-        edges.push({
-          id: `${node.id}->${rewireTip.id}`,
-          source: String(node.id),
-          target: String(rewireTip.id),
-          type: useSmoothStep ? "smoothstep" : "default",
-        });
-        // Walk the tip directly — walking `child` (hidden head) would
-        // return immediately on the hiddenIds check, and the tip's own
-        // outgoing edges (to its non-chain subtree) would be dropped.
-        walk(rewireTip);
+      // Rewire: if child is hidden, emit edges to its visible tips
+      // instead. With forks (matching subtree branches), one hidden
+      // child may map to multiple tips. The hidden intermediates
+      // still live in the tree data, but visually the graph jumps
+      // straight to each branch's latest URL.
+      const rewireTips = foldInfo.headToTips.get(child.id);
+      if (rewireTips !== undefined) {
+        for (const tip of rewireTips) {
+          edges.push({
+            id: `${node.id}->${tip.id}`,
+            source: String(node.id),
+            target: String(tip.id),
+            type: useSmoothStep ? "smoothstep" : "default",
+          });
+          // Walk each tip directly — walking `child` (hidden) would
+          // return immediately on the hiddenIds check, and the tip's
+          // own outgoing edges (to its non-chain subtree) would be
+          // dropped.
+          walk(tip);
+        }
         continue;
       }
 

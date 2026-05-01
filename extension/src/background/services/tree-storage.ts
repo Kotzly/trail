@@ -163,12 +163,17 @@ export function pickTreeIdentifyingData(tree: NavigationTree): {
   };
 }
 
+const optionalFiniteNumber = z
+  .unknown()
+  .transform((raw) => (typeof raw === "number" && Number.isFinite(raw) ? raw : undefined));
+
 const indexEntryExtrasSchema = z.object({
   savedAt: finiteNumberOr(() => Date.now()),
   nodeCount: finiteNumberOr(() => 0),
   rootUrl: optionalString,
   rootTitle: optionalString,
   rootFavicon: optionalString,
+  lastOpenedAt: optionalFiniteNumber,
   stub: z.unknown().transform((raw) => raw === true),
 });
 
@@ -185,6 +190,7 @@ function normalizeIndexEntry(raw: unknown): TreeIndexEntry | null {
   if (extras.data.rootUrl) entry.rootUrl = extras.data.rootUrl as Url;
   if (extras.data.rootTitle) entry.rootTitle = extras.data.rootTitle as Title;
   if (extras.data.rootFavicon) entry.rootFavicon = extras.data.rootFavicon as FaviconUrl;
+  if (extras.data.lastOpenedAt !== undefined) entry.lastOpenedAt = extras.data.lastOpenedAt;
   if (extras.data.stub) return { ...entry, stub: true as const } satisfies TreeStub;
   return entry;
 }
@@ -202,6 +208,7 @@ function extractSummary(record: TreeRecord): TreeSummary {
   if (record.rootUrl) summary.rootUrl = record.rootUrl;
   if (record.rootTitle) summary.rootTitle = record.rootTitle;
   if (record.rootFavicon) summary.rootFavicon = record.rootFavicon;
+  if (record.lastOpenedAt !== undefined) summary.lastOpenedAt = record.lastOpenedAt;
   return summary;
 }
 
@@ -783,7 +790,9 @@ class TreeStorageService {
       if (!root) return null;
       const meta = await this.getActiveMeta();
       const treeJSON = NavigationTreeMapper.toJSON(tree);
-      const summary = buildSummary(tree, meta, Date.now());
+      const now = Date.now();
+      const summary = buildSummary(tree, meta, now);
+      summary.lastOpenedAt = now;
       const record: TreeRecord = { ...summary, tree: treeJSON };
 
       const index = await this.getTreeIndex();
@@ -869,12 +878,37 @@ class TreeStorageService {
       if (!isTreeStub(entry)) return;
 
       const { stub: _stub, ...summary } = entry;
-      index[idx] = summary as TreeSummary;
+      const next = { ...summary, lastOpenedAt: Date.now() } as TreeSummary;
+      index[idx] = next;
       this.cachedIndex = index;
       try {
         await treeIndexItem.setValue(index);
       } catch (error) {
         log.error("Error unstubbing tree entry", {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    });
+  }
+
+  /**
+   * Record that a tree was opened/touched locally. Used by the storage
+   * retention sweeper to sort candidates by recency. Cheap no-op if
+   * the entry is missing or already a stub (stubs aren't candidates).
+   */
+  async touchLastOpened(treeId: string): Promise<void> {
+    return withTreeLock(async () => {
+      const index = await this.getTreeIndex();
+      const idx = index.findIndex((e) => e.id === treeId);
+      if (idx < 0) return;
+      const entry = index[idx]!;
+      const next = { ...entry, lastOpenedAt: Date.now() };
+      index[idx] = next;
+      this.cachedIndex = index;
+      try {
+        await treeIndexItem.setValue(index);
+      } catch (error) {
+        log.error("Error updating lastOpenedAt", {
           error: error instanceof Error ? error.message : String(error),
         });
       }

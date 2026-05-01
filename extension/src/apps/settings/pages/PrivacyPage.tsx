@@ -19,15 +19,6 @@ import {
 import type { TelemetryConsent } from "@shared/config/storage-items.js";
 import { MARKETING_URLS, openExternal } from "@shared/config/marketing-urls.js";
 import { useSettings } from "../hooks/useSettings.js";
-import { PatternListEditor } from "../components/PatternListEditor.js";
-
-const normalizeScheme = (raw: string): string => {
-  const trimmed = raw.trim().toLowerCase();
-  if (trimmed.length === 0) return "";
-  return trimmed.endsWith(":") ? trimmed : `${trimmed}:`;
-};
-
-const normalizeHostPattern = (raw: string): string => raw.trim().toLowerCase();
 
 const TELEMETRY_CONSENT_KEY = ["telemetry-consent"] as const;
 
@@ -108,16 +99,7 @@ export function PrivacyPage() {
       </section>
 
       <section className="flex flex-col gap-4">
-        <SectionHeader
-          eyebrow={i18n.t("settings.privacy.recordsTitle")}
-          description={
-            <>
-              {i18n.t("settings.privacy.recordsDescriptionPart1")} <code>*</code>{" "}
-              {i18n.t("settings.privacy.recordsDescriptionPart2")} <code>**</code>{" "}
-              {i18n.t("settings.privacy.recordsDescriptionPart3")}
-            </>
-          }
-        />
+        <SectionHeader eyebrow={i18n.t("settings.privacy.recordsTitle")} />
         <FieldGroup>
           <Field orientation="horizontal">
             <FieldContent>
@@ -139,81 +121,6 @@ export function PrivacyPage() {
                 });
               }}
               disabled={!settings}
-            />
-          </Field>
-
-          <Separator />
-
-          <Field>
-            <FieldLabel>{i18n.t("settings.privacy.schemesLabel")}</FieldLabel>
-            <FieldDescription>
-              {i18n.t("settings.privacy.schemesDescriptionPart1")} <code>file:</code>{" "}
-              {i18n.t("settings.privacy.schemesDescriptionPart2")} <code>chrome-extension:</code>{" "}
-              {i18n.t("settings.privacy.schemesDescriptionPart3")}
-            </FieldDescription>
-            <PatternListEditor
-              values={settings?.privacy.trackedSchemes ?? []}
-              disabled={!settings}
-              placeholder={i18n.t("settings.privacy.schemesPlaceholder")}
-              addLabel={i18n.t("settings.privacy.schemesAddLabel")}
-              emptyText={i18n.t("settings.privacy.schemesEmpty")}
-              normalize={normalizeScheme}
-              onChange={(next) => {
-                if (!settings) return;
-                void updateSettings({
-                  ...settings,
-                  privacy: { ...settings.privacy, trackedSchemes: next },
-                });
-              }}
-            />
-          </Field>
-
-          <Separator />
-
-          <Field>
-            <FieldLabel>{i18n.t("settings.privacy.blocklistLabel")}</FieldLabel>
-            <FieldDescription>
-              {i18n.t("settings.privacy.blocklistDescriptionIntro")}
-            </FieldDescription>
-            <BlocklistExamples />
-            <PatternListEditor
-              values={settings?.privacy.blocklist ?? []}
-              disabled={!settings}
-              placeholder={i18n.t("settings.privacy.blocklistPlaceholder")}
-              addLabel={i18n.t("settings.privacy.blocklistAddLabel")}
-              emptyText={i18n.t("settings.privacy.blocklistEmpty")}
-              normalize={normalizeHostPattern}
-              onChange={(next) => {
-                if (!settings) return;
-                void updateSettings({
-                  ...settings,
-                  privacy: { ...settings.privacy, blocklist: next },
-                });
-              }}
-            />
-          </Field>
-
-          <Separator />
-
-          <Field>
-            <FieldLabel>{i18n.t("settings.privacy.collapseLabel")}</FieldLabel>
-            <FieldDescription>
-              {i18n.t("settings.privacy.collapseDescription", ["⋯N"])}
-            </FieldDescription>
-            <PatternListEditor
-              values={settings?.privacy.collapselist ?? []}
-              disabled={!settings}
-              placeholder={i18n.t("settings.privacy.collapsePlaceholder")}
-              addLabel={i18n.t("settings.privacy.collapseAddLabel")}
-              emptyText={i18n.t("settings.privacy.collapseEmpty")}
-              normalize={normalizeHostPattern}
-              onChange={(next) => {
-                if (!settings) return;
-                void updateSettings({
-                  ...settings,
-                  privacy: { ...settings.privacy, collapselist: next },
-                });
-              }}
             />
           </Field>
         </FieldGroup>
@@ -239,46 +146,5 @@ export function PrivacyPage() {
         </div>
       </section>
     </div>
-  );
-}
-
-/* ─── Glob examples as a definition list ─────────────────────── */
-
-function BlocklistExamples() {
-  const rows: ReadonlyArray<readonly [string, React.ReactNode]> = [
-    [
-      "*.bank.com",
-      <>
-        {i18n.t("settings.privacy.blocklistExample1")} <code>bank.com</code>
-      </>,
-    ],
-    ["localhost", <>{i18n.t("settings.privacy.blocklistExample2")}</>],
-    ["*banking*", <>{i18n.t("settings.privacy.blocklistExample3")}</>],
-    [
-      "**/admin",
-      <>
-        {i18n.t("settings.privacy.blocklistExample4")} <code>admin</code>{" "}
-        {i18n.t("settings.privacy.blocklistExample4Suffix")}
-      </>,
-    ],
-    [
-      "example.com/**",
-      <>
-        {i18n.t("settings.privacy.blocklistExample5")} <code>example.com</code>
-      </>,
-    ],
-  ];
-
-  return (
-    <dl className="text-muted-foreground grid grid-cols-[auto_1fr] items-baseline gap-x-3 gap-y-1.5 text-xs leading-relaxed">
-      {rows.map(([pattern, desc]) => (
-        <div key={pattern} className="contents">
-          <dt>
-            <code>{pattern}</code>
-          </dt>
-          <dd>{desc}</dd>
-        </div>
-      ))}
-    </dl>
   );
 }

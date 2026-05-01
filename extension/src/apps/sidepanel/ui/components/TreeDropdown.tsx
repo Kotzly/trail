@@ -9,7 +9,6 @@ import {
   renameTree,
 } from "../../api/tree.js";
 import { useDeleteFlow } from "../hooks/useDeleteFlow.js";
-import { getBackendConfig, initBackendConfig } from "@shared/config/backend.js";
 import { useStore } from "../state/store.js";
 import { useOverlayEffects } from "../state/overlay-effects.js";
 import { cn } from "@ui/lib/utils";
@@ -19,7 +18,6 @@ import type { FaviconUrl, Title, Url } from "@shared/types/ids.js";
 import { getFaviconUrl } from "@shared/utils/favicon.js";
 import { EXPORT_SCHEMA, type TrailExportBundle } from "@shared/types/export.js";
 import { toast } from "sonner";
-import { browser } from "@shared/platform/webext.js";
 import { showOperationError } from "../shared/show-operation-error.js";
 import { Button } from "@ui/components/ui/button";
 import { Spinner } from "@ui/components/ui/spinner";
@@ -226,16 +224,6 @@ export default function TreeDropdown() {
     }
   }, []);
 
-  const openTrailEditor = useCallback(async (treeId: string) => {
-    try {
-      await initBackendConfig();
-      const baseUrl = getBackendConfig().baseUrl;
-      await browser.tabs.create({ url: `${baseUrl}/trails/${treeId}`, active: true });
-    } catch (error) {
-      showOperationError(i18n.t("sidepanel.operations.openEditor"), error);
-    }
-  }, []);
-
   const handleNewTree = useLockFn(async () => {
     try {
       const label = labelDraft.trim() || i18n.t("sidepanel.treesDropdown.unnamedTree");
@@ -385,7 +373,6 @@ export default function TreeDropdown() {
                       onCancelEdit={handleCancelEdit}
                       onOpen={handleOpen}
                       onExport={handleExport}
-                      onOpenEditor={openTrailEditor}
                       onDelete={handleDelete}
                     />
                   ))}
@@ -429,7 +416,6 @@ type TreeRowProps = {
   onCancelEdit: () => void;
   onOpen: (tree: TreeItem) => void;
   onExport: (treeId?: string) => void;
-  onOpenEditor: (treeId: string) => void;
   onDelete: (treeId: string) => void;
 };
 
@@ -445,7 +431,6 @@ const TreeRow = memo(function TreeRow({
   onCancelEdit,
   onOpen,
   onExport,
-  onOpenEditor,
   onDelete,
 }: TreeRowProps) {
   const clickable = !tree.active && !loading && !unavailable && !isEditing;
@@ -531,11 +516,6 @@ const TreeRow = memo(function TreeRow({
                 onClick={() => onExport(tree.active ? undefined : tree.id)}
               />
             )}
-            <IconAction
-              label={i18n.t("sidepanel.treesDropdown.openInEditor")}
-              icon={<Icons.ExternalLink />}
-              onClick={() => onOpenEditor(tree.id)}
-            />
             {!tree.active && (
               <IconAction
                 label={i18n.t("menus.deleteTree")}

@@ -3,7 +3,6 @@ import { ArrowUpRight } from "lucide-react";
 import { setRequestLocale } from "next-intl/server";
 import { fetchSupportPage } from "@/lib/sanity/queries";
 import { buildMetadata } from "@/lib/seo";
-import { SiteChrome } from "@/app/components/SiteChrome";
 import { LeaveNoteButton } from "./LeaveNoteButton";
 
 type SupportPageData = {
@@ -63,7 +62,7 @@ export default async function SupportPage({
   const contactEmail = page?.contactEmail ?? fallback.contactEmail;
 
   return (
-    <SiteChrome locale={locale}>
+    <div className="pt-20">
       <section
         className="relative mx-auto max-w-[920px]"
         style={{
@@ -125,7 +124,7 @@ export default async function SupportPage({
           <LeaveNoteButton />
         </div>
       </section>
-    </SiteChrome>
+    </div>
   );
 }
 

@@ -34,12 +34,21 @@ const FLIGHT_TRANSITION = "transform 350ms cubic-bezier(0.22, 1, 0.36, 1)";
 
 export type FallbackPosition = "top-center" | "bottom-center";
 
+/** Where to attach the popover relative to its anchor node. */
+export type AnchorSide = "top" | "bottom";
+
 export type FlyingPopoverProps = {
   /**
    * The graph node to anchor to. Null → render in `fallbackPosition`
    * (default `bottom-center`) instead.
    */
   anchorNodeId: NodeId | null;
+  /**
+   * Side of the anchor node to attach to. Defaults to `top` (popover
+   * floats above the node). Use `bottom` for prompts that should point
+   * UP at the node from below.
+   */
+  anchorSide?: AnchorSide;
   /**
    * Where to pin the popover when there is no anchor node. Defaults
    * to `bottom-center`. Set to `top-center` for prompts that want to
@@ -79,6 +88,7 @@ export type FlyingPopoverProps = {
 
 export function FlyingPopover({
   anchorNodeId,
+  anchorSide = "top",
   fallbackPosition = "bottom-center",
   resetKey,
   header,
@@ -181,7 +191,7 @@ export function FlyingPopover({
       <NodeToolbar
         nodeId={anchorNodeId}
         isVisible
-        position={Position.Top}
+        position={anchorSide === "bottom" ? Position.Bottom : Position.Top}
         align="center"
         offset={16}
         // CSS transition on the wrapper turns the recompute-on-anchor

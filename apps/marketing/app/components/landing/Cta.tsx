@@ -6,6 +6,7 @@ const easeOut = [0.23, 1, 0.32, 1] as const;
 
 export function LandingCta({ ctaHref = "#" }: { ctaHref?: string }) {
   const reduce = useReducedMotion();
+  const isExternal = /^https?:\/\//.test(ctaHref);
   return (
     <section
       id="cta"
@@ -84,6 +85,9 @@ export function LandingCta({ ctaHref = "#" }: { ctaHref?: string }) {
         <div className="inline-flex flex-wrap items-center justify-center gap-3.5">
           <a
             href={ctaHref}
+            {...(isExternal
+              ? { target: "_blank", rel: "noopener noreferrer" }
+              : {})}
             className="group inline-flex items-center gap-2.5 rounded-full bg-[var(--landing-ink)] px-7 py-4 font-semibold text-[#0a0908] transition-transform duration-200 ease-out hover:-translate-y-0.5 active:scale-[0.97]"
             style={{
               fontSize: 15,

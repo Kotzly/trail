@@ -1,9 +1,8 @@
 import dynamic from "next/dynamic";
-import { LandingNav } from "./Nav";
 import { LandingHero } from "./Hero";
 import { LandingFeatures } from "./Features";
 import { LandingCta } from "./Cta";
-import { LandingFooter } from "./Footer";
+import { INSTALL_URL } from "@/lib/install-url";
 
 // Below-the-fold, motion-heavy interactive demo: ship as its own
 // chunk so it doesn't block the hero on slow networks.
@@ -22,12 +21,17 @@ const LandingDemo = dynamic(
 export function LandingPage() {
   return (
     <div data-landing className="relative">
-      <LandingNav />
+      {/* Single canonical H1 for SEO and screen readers — ensures the
+          page has a heading even after the hero swaps from static
+          (h2-styled headline) to the cinematic version (act h2s) on
+          desktop. Visually hidden but present in the accessibility tree. */}
+      <h1 className="sr-only">
+        Trail — a Chrome extension that turns your browsing into a living tree.
+      </h1>
       <LandingHero />
       <LandingFeatures />
       <LandingDemo />
-      <LandingCta />
-      <LandingFooter />
+      <LandingCta ctaHref={INSTALL_URL} />
     </div>
   );
 }

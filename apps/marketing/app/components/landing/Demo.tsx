@@ -237,10 +237,12 @@ export function LandingDemo() {
             </div>
 
             {/* Split body: page + sidepanel.
-            Below lg, stack with explicit heights so the Sidepanel's absolute
-            tree (~344px tall) gets enough room. Above lg, fix to 580px. */}
+            Below lg, stack vertically. Mobile heights are tuned so the demo
+            doesn't dominate the scroll: a slightly shorter page sample sits
+            on top, then the (already auto-scaling) sidepanel underneath.
+            Above lg, both share the 580px row. */}
             <div className="grid grid-cols-1 lg:h-[580px] lg:grid-cols-[1fr_480px]">
-              <div className="relative h-[360px] overflow-hidden lg:h-auto">
+              <div className="relative h-[280px] overflow-hidden sm:h-[340px] lg:h-auto">
                 <div
                   key={animKey}
                   className="absolute inset-0"
@@ -251,7 +253,7 @@ export function LandingDemo() {
                   <PageComp />
                 </div>
               </div>
-              <div className="relative h-[440px] lg:h-auto">
+              <div className="relative h-[360px] sm:h-[420px] lg:h-auto">
                 <Sidepanel nodes={NODES} activeId={activeId} onPick={pick} />
               </div>
             </div>

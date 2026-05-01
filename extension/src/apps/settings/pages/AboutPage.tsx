@@ -64,13 +64,6 @@ export function AboutPage() {
           >
             {i18n.t("settings.about.homepage")}
           </Button>
-          <Button
-            variant="outline"
-            className="justify-start"
-            onClick={() => openExternal(MARKETING_URLS.changelog)}
-          >
-            {i18n.t("settings.about.changelog")}
-          </Button>
           <Button variant="outline" className="justify-start" onClick={replayOnboarding}>
             {i18n.t("settings.about.replayWalkthrough")}
           </Button>

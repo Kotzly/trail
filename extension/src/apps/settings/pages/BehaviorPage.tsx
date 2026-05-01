@@ -14,11 +14,20 @@ import { Button } from "@ui/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@ui/components/ui/popover";
 import { Icons } from "@ui/components/icons";
 import { PageHeader, SectionHeader } from "../components/PageHeader.js";
+import { PatternListEditor } from "../components/PatternListEditor.js";
 
 type BehaviorPageProps = {
   settings: Settings;
   onUpdate: (patch: Partial<Settings>) => void;
 };
+
+const normalizeScheme = (raw: string): string => {
+  const trimmed = raw.trim().toLowerCase();
+  if (trimmed.length === 0) return "";
+  return trimmed.endsWith(":") ? trimmed : `${trimmed}:`;
+};
+
+const normalizeHostPattern = (raw: string): string => raw.trim().toLowerCase();
 
 function CleanupInfo({ text }: { text: string }) {
   return (
@@ -203,6 +212,123 @@ export function BehaviorPage({ settings, onUpdate }: BehaviorPageProps) {
           </Field>
         </FieldGroup>
       </section>
+
+      <section className="flex flex-col gap-4">
+        <SectionHeader
+          eyebrow={i18n.t("settings.behavior.urlFilteringTitle")}
+          description={
+            <>
+              {i18n.t("settings.behavior.urlFilteringDescriptionPart1")} <code>*</code>{" "}
+              {i18n.t("settings.behavior.urlFilteringDescriptionPart2")} <code>**</code>{" "}
+              {i18n.t("settings.behavior.urlFilteringDescriptionPart3")}
+            </>
+          }
+        />
+        <FieldGroup>
+          <Field>
+            <FieldLabel>{i18n.t("settings.behavior.schemesLabel")}</FieldLabel>
+            <FieldDescription>
+              {i18n.t("settings.behavior.schemesDescriptionPart1")} <code>file:</code>{" "}
+              {i18n.t("settings.behavior.schemesDescriptionPart2")} <code>chrome-extension:</code>{" "}
+              {i18n.t("settings.behavior.schemesDescriptionPart3")}
+            </FieldDescription>
+            <PatternListEditor
+              values={settings.privacy.trackedSchemes}
+              placeholder={i18n.t("settings.behavior.schemesPlaceholder")}
+              addLabel={i18n.t("settings.behavior.schemesAddLabel")}
+              emptyText={i18n.t("settings.behavior.schemesEmpty")}
+              normalize={normalizeScheme}
+              onChange={(next) =>
+                onUpdate({
+                  privacy: { ...settings.privacy, trackedSchemes: next },
+                })
+              }
+            />
+          </Field>
+
+          <Separator />
+
+          <Field>
+            <FieldLabel>{i18n.t("settings.behavior.blocklistLabel")}</FieldLabel>
+            <FieldDescription>
+              {i18n.t("settings.behavior.blocklistDescriptionIntro")}
+            </FieldDescription>
+            <BlocklistExamples />
+            <PatternListEditor
+              values={settings.privacy.blocklist}
+              placeholder={i18n.t("settings.behavior.blocklistPlaceholder")}
+              addLabel={i18n.t("settings.behavior.blocklistAddLabel")}
+              emptyText={i18n.t("settings.behavior.blocklistEmpty")}
+              normalize={normalizeHostPattern}
+              onChange={(next) =>
+                onUpdate({
+                  privacy: { ...settings.privacy, blocklist: next },
+                })
+              }
+            />
+          </Field>
+
+          <Separator />
+
+          <Field>
+            <FieldLabel>{i18n.t("settings.behavior.collapseLabel")}</FieldLabel>
+            <FieldDescription>
+              {i18n.t("settings.behavior.collapseDescription", ["⋯N"])}
+            </FieldDescription>
+            <PatternListEditor
+              values={settings.privacy.collapselist}
+              placeholder={i18n.t("settings.behavior.collapsePlaceholder")}
+              addLabel={i18n.t("settings.behavior.collapseAddLabel")}
+              emptyText={i18n.t("settings.behavior.collapseEmpty")}
+              normalize={normalizeHostPattern}
+              onChange={(next) =>
+                onUpdate({
+                  privacy: { ...settings.privacy, collapselist: next },
+                })
+              }
+            />
+          </Field>
+        </FieldGroup>
+      </section>
     </div>
+  );
+}
+
+function BlocklistExamples() {
+  const rows: ReadonlyArray<readonly [string, React.ReactNode]> = [
+    [
+      "*.bank.com",
+      <>
+        {i18n.t("settings.behavior.blocklistExample1")} <code>bank.com</code>
+      </>,
+    ],
+    ["localhost", <>{i18n.t("settings.behavior.blocklistExample2")}</>],
+    ["*banking*", <>{i18n.t("settings.behavior.blocklistExample3")}</>],
+    [
+      "**/admin",
+      <>
+        {i18n.t("settings.behavior.blocklistExample4")} <code>admin</code>{" "}
+        {i18n.t("settings.behavior.blocklistExample4Suffix")}
+      </>,
+    ],
+    [
+      "example.com/**",
+      <>
+        {i18n.t("settings.behavior.blocklistExample5")} <code>example.com</code>
+      </>,
+    ],
+  ];
+
+  return (
+    <dl className="text-muted-foreground grid grid-cols-[auto_1fr] items-baseline gap-x-3 gap-y-1.5 text-xs leading-relaxed">
+      {rows.map(([pattern, desc]) => (
+        <div key={pattern} className="contents">
+          <dt>
+            <code>{pattern}</code>
+          </dt>
+          <dd>{desc}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }

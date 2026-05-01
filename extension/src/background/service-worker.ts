@@ -3,7 +3,6 @@ import { initWebNavigation } from "./navigation/webnavigation.js";
 import { initTabsLifecycle } from "./tabs/lifecycle.js";
 import { syncOpenTabs } from "./tabs/sync-open-tabs.js";
 import { CommandManager } from "@shared/lib/commands.js";
-import { initBackendConfig } from "@shared/config/backend.js";
 import { createLogger } from "@shared/lib/logger.js";
 import { warmLayoutPositions } from "./services/layout-precompute.js";
 import { registerProxyServices } from "./transport/register-proxy-services.js";
@@ -11,11 +10,14 @@ import { registerExtensionMessaging } from "./transport/register-extension-messa
 import { captureError, captureEvent, initObservability } from "@shared/lib/observability.js";
 import { initAuth, subscribeAuthState, getAuthState } from "@shared/auth/auth-orchestrator.js";
 import { startSyncEngine, handlePullAlarm, SYNC_PULL_ALARM } from "./sync/sync-engine.js";
+import { maybeReclaimStorage } from "./services/storage-retention.js";
+import { wireStorageRetention } from "./services/storage-retention-wiring.js";
 import { EXTENSION_MESSAGE, fireExtensionEvent } from "@shared/transport/extension-messaging.js";
 import { treeStorage } from "./services/tree-storage.js";
 import { tabManager } from "./state/tab-manager.js";
 import { hydrateNavPatterns } from "./navigation/nav-pattern-tracker.js";
 import { getSupabaseClient } from "@shared/lib/supabase.js";
+import { pendingWelcomeBackVersionItem } from "@shared/config/storage-items.js";
 
 const log = createLogger("service-worker");
 
@@ -50,6 +52,21 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   }
 });
 
+// Quota-driven storage retention: any tree-related write probes the
+// chrome.storage.local quota. When usage crosses the high-water
+// mark, the oldest stored trees are demoted to cloud-only stubs.
+// `maybeReclaimStorage` throttles itself, so this listener can fire
+// freely.
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== "local") return;
+  for (const key of Object.keys(changes)) {
+    if (key === "trail_tree" || key === "trail_tree_archives" || key.startsWith("trail_ar_")) {
+      maybeReclaimStorage();
+      return;
+    }
+  }
+});
+
 async function refreshAuthSession(): Promise<void> {
   if (getAuthState().status !== "signed-in") return;
   const supabase = getSupabaseClient();
@@ -64,13 +81,19 @@ async function refreshAuthSession(): Promise<void> {
 // Also kicks off local schema migrations so the extension starts each
 // upgrade with its persisted shape matching the current code.
 chrome.runtime.onInstalled.addListener((details) => {
+  const currentVersion = chrome.runtime.getManifest().version;
   if (details.reason === "install") {
-    captureEvent("install", { version: chrome.runtime.getManifest().version });
+    captureEvent("install", { version: currentVersion });
   } else if (details.reason === "update") {
-    captureEvent("update", {
-      version: chrome.runtime.getManifest().version,
-      previousVersion: details.previousVersion ?? null,
-    });
+    const previousVersion = details.previousVersion ?? null;
+    captureEvent("update", { version: currentVersion, previousVersion });
+    // The 0.9.x line was the last pre-Supabase release. Surface a
+    // one-time welcome-back dialog in the sidepanel so those users
+    // know to sign in and that their local trees are intact. Cleared
+    // by the dialog itself on dismiss/CTA.
+    if (previousVersion?.startsWith("0.9.") && currentVersion.startsWith("1.0.")) {
+      void pendingWelcomeBackVersionItem.setValue(currentVersion);
+    }
   }
   // Run migrations on install AND update; the singleflight inside
   // runMigrations dedupes if the module-load path also fires.
@@ -93,8 +116,9 @@ chrome.runtime.onSuspend.addListener(() => {
   void CommandManager.flushNow?.();
 });
 
-// Initialize all modules
-void initBackendConfig();
+// Wire production deps for the storage-retention module before any
+// chrome.storage write can fire the onChanged listener above.
+wireStorageRetention();
 
 registerProxyServices();
 registerExtensionMessaging();

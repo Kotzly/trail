@@ -30,6 +30,10 @@ export function LandingNav({
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const reduce = useReducedMotion();
+  const ctaIsExternal = /^https?:\/\//.test(ctaHref);
+  const ctaExternalAttrs = ctaIsExternal
+    ? { target: "_blank", rel: "noopener noreferrer" }
+    : {};
 
   useEffect(() => {
     const onScroll = () =>
@@ -112,6 +116,7 @@ export function LandingNav({
             {ctaText ? (
               <a
                 href={ctaHref}
+                {...ctaExternalAttrs}
                 className="group relative inline-flex items-center gap-2 rounded-full bg-[var(--landing-ink)] px-4 py-2 text-[13px] font-semibold text-[#0a0908] shadow-[0_0_0_1px_rgba(246,239,225,0.1)] transition-transform duration-200 ease-out hover:-translate-y-px active:scale-[0.97]"
               >
                 {ctaText}
@@ -242,6 +247,7 @@ export function LandingNav({
               >
                 <a
                   href={ctaHref}
+                  {...ctaExternalAttrs}
                   onClick={() => setMobileOpen(false)}
                   className="inline-flex items-center justify-center rounded-full bg-[var(--landing-ink)] px-6 py-3 text-[14px] font-semibold text-[#0a0908] active:scale-[0.97]"
                 >

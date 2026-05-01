@@ -78,3 +78,4 @@ tasks/reports/
 # Playwright artifacts
 extension/test-results/
 extension/playwright-report/
+.gstack/

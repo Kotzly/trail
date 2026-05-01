@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ChevronDown,
   Folder,
@@ -31,6 +31,16 @@ export type DemoNode = {
 // equal gutters; wiki/arxiv center over their children, root over the tree.
 const NODE_W = 132;
 const NODE_H = 56;
+
+// Graph design canvas. The sidepanel's NODE_POS coordinates are pixel-
+// absolute on this fixed grid. On narrow viewports (phones) we scale
+// the whole graph subtree to fit, leaving the floating chrome (top/
+// bottom control buttons) at native size so tap targets stay finger-
+// friendly. The inner content is *visually* shrunk; layout-wise the
+// parent still gets full width, so the buttons line up over their
+// usual positions.
+const GRAPH_DESIGN_W = 480;
+const GRAPH_DESIGN_H = 380;
 const NODE_POS: Record<string, { x: number; y: number }> = {
   root: { x: 174, y: 60 },
   wiki: { x: 102, y: 174 },
@@ -205,6 +215,30 @@ export function Sidepanel({
   onPick: (id: string) => void;
 }) {
   const [hovered, setHovered] = useState<string | null>(null);
+  const graphRef = useRef<HTMLDivElement>(null);
+  // Continuous scale [0..1] driven by ResizeObserver on the graph column.
+  // The fixed-pixel tree was designed for a 480px sidepanel; on phones the
+  // column is narrower so we shrink. Default 1 keeps SSR matching desktop.
+  const [graphScale, setGraphScale] = useState(1);
+  useEffect(() => {
+    const el = graphRef.current;
+    if (!el) return;
+    const update = (w: number) => {
+      const next = Math.min(1, w / GRAPH_DESIGN_W);
+      // Quantize so we don't churn the transform on every sub-pixel tick.
+      setGraphScale((prev) =>
+        Math.abs(prev - next) < 0.005 ? prev : Math.round(next * 1000) / 1000,
+      );
+    };
+    update(el.getBoundingClientRect().width);
+    if (typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver((entries) => {
+      for (const e of entries) update(e.contentRect.width);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   const byId = useMemo(
     () => Object.fromEntries(nodes.map((n) => [n.id, n])),
     [nodes],
@@ -351,7 +385,8 @@ export function Sidepanel({
 
       {/* Graph area — xyflow-style: dot pattern background, bezier edges, card nodes */}
       <div
-        className="relative flex-1"
+        ref={graphRef}
+        className="relative flex-1 overflow-hidden"
         style={{
           backgroundImage:
             "radial-gradient(rgba(246,239,225,0.07) 1px, transparent 1px)",
@@ -359,88 +394,104 @@ export function Sidepanel({
           backgroundPosition: "0 0",
         }}
       >
-        {/* Edges */}
-        <svg
-          width="100%"
-          height="100%"
-          className="pointer-events-none absolute inset-0"
-          aria-hidden="true"
+        {/* Scaled inner stage — fixed design canvas, transform: scale fits
+            it into whatever width the parent column has on the current
+            viewport. Centered both axes so the tree floats in the middle
+            of the column when scaled down (no awkward empty band under it). */}
+        <div
+          className="absolute"
+          style={{
+            left: "50%",
+            top: "50%",
+            width: GRAPH_DESIGN_W,
+            height: GRAPH_DESIGN_H,
+            transformOrigin: "center center",
+            transform: `translate(-50%, -50%) scale(${graphScale})`,
+          }}
         >
-          <defs>
-            {/* userSpaceOnUse — without it, a perfectly vertical edge
+          {/* Edges */}
+          <svg
+            width={GRAPH_DESIGN_W}
+            height={GRAPH_DESIGN_H}
+            className="pointer-events-none absolute inset-0"
+            aria-hidden="true"
+          >
+            <defs>
+              {/* userSpaceOnUse — without it, a perfectly vertical edge
                 (e.g. arxiv → gh, both at x=318) has a zero-width bbox
                 and the default `objectBoundingBox` gradient renders
                 nothing, dropping the stroke entirely. */}
-            <linearGradient
-              id="trailEdge"
-              gradientUnits="userSpaceOnUse"
-              x1="0"
-              y1="60"
-              x2="0"
-              y2="344"
-            >
-              <stop offset="0%" stopColor="#f8d364" stopOpacity="0.85" />
-              <stop offset="100%" stopColor="#d2734e" stopOpacity="0.7" />
-            </linearGradient>
-            {/* Same userSpaceOnUse story as the gradient above: with
+              <linearGradient
+                id="trailEdge"
+                gradientUnits="userSpaceOnUse"
+                x1="0"
+                y1="60"
+                x2="0"
+                y2="344"
+              >
+                <stop offset="0%" stopColor="#f8d364" stopOpacity="0.85" />
+                <stop offset="100%" stopColor="#d2734e" stopOpacity="0.7" />
+              </linearGradient>
+              {/* Same userSpaceOnUse story as the gradient above: with
                 the default `objectBoundingBox`, a perfectly vertical
                 edge has zero-width bbox, so `160%` of zero is zero —
                 the filter region collapses and the blurred stroke
                 renders nothing. Anchor the region to the SVG canvas
                 instead. */}
-            <filter
-              id="trailEdgeGlow"
-              filterUnits="userSpaceOnUse"
-              x="-50"
-              y="-50"
-              width="2000"
-              height="2000"
-            >
-              <feGaussianBlur stdDeviation="1.6" result="b" />
-              <feMerge>
-                <feMergeNode in="b" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-          </defs>
-          {nodes
-            .filter((n) => n.parent)
-            .map((n) => {
-              const p = NODE_POS[n.parent!];
-              const c = NODE_POS[n.id];
-              const onTrail = trail.has(n.id) && trail.has(n.parent!);
-              return (
-                <path
-                  key={n.id}
-                  d={buildPath(p, c)}
-                  fill="none"
-                  stroke={
-                    onTrail ? "url(#trailEdge)" : "rgba(246, 239, 225, 0.16)"
-                  }
-                  strokeWidth={onTrail ? 1.6 : 1.2}
-                  strokeLinecap="round"
-                  filter={onTrail ? "url(#trailEdgeGlow)" : undefined}
-                  style={{
-                    transition: "stroke 80ms cubic-bezier(0.23,1,0.32,1)",
-                  }}
-                />
-              );
-            })}
-        </svg>
+              <filter
+                id="trailEdgeGlow"
+                filterUnits="userSpaceOnUse"
+                x="-50"
+                y="-50"
+                width="2000"
+                height="2000"
+              >
+                <feGaussianBlur stdDeviation="1.6" result="b" />
+                <feMerge>
+                  <feMergeNode in="b" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
+            {nodes
+              .filter((n) => n.parent)
+              .map((n) => {
+                const p = NODE_POS[n.parent!];
+                const c = NODE_POS[n.id];
+                const onTrail = trail.has(n.id) && trail.has(n.parent!);
+                return (
+                  <path
+                    key={n.id}
+                    d={buildPath(p, c)}
+                    fill="none"
+                    stroke={
+                      onTrail ? "url(#trailEdge)" : "rgba(246, 239, 225, 0.16)"
+                    }
+                    strokeWidth={onTrail ? 1.6 : 1.2}
+                    strokeLinecap="round"
+                    filter={onTrail ? "url(#trailEdgeGlow)" : undefined}
+                    style={{
+                      transition: "stroke 80ms cubic-bezier(0.23,1,0.32,1)",
+                    }}
+                  />
+                );
+              })}
+          </svg>
 
-        {/* Node cards */}
-        {nodes.map((n) => (
-          <TrailNodeCard
-            key={n.id}
-            node={n}
-            isCurrent={activeId === n.id}
-            isOnTrail={trail.has(n.id)}
-            isHover={hovered === n.id}
-            onClick={() => onPick(n.id)}
-            onMouseEnter={() => setHovered(n.id)}
-            onMouseLeave={() => setHovered(null)}
-          />
-        ))}
+          {/* Node cards */}
+          {nodes.map((n) => (
+            <TrailNodeCard
+              key={n.id}
+              node={n}
+              isCurrent={activeId === n.id}
+              isOnTrail={trail.has(n.id)}
+              isHover={hovered === n.id}
+              onClick={() => onPick(n.id)}
+              onMouseEnter={() => setHovered(n.id)}
+              onMouseLeave={() => setHovered(null)}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );

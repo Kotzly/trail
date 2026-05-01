@@ -39,17 +39,36 @@ export function computeTreePositions(
   if (!tree.root) return positions;
 
   // Build hierarchy. Skip children of collapsed nodes. For chain-fold:
-  // when a child is a chain head, substitute its tip so d3 positions
-  // the tip at depth = head's depth (the hidden intermediates take no
-  // space). Hidden nodes are therefore never visited by d3, preventing
-  // visual gaps between the chain's pre-head parent and the tip.
-  // If the tree's root is itself a chain head, promote its tip to be
-  // d3's root so the tip lands at the root's origin position.
-  const d3Root = foldInfo.headToTip.get(tree.root.id) ?? tree.root;
+  // when a child is hidden, substitute its visible tips so d3
+  // positions them at depth = hidden node's depth (the hidden
+  // intermediates take no space). Hidden nodes are therefore never
+  // visited by d3, preventing visual gaps between a visible parent
+  // and the tips.
+  //
+  // With fork support, one hidden node can map to multiple tips, so
+  // we flatMap. If the tree's root is itself a hidden head with a
+  // single tip, promote that tip to be d3's root so it lands at the
+  // root's origin position. With multiple tips at the root, fall back
+  // to using the original root — d3 needs exactly one root, and the
+  // alternative (synthetic virtual root) shifts every node down by a
+  // layer. The hidden root will still be filtered out of the position
+  // map (its id is skipped by callers via the hiddenIds set).
+  const rootRedirects = foldInfo.headToTips.get(tree.root.id);
+  const d3Root: NavigationNodeJSON =
+    rootRedirects && rootRedirects.length === 1 ? rootRedirects[0]! : tree.root;
   const root = hierarchy<NavigationNodeJSON>(d3Root, (node) => {
     if (collapsedNodeIds.has(node.id)) return null;
-    if (foldInfo.headToTip.size === 0) return node.children;
-    return node.children.map((c) => foldInfo.headToTip.get(c.id) ?? c);
+    if (foldInfo.headToTips.size === 0) return node.children;
+    const out: NavigationNodeJSON[] = [];
+    for (const child of node.children) {
+      const tips = foldInfo.headToTips.get(child.id);
+      if (tips !== undefined) {
+        for (const t of tips) out.push(t);
+      } else {
+        out.push(child);
+      }
+    }
+    return out;
   });
 
   // nodeSize = [sibling-axis span, layer-axis span] in d3's native (x, y) frame.

@@ -148,3 +148,18 @@
     scroll-behavior: auto;
   }
 }
+
+/* Cross-fade poster→video on hero. Both desktop cinematic and mobile
+   autoplay-loop hero use this — keep it global so styled-jsx scoping
+   doesn't isolate it to a single component. */
+.hero-fade-in {
+  animation: heroFadeIn 600ms ease-out both;
+}
+@keyframes heroFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

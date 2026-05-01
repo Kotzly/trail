@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { TrailMark } from "./TrailMark";
+import { NewsletterSignup } from "./NewsletterSignup";
 
 const COLUMNS: Array<{
   label: string;
@@ -10,7 +11,6 @@ const COLUMNS: Array<{
     links: [
       { label: "Features", href: "/#features" },
       { label: "Try it", href: "/#try" },
-      { label: "Changelog", href: "/changelog" },
     ],
   },
   {
@@ -46,7 +46,7 @@ export function LandingFooter({
         fontSize: 13,
       }}
     >
-      <div className="mx-auto grid max-w-[1280px] grid-cols-1 gap-12 sm:grid-cols-[1.4fr_1fr_1fr_1fr]">
+      <div className="mx-auto grid max-w-[1280px] grid-cols-1 gap-12 sm:grid-cols-[1.4fr_1fr_1fr_1fr] lg:grid-cols-[1.2fr_0.7fr_0.7fr_0.7fr_1.4fr]">
         {/* Brand block */}
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-3">
@@ -131,6 +131,10 @@ export function LandingFooter({
             </ul>
           </div>
         ))}
+
+        <div className="sm:col-span-full lg:col-span-1">
+          <NewsletterSignup />
+        </div>
       </div>
 
       {/* Bottom row */}

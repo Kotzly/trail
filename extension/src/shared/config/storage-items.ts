@@ -11,7 +11,6 @@ import { storage } from "wxt/utils/storage";
 import type { NavigationTreeJSON, TreeMeta, TreeIndexEntry } from "../types/tree.js";
 import type { Settings } from "../types/settings.js";
 import type { PersistedFlagState } from "../types/flags.js";
-import type { BackendConfigOverride } from "./backend.js";
 import type { LayoutPositionsCacheEntry } from "@background/services/layout-cache-signature.js";
 import type { ConflictPickState } from "../types/tree-diff.js";
 
@@ -76,13 +75,6 @@ export const undoHistoryItem = storage.defineItem<CommandHistory | null>(
 export const openTabsItem = storage.defineItem<Record<string, string[]>>(
   "local:trail_tree_open_tabs",
   { fallback: {} },
-);
-
-// ── Backend config ──────────────────────────────────────────────────
-
-export const backendConfigItem = storage.defineItem<BackendConfigOverride | null>(
-  "local:trail_backend_config",
-  { fallback: null },
 );
 
 // ── Onboarding ──────────────────────────────────────────────────────
@@ -163,6 +155,17 @@ export const INITIAL_ONBOARDING_STATE: OnboardingState = {
 export const onboardingStateItem = storage.defineItem<OnboardingState>("local:trail_onboarding", {
   fallback: INITIAL_ONBOARDING_STATE,
 });
+
+/**
+ * Set by the SW's onInstalled handler when an existing 0.9.x install is
+ * upgraded to 1.0.x. The sidepanel reads this on mount and shows a
+ * one-time welcome-back dialog, then clears it. Null at all other times
+ * (fresh installs, regular version bumps within the 1.0.x series).
+ */
+export const pendingWelcomeBackVersionItem = storage.defineItem<string | null>(
+  "local:trail_pending_welcome_back",
+  { fallback: null },
+);
 
 // ── Auth / Device / Sync ────────────────────────────────────────────
 

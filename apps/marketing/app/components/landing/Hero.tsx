@@ -10,6 +10,51 @@ import {
 } from "motion/react";
 import { RootNodes } from "./RootNodes";
 import { RootTraces } from "./RootTraces";
+import { LandingHeroStatic } from "./HeroStatic";
+
+// On-touch / narrow viewports: the cinematic's scroll-driven video
+// scrubbing is genuinely awful on real iPhones — the touch scroll
+// thread, the video decoder, and Safari's seek pipeline don't agree
+// on a budget. Tested empirically; even all-intra encodes don't fix
+// it on real iOS. So mobile gets a one-shot autoplay version: the
+// video plays through once on its own timeline, then holds on the
+// last frame. No scroll coupling, no jank.
+//
+// Reduced-motion users on any device skip the video entirely — they
+// get just the poster.
+const MOBILE_QUERY = "(max-width: 768px), (hover: none) and (pointer: coarse)";
+
+export function LandingHero() {
+  // null = SSR / before mount. Decide between cinematic (desktop wheel
+  // scroll handles scroll-driven video well) and the static one-shot
+  // (everything else).
+  const [mode, setMode] = useState<"cinematic" | "static" | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (typeof window.matchMedia !== "function") {
+      setMode("cinematic");
+      return;
+    }
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const mobile = window.matchMedia(MOBILE_QUERY);
+    const update = () => {
+      setMode(reduce.matches || mobile.matches ? "static" : "cinematic");
+    };
+    update();
+    reduce.addEventListener("change", update);
+    mobile.addEventListener("change", update);
+    return () => {
+      reduce.removeEventListener("change", update);
+      mobile.removeEventListener("change", update);
+    };
+  }, []);
+
+  // First paint (SSR + before-mount): render the static hero. Same DOM
+  // shape as its mounted form — no hydration mismatch, no layout jump.
+  if (mode === null || mode === "static") return <LandingHeroStatic />;
+  return <LandingHeroCinematic />;
+}
 
 // Honor only the explicit user signal — Save-Data means the user has
 // opted into a low-bandwidth experience, so we shouldn't fetch a 10MB
@@ -69,7 +114,23 @@ const ACTS = [
   },
 ] as const;
 
+// Three viewport heights: one for the sticky video to show, two of
+// scroll travel for the act sequence. Cinematic only runs on desktop —
+// mobile gets the one-shot static hero instead.
 const SCROLL_LENGTH_VH = 3;
+
+// Single seek primitive — Safari's fastSeek skips decode-from-keyframe
+// (lower precision but much cheaper); everywhere else it's plain
+// currentTime. Pulled out so the throttle path and the settle path
+// share identical seek semantics.
+function seekVideo(v: HTMLVideoElement, target: number) {
+  const vAny = v as HTMLVideoElement & { fastSeek?: (t: number) => void };
+  if (typeof vAny.fastSeek === "function") {
+    vAny.fastSeek(target);
+  } else {
+    v.currentTime = target;
+  }
+}
 
 function actInput(
   range: readonly [number, number],
@@ -81,7 +142,7 @@ function actInput(
 const ACT_OPACITY: [number, number, number, number] = [0, 1, 1, 0];
 const ACT_Y: [number, number, number, number] = [16, 0, 0, 16];
 
-export function LandingHero() {
+function LandingHeroCinematic() {
   const sectionRef = useRef<HTMLElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const progressTextRef = useRef<HTMLSpanElement>(null);
@@ -221,25 +282,20 @@ export function LandingHero() {
 
   // Imperative DOM updates per scroll tick — no React re-renders.
   useMotionValueEvent(scrollYProgress, "change", (p) => {
-    // 1) Drive the video.
+    // 1) Drive the video. With the new dense-keyframe encodes (-g 8
+    // desktop / -g 4 mobile), each currentTime write only has to decode
+    // ≤8 frames — fast enough to seek every rAF tick without piling up.
+    // Motion drives this on its own rAF loop, so the natural cadence is
+    // already capped at the display refresh rate; no extra throttle needed.
+    // We still drop seeks when the new target is within one source frame
+    // (1/30s) of the previous one — same frame would render either way.
     const v = videoRef.current;
     const dur = durationRef.current;
     if (v && dur && !reduce) {
       const target = Math.min(p * dur, dur - 0.05);
-      // Skip if the seek delta is below one frame (~33ms at 30fps).
       if (Math.abs(target - lastSeekTargetRef.current) > 1 / 30) {
         lastSeekTargetRef.current = target;
-        // fastSeek where supported (Safari) avoids decode-from-keyframe stalls.
-        if (
-          typeof (v as HTMLVideoElement & { fastSeek?: (t: number) => void })
-            .fastSeek === "function"
-        ) {
-          (v as HTMLVideoElement & { fastSeek: (t: number) => void }).fastSeek(
-            target,
-          );
-        } else {
-          v.currentTime = target;
-        }
+        seekVideo(v, target);
       }
     }
 
@@ -410,17 +466,6 @@ export function LandingHero() {
             }
             50% {
               transform: translateY(4px);
-              opacity: 1;
-            }
-          }
-          .hero-fade-in {
-            animation: heroFadeIn 600ms ease-out both;
-          }
-          @keyframes heroFadeIn {
-            from {
-              opacity: 0;
-            }
-            to {
               opacity: 1;
             }
           }

@@ -238,11 +238,6 @@
         "body": "Pick up from where you left off.",
         "cta": "Resume tour"
       },
-      "signin": {
-        "title": "Sync across devices",
-        "body": "Sign in to keep your trails on every browser.",
-        "cta": "Sign in"
-      },
       "pin": {
         "title": "Pin Trail to your toolbar",
         "body": "Click the puzzle piece in your toolbar, then the pin next to Trail. One click to open from anywhere.",
@@ -555,7 +550,34 @@
       "roundTripLabel": "Round-trip cleanup",
       "roundTripTooltip": "If you click a link and immediately go back without staying, the side-trip is skipped. Useful for accidental clicks and captcha round-trips.",
       "roundTripDescription": "When you visit A → B → A, skip the detour.",
-      "generalEyebrow": "General"
+      "generalEyebrow": "General",
+      "urlFilteringTitle": "URL filtering",
+      "urlFilteringDescriptionPart1": "Decide which URLs Trail records. Supports",
+      "urlFilteringDescriptionPart2": "(single-segment wildcard) and",
+      "urlFilteringDescriptionPart3": "(cross-segment wildcard) — see examples below.",
+      "schemesLabel": "URL schemes to track",
+      "schemesDescriptionPart1": "Trail records pages using these schemes. Defaults to regular web pages only. Add",
+      "schemesDescriptionPart2": "to record local files,",
+      "schemesDescriptionPart3": "for extension pages.",
+      "schemesPlaceholder": "chrome-extension:",
+      "schemesAddLabel": "Add scheme",
+      "schemesEmpty": "No schemes — nothing will be tracked. Add at least one (e.g. https:).",
+      "blocklistLabel": "Blocked URLs",
+      "blocklistDescriptionIntro": "Patterns Trail never records. Matched against hostname + path, case-insensitive.",
+      "blocklistExample1": "any subdomain of",
+      "blocklistExample2": "exact hostname match",
+      "blocklistExample3": "any URL segment containing \"banking\"",
+      "blocklistExample4": "path ending in an",
+      "blocklistExample4Suffix": "segment",
+      "blocklistExample5": "any URL under",
+      "blocklistPlaceholder": "*.bank.com",
+      "blocklistAddLabel": "Add pattern",
+      "blocklistEmpty": "Nothing blocked. Add a pattern to hide URLs from your tree.",
+      "collapseLabel": "Fold repetitive chains",
+      "collapseDescription": "Sites whose URL changes on every keystroke (translators, live-search apps) clutter the tree. Linear chains of matching URLs are auto-folded — only the most recent node stays visible, with a $1 badge for the hidden steps. Same pattern syntax as blocked URLs. History is preserved; double-click the tip to unfold, double-click again to re-fold.",
+      "collapsePlaceholder": "*translat*",
+      "collapseAddLabel": "Add pattern",
+      "collapseEmpty": "No chain-fold patterns. Add a pattern to collapse rapid-fire URL changes."
     },
     "appearance": {
       "title": "Appearance",
@@ -623,7 +645,6 @@
       "description": "Your browsing sessions, reimagined as a graph.",
       "version": "Version $1",
       "homepage": "Homepage →",
-      "changelog": "Changelog →",
       "replayWalkthrough": "Replay walkthrough",
       "replayToast": "Open the Trail sidepanel to see the walkthrough again.",
       "feedbackTitle": "Feedback",
@@ -645,34 +666,8 @@
       "analyticsDescription": "Anonymous usage stats (feature opened, action taken) via PostHog. No personal data.",
       "consentNote": "Changes take effect when you next open the sidepanel or settings.",
       "recordsTitle": "What Trail records",
-      "recordsDescriptionPart1": "URLs Trail should never record. Supports",
-      "recordsDescriptionPart2": "(single-segment wildcard) and",
-      "recordsDescriptionPart3": "(cross-segment wildcard) — see examples below.",
       "skipIncognitoLabel": "Skip incognito windows",
       "skipIncognitoDescription": "Don't record navigations in private browsing.",
-      "schemesLabel": "URL schemes to track",
-      "schemesDescriptionPart1": "Trail records pages using these schemes. Defaults to regular web pages only. Add",
-      "schemesDescriptionPart2": "to record local files,",
-      "schemesDescriptionPart3": "for extension pages.",
-      "schemesPlaceholder": "chrome-extension:",
-      "schemesAddLabel": "Add scheme",
-      "schemesEmpty": "No schemes — nothing will be tracked. Add at least one (e.g. https:).",
-      "blocklistLabel": "Blocked URLs",
-      "blocklistDescriptionIntro": "Patterns Trail never records. Matched against hostname + path, case-insensitive.",
-      "blocklistExample1": "any subdomain of",
-      "blocklistExample2": "exact hostname match",
-      "blocklistExample3": "any URL segment containing \"banking\"",
-      "blocklistExample4": "path ending in an",
-      "blocklistExample4Suffix": "segment",
-      "blocklistExample5": "any URL under",
-      "blocklistPlaceholder": "*.bank.com",
-      "blocklistAddLabel": "Add pattern",
-      "blocklistEmpty": "Nothing blocked. Add a pattern to hide URLs from your tree.",
-      "collapseLabel": "Fold repetitive chains",
-      "collapseDescription": "Sites whose URL changes on every keystroke (translators, live-search apps) clutter the tree. Linear chains of matching URLs are auto-folded — only the most recent node stays visible, with a $1 badge for the hidden steps. Same pattern syntax as blocked URLs. History is preserved; double-click the tip to unfold, double-click again to re-fold.",
-      "collapsePlaceholder": "*translat*",
-      "collapseAddLabel": "Add pattern",
-      "collapseEmpty": "No chain-fold patterns. Add a pattern to collapse rapid-fire URL changes.",
       "policiesTitle": "Policies",
       "privacyPolicy": "Privacy Policy →",
       "termsOfService": "Terms of Service →"
@@ -719,7 +714,6 @@
       "treeCountOne": "tree",
       "treeCountMany": "trees",
       "newTreeNameTitle": "Name your new tree",
-      "openInEditor": "Open in editor",
       "metaActiveNow": "active now",
       "metaSynced": "synced $1",
       "metaCloud": "cloud",
@@ -795,7 +789,6 @@
       "openTree": "Open tree",
       "deleteTree": "Delete tree",
       "export": "Export",
-      "openEditor": "Open editor",
       "createTree": "Create tree",
       "import": "Import",
       "openPage": "Open page",
@@ -817,5 +810,15 @@
     "helperPrefix": "Press",
     "helperMiddle": "or click",
     "helperSuffix": "to add."
+  },
+  "whatsNew": {
+    "upgraded": {
+      "title": "Trail is now 1.0",
+      "body": "You now have an account, cloud sync across devices, and a permanent home for your trees. Your local data is intact — sign in to back it up.",
+      "cta": {
+        "signin": "Sign in",
+        "dismiss": "Later"
+      }
+    }
   }
 }

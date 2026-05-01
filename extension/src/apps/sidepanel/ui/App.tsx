@@ -9,7 +9,7 @@ import ResumeTourPopover from "./onboarding/tour/ResumeTourPopover.js";
 import PinFlyingPopover from "./onboarding/pin/PinFlyingPopover.js";
 import TourCelebration from "./onboarding/celebration/TourCelebration.js";
 import TourCommitments from "./onboarding/cta/TourCommitments.js";
-import OnboardingHintStrip from "./onboarding/hint-strip/OnboardingHintStrip.js";
+import WelcomeBackDialog from "./welcome-back/WelcomeBackDialog.js";
 import ContextMenus from "./components/ContextMenus.js";
 import TrailLogo from "@ui/components/trail-logo";
 import { Toaster } from "@ui/components/ui/sonner.js";
@@ -230,7 +230,7 @@ export default function App() {
         <OnboardingWizard />
         <TourCelebration />
         <TourCommitments />
-        <OnboardingHintStrip />
+        <WelcomeBackDialog />
         <ContextMenus />
       </div>
     </TooltipProvider>

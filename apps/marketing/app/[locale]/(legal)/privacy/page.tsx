@@ -2,7 +2,6 @@ import { setRequestLocale } from "next-intl/server";
 import { LegalShell } from "../LegalShell";
 import { getLegalDoc } from "../legal-source";
 import { buildMetadata } from "@/lib/seo";
-import { SiteChrome } from "@/app/components/SiteChrome";
 
 export const dynamic = "force-static";
 
@@ -33,7 +32,7 @@ export default async function PrivacyPage({
   const doc = await getLegalDoc("Privacy Policy");
 
   return (
-    <SiteChrome locale={locale}>
+    <div className="pt-20">
       <LegalShell
         eyebrow="Legal"
         title={doc.title}
@@ -41,6 +40,6 @@ export default async function PrivacyPage({
         markdown={doc.markdown}
         related={{ label: "Terms of Service →", href: "/terms" }}
       />
-    </SiteChrome>
+    </div>
   );
 }

@@ -94,10 +94,26 @@ export function TourFlyingCoach() {
   const phase = useStore((s) => s.onboarding.phase);
   const tourStepIndex = useStore((s) => s.onboarding.tourStep);
   const spotlightId = useStore((s) => s.onboarding.spotlight.nodeId);
+  const currentNodeId = useStore((s) => s.currentNodeId);
 
   const visible = phase === "tour";
   const stepId = stepAt(tourStepIndex);
   const content = stepId ? STEP_CONTENT[stepId] : null;
+
+  // For the first two steps the machine doesn't set a spotlight (no
+  // ring/target), but we still want the coach to point at the right
+  // node: above the new-tab on `arm`, below the page the user just
+  // opened on `clickResult`. Falls back to the spotlight anchor for
+  // every later step.
+  let anchorId: NodeId | null = spotlightId;
+  let anchorSide: "top" | "bottom" = "top";
+  if (stepId === "arm" && currentNodeId) {
+    anchorId = currentNodeId;
+    anchorSide = "top";
+  } else if (stepId === "clickResult" && currentNodeId) {
+    anchorId = currentNodeId;
+    anchorSide = "bottom";
+  }
 
   const [confirmOpen, setConfirmOpen] = useState(false);
 
@@ -197,8 +213,9 @@ export function TourFlyingCoach() {
   return (
     <>
       <FlyingPopover
-        anchorNodeId={spotlightId}
-        resetKey={`tour-${tourStepIndex}|${spotlightId ?? ""}`}
+        anchorNodeId={anchorId}
+        anchorSide={anchorSide}
+        resetKey={`tour-${tourStepIndex}|${anchorId ?? ""}|${anchorSide}`}
         ariaLabel={i18n.t("onboarding.tour.regionAriaLabel")}
         header={header}
         footer={

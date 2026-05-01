@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { memo, useCallback, useState } from "react";
 import { motion, type MotionValue, useTransform } from "motion/react";
 
 type Direction = "left" | "right" | "down";
@@ -268,22 +268,26 @@ const WIN_START = 0.55;
 // step so the curve reads as smooth rather than popping.
 const FADE_LEN = 0.09;
 
-function NodeWaypoint({
+// Pass only the booleans this card cares about (isActive, dimmed) plus
+// stable callbacks. Otherwise every hover re-renders all 20 cards (each
+// would receive the freshly-changed `hovered` number even when their own
+// state didn't shift), and React.memo couldn't bail out.
+const NodeWaypoint = memo(function NodeWaypoint({
   node,
   index,
   progress,
-  hovered,
-  pinned,
-  setHovered,
-  setPinned,
+  isActive,
+  dimmed,
+  onHover,
+  onTogglePin,
 }: {
   node: RootNode;
   index: number;
   progress: MotionValue<number>;
-  hovered: number | null;
-  pinned: number | null;
-  setHovered: (i: number | null) => void;
-  setPinned: (i: number | null) => void;
+  isActive: boolean;
+  dimmed: boolean;
+  onHover: (i: number | null) => void;
+  onTogglePin: (i: number) => void;
 }) {
   const localStart = WIN_START + nodeDelay(node);
   const localEnd = localStart + FADE_LEN;
@@ -316,9 +320,6 @@ function NodeWaypoint({
   const visibility = useTransform(progress, (p) =>
     p > localStart - 0.02 ? "visible" : "hidden",
   );
-  // Dim the card when another is active.
-  const isActive = hovered === index || pinned === index;
-  const dimmed = (hovered !== null || pinned !== null) && !isActive;
   const dimMul = dimmed ? 0.35 : 1;
   const finalOpacity = useTransform(opacity, (v) => v * dimMul);
 
@@ -332,9 +333,9 @@ function NodeWaypoint({
 
   return (
     <motion.div
-      onMouseEnter={() => setHovered(index)}
-      onMouseLeave={() => setHovered(null)}
-      onClick={() => setPinned(pinned === index ? null : index)}
+      onMouseEnter={() => onHover(index)}
+      onMouseLeave={() => onHover(null)}
+      onClick={() => onTogglePin(index)}
       style={{
         position: "absolute",
         left: `${node.x}%`,
@@ -492,26 +493,38 @@ function NodeWaypoint({
       </div>
     </motion.div>
   );
-}
+});
 
 export function RootNodes({ progress }: { progress: MotionValue<number> }) {
   const [hovered, setHovered] = useState<number | null>(null);
   const [pinned, setPinned] = useState<number | null>(null);
 
+  // Stable refs so memoized children don't re-render on every parent tick.
+  const onHover = useCallback((i: number | null) => setHovered(i), []);
+  const onTogglePin = useCallback(
+    (i: number) => setPinned((prev) => (prev === i ? null : i)),
+    [],
+  );
+
+  const anyActive = hovered !== null || pinned !== null;
+
   return (
-    <div className="absolute inset-0 z-[2] pointer-events-none">
-      {NODES.map((n, i) => (
-        <NodeWaypoint
-          key={i}
-          node={n}
-          index={i}
-          progress={progress}
-          hovered={hovered}
-          pinned={pinned}
-          setHovered={setHovered}
-          setPinned={setPinned}
-        />
-      ))}
+    <div className="hidden md:block absolute inset-0 z-[2] pointer-events-none">
+      {NODES.map((n, i) => {
+        const isActive = hovered === i || pinned === i;
+        return (
+          <NodeWaypoint
+            key={i}
+            node={n}
+            index={i}
+            progress={progress}
+            isActive={isActive}
+            dimmed={anyActive && !isActive}
+            onHover={onHover}
+            onTogglePin={onTogglePin}
+          />
+        );
+      })}
       <style>{`
         @keyframes rootNodePulse {
           0%, 100% { box-shadow: 0 0 0 0 rgba(248,211,100,0.5); }

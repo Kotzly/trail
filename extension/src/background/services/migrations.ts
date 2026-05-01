@@ -24,46 +24,14 @@ import {
   layoutPositionsCacheItem,
 } from "../../shared/config/storage-items.js";
 import { isTreeStub } from "@shared/types/tree.js";
-import { uuidv7 } from "@shared/lib/uuid.js";
+import { rementIdsInTreeJSON } from "./migrations-rement.js";
 
 const log = createLogger("migrations");
 
-export const CURRENT_SCHEMA_VERSION = 2 as const;
+export const CURRENT_SCHEMA_VERSION = 3 as const;
 
-/**
- * Walk a raw NavigationTreeJSON-shaped object and REPLACE every `id`
- * with a fresh uuidv7. Tree structure (parent/child layout via the
- * children arrays) is preserved; only the identity tokens change.
- *
- * An old→new id map is threaded through the walk so the tree's
- * `currentNodeId` pointer can be rewritten to the new id of the same
- * logical node.
- */
-function rementIdsInNodeJSON(node: unknown, idMap: Map<string, string>): void {
-  if (!node || typeof node !== "object") return;
-  const n = node as { id?: unknown; children?: unknown[] };
-  if (n.id !== undefined && n.id !== null) {
-    const oldId = String(n.id);
-    const newId = uuidv7();
-    idMap.set(oldId, newId);
-    n.id = newId;
-  }
-  if (Array.isArray(n.children)) {
-    for (const child of n.children) rementIdsInNodeJSON(child, idMap);
-  }
-}
-
-function rementIdsInTreeJSON(json: unknown): unknown {
-  if (!json || typeof json !== "object") return json;
-  const t = json as { root?: unknown; currentNodeId?: unknown };
-  const idMap = new Map<string, string>();
-  if (t.root) rementIdsInNodeJSON(t.root, idMap);
-  if (t.currentNodeId !== undefined && t.currentNodeId !== null) {
-    const oldId = String(t.currentNodeId);
-    t.currentNodeId = idMap.get(oldId) ?? null;
-  }
-  return json;
-}
+/** Legacy chrome.storage.local keys from the pre-Supabase (0.9.x) era. */
+const LEGACY_LOCAL_KEYS = ["trail_auth_session", "trail_v3_sync"] as const;
 
 const schemaVersionItem = storage.defineItem<number>("local:trail_schema_version", {
   fallback: 0,
@@ -169,6 +137,25 @@ const MIGRATIONS: Migration[] = [
         if (failed) {
           throw new Error(`rement_node_ids_uuidv7: post-verify failed — ${failed}`);
         }
+      }
+    },
+  },
+  {
+    from: 2,
+    to: 3,
+    name: "cleanup_legacy_keys",
+    async run() {
+      // Drop chrome.storage.local entries left behind by the
+      // pre-Supabase 0.9.x line. Both keys are unreferenced by the
+      // current codebase: `trail_auth_session` held BetterAuth JWTs
+      // and `trail_v3_sync` held the old sync-engine cursor. Removing
+      // them reclaims a few KB and avoids confusion in DevTools.
+      try {
+        await chrome.storage.local.remove([...LEGACY_LOCAL_KEYS]);
+      } catch (error) {
+        log.warn("cleanup_legacy_keys: remove failed", {
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
     },
   },

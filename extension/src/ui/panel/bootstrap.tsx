@@ -3,7 +3,6 @@ import { QueryClientProvider } from "@tanstack/react-query";
 
 import App from "@apps/sidepanel/ui/App.js";
 import ErrorBoundary from "@ui/components/error-boundary.js";
-import { initBackendConfig } from "@shared/config/backend.js";
 import { queryClient } from "@ui/query/client.js";
 import { ThemeProvider } from "@ui/providers/theme-provider.js";
 import { browser } from "@shared/platform/webext.js";
@@ -25,8 +24,6 @@ export function mountPanelApp(options: MountPanelAppOptions = {}): void {
   if (!rootEl) {
     throw new Error(`Missing #${rootId} element`);
   }
-
-  void initBackendConfig();
 
   createRoot(rootEl).render(
     <ErrorBoundary source="sidepanel">

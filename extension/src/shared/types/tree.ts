@@ -31,6 +31,13 @@ export type TreeSummary = TreeMeta & {
   rootUrl?: Url;
   rootTitle?: Title;
   rootFavicon?: FaviconUrl;
+  /**
+   * Last time the user opened/stashed/materialized this tree locally.
+   * Optional for backwards compatibility — entries written before this
+   * field existed will be missing it; retention sort falls back to
+   * `savedAt` in that case.
+   */
+  lastOpenedAt?: number;
 };
 
 export type TreeRecord = TreeSummary & {

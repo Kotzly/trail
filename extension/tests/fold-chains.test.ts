@@ -41,7 +41,7 @@ describe("computeChainFoldInfo", () => {
     const info = computeChainFoldInfo(null, isTranslate);
     assert.equal(info.hiddenIds.size, 0);
     assert.equal(info.tipFoldCounts.size, 0);
-    assert.equal(info.headToTip.size, 0);
+    assert.equal(info.headToTips.size, 0);
   });
 
   it("leaves non-matching tree untouched", () => {
@@ -80,21 +80,57 @@ describe("computeChainFoldInfo", () => {
     assert.ok(!info.hiddenIds.has(yandex3.id));
 
     assert.equal(info.tipFoldCounts.get(yandex3.id), 2);
-    assert.equal(info.headToTip.get(yandex1.id)?.id, yandex3.id);
+    const linearTips = info.headToTips.get(yandex1.id);
+    assert.equal(linearTips?.length, 1);
+    assert.equal(linearTips?.[0]?.id, yandex3.id);
   });
 
-  it("breaks chain at branching — does not fold", () => {
-    const y1 = makeNode("https://translate.yandex.ru/?text=one", [
-      makeNode("https://translate.yandex.ru/?text=a"),
-      makeNode("https://translate.yandex.ru/?text=b"),
-    ]);
+  it("folds a chain that branches — keeps every leaf as a tip", () => {
+    // Common translator scenario: user types, backspaces, retypes a
+    // different sequence. Both branches should fold; the user sees
+    // both final URLs without the typing intermediates.
+    const a = makeNode("https://translate.yandex.ru/?text=a");
+    const b = makeNode("https://translate.yandex.ru/?text=b");
+    const y1 = makeNode("https://translate.yandex.ru/?text=one", [a, b]);
     const root = makeNode("https://google.com/", [y1]);
     const info = computeChainFoldInfo(tree(root), isTranslate);
 
-    // y1 has two matching kids — branching. Each kid is a single-node
-    // chain (no matching descendants), so nothing is folded.
-    assert.equal(info.hiddenIds.size, 0);
-    assert.equal(info.tipFoldCounts.size, 0);
+    // y1 is the only internal node; its two matching kids are tips.
+    assert.equal(info.hiddenIds.size, 1);
+    assert.ok(info.hiddenIds.has(y1.id));
+    assert.equal(info.tipFoldCounts.get(a.id), 1);
+    assert.equal(info.tipFoldCounts.get(b.id), 1);
+
+    const tips = info.headToTips.get(y1.id);
+    assert.equal(tips?.length, 2);
+    const tipIds = new Set(tips?.map((t) => t.id));
+    assert.ok(tipIds.has(a.id));
+    assert.ok(tipIds.has(b.id));
+  });
+
+  it("folds a deep chain with a mid-chain fork", () => {
+    // y1 → y2 → y3 → leafA, y3 → leafB
+    // y1, y2, y3 are internal (all matching children). leafA, leafB
+    // are tips. Both should be exposed as fold targets of y1.
+    const a = makeNode("https://translate.yandex.ru/?text=hello");
+    const b = makeNode("https://translate.yandex.ru/?text=world");
+    const y3 = makeNode("https://translate.yandex.ru/?text=h", [a, b]);
+    const y2 = makeNode("https://translate.yandex.ru/?text=he", [y3]);
+    const y1 = makeNode("https://translate.yandex.ru/?text=hel", [y2]);
+    const root = makeNode("https://google.com/", [y1]);
+
+    const info = computeChainFoldInfo(tree(root), isTranslate);
+
+    // Three internal nodes folded; two leaves stay visible.
+    assert.equal(info.hiddenIds.size, 3);
+    assert.ok(info.hiddenIds.has(y1.id));
+    assert.ok(info.hiddenIds.has(y2.id));
+    assert.ok(info.hiddenIds.has(y3.id));
+    assert.equal(info.tipFoldCounts.get(a.id), 3);
+    assert.equal(info.tipFoldCounts.get(b.id), 3);
+
+    const tips = info.headToTips.get(y1.id);
+    assert.equal(tips?.length, 2);
   });
 
   it("breaks chain when a child stops matching", () => {
@@ -110,7 +146,9 @@ describe("computeChainFoldInfo", () => {
     assert.equal(info.hiddenIds.size, 1);
     assert.ok(info.hiddenIds.has(y1.id));
     assert.equal(info.tipFoldCounts.get(y2.id), 1);
-    assert.equal(info.headToTip.get(y1.id)?.id, y2.id);
+    const tips = info.headToTips.get(y1.id);
+    assert.equal(tips?.length, 1);
+    assert.equal(tips?.[0]?.id, y2.id);
   });
 
   it("pinned chain member blocks folding", () => {
@@ -165,7 +203,9 @@ describe("computeChainFoldInfo", () => {
     assert.equal(info.hiddenIds.size, 1);
     assert.ok(info.hiddenIds.has(root.id));
     assert.equal(info.tipFoldCounts.get(tip.id), 1);
-    assert.equal(info.headToTip.get(root.id)?.id, tip.id);
+    const rootTips = info.headToTips.get(root.id);
+    assert.equal(rootTips?.length, 1);
+    assert.equal(rootTips?.[0]?.id, tip.id);
   });
 
   it("handles two independent sibling chains", () => {
@@ -182,8 +222,12 @@ describe("computeChainFoldInfo", () => {
     assert.ok(info.hiddenIds.has(b1.id));
     assert.equal(info.tipFoldCounts.get(a2.id), 1);
     assert.equal(info.tipFoldCounts.get(b2.id), 1);
-    assert.equal(info.headToTip.get(a1.id)?.id, a2.id);
-    assert.equal(info.headToTip.get(b1.id)?.id, b2.id);
+    const aTips = info.headToTips.get(a1.id);
+    const bTips = info.headToTips.get(b1.id);
+    assert.equal(aTips?.length, 1);
+    assert.equal(aTips?.[0]?.id, a2.id);
+    assert.equal(bTips?.length, 1);
+    assert.equal(bTips?.[0]?.id, b2.id);
   });
 
   it("passes through when matcher matches nothing", () => {
@@ -220,6 +264,26 @@ describe("fold integration with treeToEdges / treeToNodes", () => {
     assert.ok(!edgePairs.includes(`${a.id}->${b.id}`), "no A→B (head hidden)");
     assert.ok(!edgePairs.includes(`${b.id}->${c.id}`), "no B→C (head hidden)");
     assert.equal(edges.length, 3);
+  });
+
+  it("rewires parent→head to parent→{tipA, tipB} for a forked chain", () => {
+    // Common translator-fork case: A → H(head) → fork → tipA, tipB.
+    // Expect two rewired edges A→tipA and A→tipB, no edges through H.
+    const tipA = makeNode("https://translate.yandex.ru/?text=hello");
+    const tipB = makeNode("https://translate.yandex.ru/?text=world");
+    const head = makeNode("https://translate.yandex.ru/?text=h", [tipA, tipB]);
+    const a = makeNode("https://google.com/", [head]);
+
+    const info = computeChainFoldInfo(tree(a), isTranslate);
+    const edges = treeToEdges(tree(a), NO_COLLAPSED, info);
+    const pairs = edges.map((ed) => `${ed.source}->${ed.target}`);
+
+    assert.ok(pairs.includes(`${a.id}->${tipA.id}`), "A→tipA (rewired branch)");
+    assert.ok(pairs.includes(`${a.id}->${tipB.id}`), "A→tipB (rewired branch)");
+    assert.ok(!pairs.includes(`${a.id}->${head.id}`), "no A→head (head hidden)");
+    assert.ok(!pairs.includes(`${head.id}->${tipA.id}`), "no head→tipA (head hidden)");
+    assert.ok(!pairs.includes(`${head.id}->${tipB.id}`), "no head→tipB (head hidden)");
+    assert.equal(edges.length, 2);
   });
 
   it("handles two sibling chains side by side", () => {
