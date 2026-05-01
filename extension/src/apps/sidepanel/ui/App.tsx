@@ -1,124 +1,178 @@
-import { useEffect, useRef } from "react";
+import { lazy, Suspense, useCallback } from "react";
+import { i18n } from "#i18n";
 import FloatingControls from "./components/FloatingControls.js";
-import GraphArea from "@features/graph/components/graph/GraphArea.js";
-import ThemePanel from "./components/theme/ThemePanel.js";
+import SelectionActionBar from "./components/SelectionActionBar.js";
+import SyncConflictToastMount from "./components/SyncConflictToast.js";
+import OnboardingWizard from "./onboarding/OnboardingWizard.js";
+import TourFlyingCoach from "./onboarding/tour/TourFlyingCoach.js";
+import ResumeTourPopover from "./onboarding/tour/ResumeTourPopover.js";
+import PinFlyingPopover from "./onboarding/pin/PinFlyingPopover.js";
+import TourCelebration from "./onboarding/celebration/TourCelebration.js";
+import TourCommitments from "./onboarding/cta/TourCommitments.js";
+import WelcomeBackDialog from "./welcome-back/WelcomeBackDialog.js";
 import ContextMenus from "./components/ContextMenus.js";
-import DeleteTreeConfirmModal from "./components/DeleteTreeConfirmModal.js";
-import SessionExpiredBanner from "./components/SessionExpiredBanner.js";
-import TrailLogo from "./components/TrailLogo.js";
-import { Toaster } from "./components/ui/sonner.js";
+import TrailLogo from "@ui/components/trail-logo";
+import { Toaster } from "@ui/components/ui/sonner.js";
+import { useAuthTransitionToast } from "./hooks/useAuthTransitionToast.js";
+import { useAuthReset } from "./hooks/useAuthReset.js";
 import { useBootstrap } from "./hooks/useBootstrap.js";
-import { useAccount } from "./hooks/useAccount.js";
-import { useAuthPolicy } from "./hooks/useAuthPolicy.js";
+import { useClearButtonFocusOnBlur } from "./hooks/useClearButtonFocusOnBlur.js";
 import { useRuntimeMessages } from "./hooks/useRuntimeMessages.js";
 import { useShortcuts } from "./hooks/useShortcuts.js";
-import TooltipLayer from "./components/TooltipLayer.js";
-
-import { useSystemThemeListener } from "./hooks/useSystemThemeListener.js";
+import { useThemeSync } from "./hooks/useThemeSync.js";
+import { useThemePresetSync } from "./hooks/useThemePresetSync.js";
 import { useStore } from "./state/store.js";
-import { sessionBannerDismissedItem } from "@shared/config/storage-items.js";
-import OnboardingHints from "./components/OnboardingHints.js";
+import { Button } from "@ui/components/ui/button";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@ui/components/ui/empty";
+import { TooltipProvider } from "@ui/components/ui/tooltip";
+import type { NodeId, Url } from "@shared/types/ids.js";
+import { navigateToNodeId, renameNode, reparentNode } from "../api/tree.js";
+import { showOperationError } from "./shared/show-operation-error.js";
+import { captureEvent } from "@shared/lib/observability.js";
+
+const TrailGraph = lazy(() =>
+  import("@features/graph/components/TrailGraph.js").then((m) => ({
+    default: m.TrailGraph,
+  })),
+);
 
 function BootstrapSkeleton() {
   return (
-    <div className="skeleton-bootstrap">
-      <div className="skeleton-block skeleton-bootstrap__header" />
-      <div className="skeleton-block skeleton-bootstrap__graph" />
-    </div>
+    <Empty className="h-full border-none">
+      <EmptyHeader>
+        <TrailLogo animated label={i18n.t("sidepanel.bootstrap.loadingLogoLabel")} />
+        <EmptyTitle>{i18n.t("sidepanel.bootstrap.loadingTitle")}</EmptyTitle>
+        <EmptyDescription>{i18n.t("sidepanel.bootstrap.loadingDescription")}</EmptyDescription>
+      </EmptyHeader>
+    </Empty>
   );
 }
 
 function DegradedBootstrap({ onRetry }: { onRetry: () => void }) {
   return (
-    <div
-      className="degraded-bootstrap"
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        height: "100%",
-        padding: 24,
-        textAlign: "center",
-        gap: 12,
-      }}
-    >
-      <TrailLogo className="degraded-bootstrap__logo" label="Trail" />
-      <h2
-        className="degraded-bootstrap__title"
-        style={{ margin: 0, fontSize: 18, fontWeight: 600 }}
-      >
-        Could not load Trail
-      </h2>
-      <p
-        className="degraded-bootstrap__text"
-        style={{
-          margin: 0,
-          fontSize: 13,
-          color: "var(--text-secondary, #888)",
-          maxWidth: 280,
-        }}
-      >
-        Something prevented Trail from starting. This is usually temporary.
-      </p>
-      <button
-        className="degraded-bootstrap__btn"
-        type="button"
-        onClick={onRetry}
-        style={{
-          marginTop: 8,
-          padding: "8px 20px",
-          fontSize: 13,
-          fontWeight: 500,
-          borderRadius: 6,
-          border: "1px solid var(--border-primary, #333)",
-          background: "var(--bg-interactive, #2a2a2a)",
-          color: "var(--text-primary, #eee)",
-          cursor: "pointer",
-        }}
-      >
-        Retry
-      </button>
-      <a
-        className="degraded-bootstrap__link"
-        href="https://gettrail.net/support"
-        target="_blank"
-        rel="noopener noreferrer"
-        style={{
-          fontSize: 12,
-          color: "var(--text-secondary, #888)",
-          textDecoration: "underline",
-        }}
-      >
-        Report issue
-      </a>
-    </div>
+    <Empty className="h-full border-none">
+      <EmptyHeader>
+        <EmptyMedia>
+          <TrailLogo label="Trail" />
+        </EmptyMedia>
+        <EmptyTitle>{i18n.t("sidepanel.bootstrap.errorTitle")}</EmptyTitle>
+        <EmptyDescription>{i18n.t("sidepanel.bootstrap.errorDescription")}</EmptyDescription>
+      </EmptyHeader>
+      <EmptyContent>
+        <Button variant="outline" onClick={onRetry}>
+          {i18n.t("sidepanel.bootstrap.retry")}
+        </Button>
+      </EmptyContent>
+    </Empty>
   );
 }
 
 export default function App() {
-  const searchInputRef = useRef<HTMLInputElement>(null);
-  const account = useStore((state) => state.account);
-  const editorActive = useStore((state) => state.editorMode.active);
-
   const { bootstrapStatus, retryBootstrap } = useBootstrap();
-  useAccount();
-  useAuthPolicy();
+  const settings = useStore((s) => s.settings);
   useRuntimeMessages();
-  useSystemThemeListener();
-  useShortcuts(searchInputRef);
+  useThemeSync(settings?.theme);
+  useThemePresetSync(settings?.themePreset);
+  useShortcuts();
+  useAuthTransitionToast();
+  useAuthReset();
+  useClearButtonFocusOnBlur();
 
-  // Clear session banner dismiss when auth is restored so banner reappears on next expiry
-  useEffect(() => {
-    if (!account.sessionExpired) {
-      sessionBannerDismissedItem.setValue(false).catch(() => {});
-    }
-  }, [account.sessionExpired]);
+  const treeJSON = useStore((s) => s.treeJSON);
+  const precomputedPositions = useStore((s) => s.precomputedPositions);
+  const currentNodeId = useStore((s) => s.currentNodeId);
+  const openNodeIds = useStore((s) => s.openNodeIds);
+  const nodeTabCounts = useStore((s) => s.nodeTabCounts);
+  const collapsedNodeIds = useStore((s) => s.graph.collapsedNodeIds);
+  const collapseAction = useStore((s) => s.graph.collapseAction);
+  const unfoldedChainIds = useStore((s) => s.graph.unfoldedChainIds);
+  const badgeExpandedIds = useStore((s) => s.graph.badgeExpandedIds);
+  const selectedNodeIds = useStore((s) => s.graph.selectedNodeIds);
+  const setSelectedNodeIds = useStore((s) => s.setSelectedNodeIds);
+  const openContextMenu = useStore((s) => s.openContextMenu);
+  const collapseNodes = useStore((s) => s.collapseNodes);
+  const expandNodes = useStore((s) => s.expandNodes);
+  const toggleChainUnfolded = useStore((s) => s.toggleChainUnfolded);
+  const toggleBadgeCollapse = useStore((s) => s.toggleBadgeCollapse);
+  const spotlight = useStore((s) => s.onboarding.spotlight);
+  const inlineRenameTargetId = useStore((s) => s.renameTarget);
+  const startInlineRename = useStore((s) => s.startInlineRename);
+  const cancelInlineRename = useStore((s) => s.cancelInlineRename);
+
+  const handleNodeClick = useCallback((nodeId: NodeId, url: string) => {
+    void navigateToNodeId(nodeId, url as Url);
+  }, []);
+
+  const handleInlineRenameCommit = useCallback(
+    (nodeId: NodeId, title: string) => {
+      cancelInlineRename();
+      renameNode(nodeId, title)
+        .then(() => captureEvent("node_renamed"))
+        .catch((error) => showOperationError(i18n.t("sidepanel.operations.renameNode"), error));
+    },
+    [cancelInlineRename],
+  );
+
+  const handleReparentNode = useCallback((nodeId: NodeId, newParentId: NodeId) => {
+    reparentNode(nodeId, newParentId)
+      .then(() => captureEvent("node_reparented"))
+      .catch((error) => showOperationError(i18n.t("sidepanel.operations.moveNode"), error));
+  }, []);
+
+  const handleNodeContextMenu = useCallback(
+    (nodeId: NodeId, position: { x: number; y: number }) => {
+      // Selection-aware routing:
+      //  - If the right-clicked node is part of a multi-selection (≥2),
+      //    open the bulk context menu — clicking on any selected node
+      //    targets the whole group.
+      //  - If the right-clicked node is NOT in the current selection,
+      //    treat it as a focus switch: clear the stale selection and
+      //    open the single-node menu.
+      //  - Otherwise (no selection or single-selection that matches):
+      //    open the single-node menu as before.
+      const state = useStore.getState();
+      const sel = state.graph.selectedNodeIds;
+      if (sel.size >= 2 && sel.has(nodeId)) {
+        openContextMenu({ type: "bulk", nodeIds: Array.from(sel), position });
+        return;
+      }
+      if (sel.size > 0 && !sel.has(nodeId)) {
+        state.clearSelection();
+      }
+      openContextMenu({ type: "node", nodeId, position });
+    },
+    [openContextMenu],
+  );
+
+  const handleCollapseToggle = useCallback(
+    (nodeId: NodeId) => {
+      if (collapsedNodeIds.has(nodeId)) {
+        expandNodes([nodeId]);
+      } else {
+        collapseNodes([nodeId]);
+      }
+    },
+    [collapsedNodeIds, collapseNodes, expandNodes],
+  );
+
+  const handleSelectionChange = useCallback(
+    (nodeIds: Set<NodeId>) => {
+      setSelectedNodeIds(nodeIds);
+    },
+    [setSelectedNodeIds],
+  );
 
   if (bootstrapStatus === "loading") {
     return (
-      <div className="container">
-        <Toaster />
+      <div className="relative flex h-dvh w-full max-w-none min-w-0 flex-col overflow-hidden">
+        <Toaster position="top-center" />
         <BootstrapSkeleton />
       </div>
     );
@@ -126,30 +180,59 @@ export default function App() {
 
   if (bootstrapStatus === "degraded") {
     return (
-      <div className="container">
-        <Toaster />
+      <div className="relative flex h-dvh w-full max-w-none min-w-0 flex-col overflow-hidden">
+        <Toaster position="top-center" />
         <DegradedBootstrap onRetry={retryBootstrap} />
       </div>
     );
   }
 
-  const isAuthenticated = account.session.status === "authenticated" && Boolean(account.user);
-
-  const showSessionBanner = !isAuthenticated && !account.authRequired && account.sessionExpired;
-
-  const containerClass = `container${editorActive ? " container--editor" : ""}`;
-
   return (
-    <div className={containerClass}>
-      <Toaster />
-      {showSessionBanner && <SessionExpiredBanner />}
-      <FloatingControls searchInputRef={searchInputRef} />
-      <OnboardingHints />
-      <GraphArea />
-      <ThemePanel />
-      <DeleteTreeConfirmModal />
-      <ContextMenus />
-      <TooltipLayer />
-    </div>
+    <TooltipProvider delayDuration={250} skipDelayDuration={150}>
+      <div className="relative flex h-dvh w-full max-w-none min-w-0 flex-col overflow-hidden">
+        <Toaster position="top-center" />
+        <SyncConflictToastMount />
+        <FloatingControls />
+        <SelectionActionBar />
+        {settings && (
+          <Suspense fallback={<BootstrapSkeleton />}>
+            <TrailGraph
+              tree={treeJSON}
+              currentNodeId={currentNodeId}
+              openNodeIds={openNodeIds}
+              collapsedNodeIds={collapsedNodeIds}
+              collapseAction={collapseAction}
+              unfoldedChainIds={unfoldedChainIds}
+              badgeExpandedIds={badgeExpandedIds}
+              selectedNodeIds={selectedNodeIds}
+              nodeTabCounts={nodeTabCounts}
+              settings={settings}
+              precomputedPositions={precomputedPositions}
+              spotlight={spotlight}
+              inlineRenameTargetId={inlineRenameTargetId}
+              onInlineRenameStart={startInlineRename}
+              onInlineRenameCommit={handleInlineRenameCommit}
+              onInlineRenameCancel={cancelInlineRename}
+              onReparentNode={handleReparentNode}
+              onNodeClick={handleNodeClick}
+              onNodeContextMenu={handleNodeContextMenu}
+              onCollapseToggle={handleCollapseToggle}
+              onBadgeCollapseToggle={toggleBadgeCollapse}
+              onChainUnfoldToggle={toggleChainUnfolded}
+              onSelectionChange={handleSelectionChange}
+            >
+              <TourFlyingCoach />
+              <ResumeTourPopover />
+              <PinFlyingPopover />
+            </TrailGraph>
+          </Suspense>
+        )}
+        <OnboardingWizard />
+        <TourCelebration />
+        <TourCommitments />
+        <WelcomeBackDialog />
+        <ContextMenus />
+      </div>
+    </TooltipProvider>
   );
 }

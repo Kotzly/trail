@@ -5,7 +5,6 @@ import {
   computeSubtreeScores,
   computeNodeScore,
   incrementalCenterReorder,
-  incrementalClusterReorder,
   SCORE_FREQ_WEIGHT,
   SCORE_RECENCY_WEIGHT,
   SCORE_RECENCY_DECAY_MS,
@@ -245,40 +244,6 @@ function testEqualScoresPreserveOrder(): void {
 }
 
 // ---------------------------------------------------------------------------
-// incrementalClusterReorder - sorts descending by score
-// ---------------------------------------------------------------------------
-
-function testClusterSortsDescending(): void {
-  const nodes = [makeNode(1), makeNode(2), makeNode(3), makeNode(4), makeNode(5)];
-  const scores = new Map<NodeId, number>([
-    [nodes[0]!.id, 100],
-    [nodes[1]!.id, 500],
-    [nodes[2]!.id, 300],
-    [nodes[3]!.id, 200],
-    [nodes[4]!.id, 400],
-  ]);
-
-  const result = incrementalClusterReorder(asNav(nodes), scores);
-  assert.deepEqual(ids(result), [2, 5, 3, 4, 1], 'cluster: sorted descending by score');
-  console.log('  clusterSortsDescending: OK');
-}
-
-// ---------------------------------------------------------------------------
-// incrementalClusterReorder - equal scores preserve input order (stable sort)
-// ---------------------------------------------------------------------------
-
-function testClusterEqualScores(): void {
-  const nodes = [makeNode(1), makeNode(2), makeNode(3), makeNode(4)];
-  const scores = new Map<NodeId, number>(
-    nodes.map((n) => [n.id, 100]),
-  );
-
-  const result = incrementalClusterReorder(asNav(nodes), scores);
-  assert.deepEqual(ids(result), ids(asNav(nodes)), 'cluster: equal scores preserve order');
-  console.log('  clusterEqualScores: OK');
-}
-
-// ---------------------------------------------------------------------------
 // Run all tests
 // ---------------------------------------------------------------------------
 
@@ -292,8 +257,6 @@ function run(): void {
   testConvergence();
   testAddRemoveChildren();
   testEqualScoresPreserveOrder();
-  testClusterSortsDescending();
-  testClusterEqualScores();
 }
 
 run();

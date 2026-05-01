@@ -232,27 +232,6 @@ export function incrementalCenterReorder(
 }
 
 // ---------------------------------------------------------------------------
-// Cluster reorder (for radial layout)
-// ---------------------------------------------------------------------------
-
-/**
- * Sort children by score descending. Active nodes cluster at the start
- * of the array, which maps to a contiguous arc in radial layout.
- *
- * Signature matches `incrementalCenterReorder` so both can be used
- * interchangeably via `reorderFn` in GraphCanvas.
- */
-export function incrementalClusterReorder(
-  children: readonly NavigationNode[],
-  scores: Map<NodeId, number>,
-  _previousOrder?: NodeId[] | null,
-  _subtreeSpans?: Map<NodeId, number> | null,
-): NavigationNode[] {
-  if (children.length <= 1) return [...children];
-  return [...children].sort((a, b) => (scores.get(b.id) ?? 0) - (scores.get(a.id) ?? 0));
-}
-
-// ---------------------------------------------------------------------------
 // Public API (backwards compatible signature)
 // ---------------------------------------------------------------------------
 

@@ -9,8 +9,18 @@ const fileFields = `
   asset->{_id, url}
 `;
 
+// When the Sanity Studio installs @sanity/document-internationalization,
+// documents will carry a `language` field and translated siblings will be
+// stored as separate documents. Until then `coalesce(language, "en")`
+// treats legacy single-locale documents as English and the default locale
+// fallback inside each fetcher returns the English doc when no translation
+// exists for the requested locale.
+
 export const pageQuery = /* groq */ `
-  *[_type == "landingPage" && slug.current == $slug][0]{
+  *[_type == "landingPage"
+    && slug.current == $slug
+    && coalesce(language, "en") == $locale
+  ][0]{
     _id,
     title,
     "slug": slug.current,
@@ -28,7 +38,7 @@ export const pageQuery = /* groq */ `
 `;
 
 export const siteSettingsQuery = /* groq */ `
-  *[_type == "siteSettings"][0]{
+  *[_type == "siteSettings" && coalesce(language, "en") == $locale][0]{
     siteName,
     siteUrl,
     nav[]{label, href, isExternal},
@@ -40,22 +50,42 @@ export const siteSettingsQuery = /* groq */ `
   }
 `;
 
-export async function fetchPage(slug: string) {
+const DEFAULT_LOCALE = "en";
+
+export async function fetchPage(slug: string, locale: string = DEFAULT_LOCALE) {
   if (!client) return null;
-  return client.fetch(pageQuery, { slug }, {
-    next: { tags: ["sanity", "sanity:page", `sanity:page:${slug}`] },
-  });
+  const run = (l: string) =>
+    client!.fetch(
+      pageQuery,
+      { slug, locale: l },
+      {
+        next: { tags: ["sanity", "sanity:page", `sanity:page:${slug}`] },
+      },
+    );
+  const primary = await run(locale);
+  if (primary) return primary;
+  if (locale === DEFAULT_LOCALE) return null;
+  return run(DEFAULT_LOCALE);
 }
 
-export async function fetchSiteSettings() {
+export async function fetchSiteSettings(locale: string = DEFAULT_LOCALE) {
   if (!client) return null;
-  return client.fetch(siteSettingsQuery, {}, {
-    next: { tags: ["sanity", "sanity:siteSettings"] },
-  });
+  const run = (l: string) =>
+    client!.fetch(
+      siteSettingsQuery,
+      { locale: l },
+      {
+        next: { tags: ["sanity", "sanity:siteSettings"] },
+      },
+    );
+  const primary = await run(locale);
+  if (primary) return primary;
+  if (locale === DEFAULT_LOCALE) return null;
+  return run(DEFAULT_LOCALE);
 }
 
 export const supportPageQuery = /* groq */ `
-  *[_type == "supportPage"][0]{
+  *[_type == "supportPage" && coalesce(language, "en") == $locale][0]{
     title,
     description,
     seo{title, description, ogImage{${imageFields}}},
@@ -65,21 +95,46 @@ export const supportPageQuery = /* groq */ `
   }
 `;
 
-export async function fetchSupportPage() {
+export async function fetchSupportPage(locale: string = DEFAULT_LOCALE) {
   if (!client) return null;
-  return client.fetch(supportPageQuery, {}, {
-    next: { tags: ["sanity", "sanity:supportPage"] },
-  });
+  const run = (l: string) =>
+    client!.fetch(
+      supportPageQuery,
+      { locale: l },
+      {
+        next: { tags: ["sanity", "sanity:supportPage"] },
+      },
+    );
+  const primary = await run(locale);
+  if (primary) return primary;
+  if (locale === DEFAULT_LOCALE) return null;
+  return run(DEFAULT_LOCALE);
 }
 
 const pageUpdatedAtQuery = /* groq */ `
-  *[_type == "landingPage" && slug.current == $slug][0]{ _updatedAt }
+  *[_type == "landingPage"
+    && slug.current == $slug
+    && coalesce(language, "en") == $locale
+  ][0]{ _updatedAt }
 `;
 
-export async function fetchPageUpdatedAt(slug: string): Promise<string | null> {
+export async function fetchPageUpdatedAt(
+  slug: string,
+  locale: string = DEFAULT_LOCALE,
+): Promise<string | null> {
   if (!client) return null;
-  const result = await client.fetch(pageUpdatedAtQuery, { slug }, {
-    next: { tags: ["sanity", `sanity:page:${slug}`] },
-  });
-  return result?._updatedAt ?? null;
+  const run = async (l: string): Promise<string | null> => {
+    const result = await client!.fetch(
+      pageUpdatedAtQuery,
+      { slug, locale: l },
+      {
+        next: { tags: ["sanity", `sanity:page:${slug}`] },
+      },
+    );
+    return result?._updatedAt ?? null;
+  };
+  const primary = await run(locale);
+  if (primary) return primary;
+  if (locale === DEFAULT_LOCALE) return null;
+  return run(DEFAULT_LOCALE);
 }

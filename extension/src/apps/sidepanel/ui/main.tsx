@@ -1,13 +1,10 @@
 import "@ui/panel/styles.css";
+import "@shared/styles/fonts.js";
 import { mountPanelApp } from "@ui/panel/bootstrap.js";
-import { readLayoutCache } from "@shared/graph-layout-cache/cache.js";
+import { captureEvent, initObservability } from "@shared/lib/observability.js";
 
-// Pre-fetch cached layout BEFORE React mounts
-const cachePromise = readLayoutCache("active");
+void initObservability("sidepanel").then(() => {
+  captureEvent("sidepanel_opened");
+});
 
-async function mount(): Promise<void> {
-  const cached = await cachePromise;
-  mountPanelApp({ connectPortName: "sidepanel", cachedLayout: cached });
-}
-
-void mount();
+mountPanelApp({ connectPortName: "sidepanel" });

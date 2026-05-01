@@ -1,0 +1,13 @@
+{
+  "common": {
+    "loading": "Loading..."
+  },
+  "newsletter": {
+    "heading": "Updates",
+    "placeholder": "you@example.com",
+    "submit": "Subscribe",
+    "consent": "Product updates only. Unsubscribe anytime.",
+    "success": "Thanks — you're on the list.",
+    "error": "Something went wrong. Try again."
+  }
+}

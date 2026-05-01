@@ -85,10 +85,14 @@ export function createLogger(namespace: string): Logger {
       }
     },
     warn(message: string, payload?: LogPayload) {
-      console.warn(prefix, message, payload ? redactSensitive(payload) : "");
+      const redacted = payload ? redactSensitive(payload) : null;
+      const errorSuffix = typeof redacted?.error === "string" ? ` – ${redacted.error}` : "";
+      console.warn(prefix, message + errorSuffix, redacted ?? "");
     },
     error(message: string, payload?: LogPayload) {
-      console.error(prefix, message, payload ? redactSensitive(payload) : "");
+      const redacted = payload ? redactSensitive(payload) : null;
+      const errorSuffix = typeof redacted?.error === "string" ? ` – ${redacted.error}` : "";
+      console.error(prefix, message + errorSuffix, redacted ?? "");
     },
   };
 }

@@ -1,8 +1,8 @@
-import { type NodeId, now, type Timestamp } from "@shared/types/ids.js";
-let nodeIdCounter = 0 as NodeId;
+import { type NodeId, asNodeId, now, type Timestamp } from "@shared/types/ids.js";
+import { uuidv7 } from "@shared/lib/uuid.js";
 
 function nextNodeId(): NodeId {
-  return ++nodeIdCounter as NodeId;
+  return asNodeId(uuidv7());
 }
 
 type iter = "dfs" | "bfs";
@@ -17,9 +17,6 @@ export class TreeNode<T> implements Timestamped {
 
   constructor(data: T, parent?: TreeNode<T>, id: NodeId = nextNodeId()) {
     this.id = id;
-    if (this.id > nodeIdCounter) {
-      nodeIdCounter = this.id;
-    }
     this.timestamp = now();
     this.data = data;
     this.parent = parent ?? null;
@@ -42,6 +39,18 @@ export class TreeNode<T> implements Timestamped {
   attachChild(child: TreeNode<T>, options?: { index?: number }): void {
     if (child === this) {
       throw new Error("Cannot attach node to itself");
+    }
+
+    // Ancestry check: walk up from `this` to root. If `child` appears
+    // anywhere in the chain, attaching would create a cycle (DFS
+    // iteration would loop forever, serialization would recurse
+    // infinitely). Refuse and throw.
+    let ancestor: TreeNode<T> | null = this.parent;
+    while (ancestor) {
+      if (ancestor === child) {
+        throw new Error("Cannot attach ancestor as child — would create a cycle");
+      }
+      ancestor = ancestor.parent;
     }
 
     // Detach from previous parent, if any.
@@ -82,14 +91,26 @@ export class TreeNode<T> implements Timestamped {
       throw new Error("Node has no parent");
     }
 
-    const index = this.parent.children.indexOf(this);
+    const parent = this.parent;
+    const index = parent.children.indexOf(this);
+    const lifted = [...this.children];
+    for (const c of lifted) c.setParent(parent);
+
+    // Splice the lifted children into the parent at `this`'s original
+    // position instead of appending to the tail. Preserves user-visible
+    // ordering when a mid-tree node is deleted (fixes #11: "delete
+    // node N; N's 500 children appear after all siblings in parent's
+    // tail, and their original position is lost").
     if (index !== -1) {
-      this.parent.removeChildAt(index);
+      parent.children = [
+        ...parent.children.slice(0, index),
+        ...lifted,
+        ...parent.children.slice(index + 1),
+      ];
+    } else {
+      parent.children = [...parent.children, ...lifted];
     }
-    for (const c of [...this.children]) {
-      c.setParent(this.parent);
-    }
-    this.parent.appendChildren(this.children);
+
     this.children = [];
     this.parent = null;
   }
@@ -109,8 +130,18 @@ export class TreeNode<T> implements Timestamped {
     this.parent = parent;
   }
 
+  /**
+   * Returns the children array typed as readonly. The underlying
+   * array is NOT copied or frozen on each call — that was a hot-path
+   * allocation (20k allocs per render on a 5k-node tree) and the
+   * freeze gave false confidence (internal mutations still worked).
+   *
+   * TypeScript's `readonly T[]` enforces the no-mutation contract at
+   * the type level; callers who need a defensive copy can `[...arr]`
+   * themselves at the rare sites where it's actually needed.
+   */
   getChildren(): readonly TreeNode<T>[] {
-    return Object.freeze([...this.children]);
+    return this.children;
   }
 
   /** Remove the child at the given index, returning a new internal array. */

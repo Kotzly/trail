@@ -1,7 +1,6 @@
 import { getBearerToken } from "@/src/server/backend/auth/headers";
 import { verifyExtensionToken } from "@/src/server/backend/auth/extension-auth";
-import { jsonError } from "@/src/server/backend/error-response";
-import { jsonNoStore } from "@/src/server/backend/response";
+import { jsonFail, jsonOk } from "@/src/server/backend/error-response";
 import { syncTrailsIndex } from "@/src/server/backend/trails-sync";
 import { getExtensionConfig } from "@/src/server/backend/extension-config";
 import { getFeatureAccessForUser } from "@/src/server/backend/subscription-access";
@@ -9,6 +8,10 @@ import {
   toApiLabelSource,
   type DbLabelSource,
 } from "@/src/server/backend/trail-serializers";
+import { rateLimit } from "@/src/server/api/rate-limit";
+import { optionsResponse } from "@/src/server/api/cors";
+import { trailsSyncBodySchema } from "@/src/server/api/schemas";
+import { parseBody } from "@/src/server/api/validate";
 
 export const runtime = "nodejs";
 
@@ -26,11 +29,21 @@ function parseDate(value: unknown): Date | null {
  * metadata-only updates (no payload). The client uses separate PUT/GET/DELETE
  * endpoints for per-tree operations.
  */
+export function OPTIONS(request: Request) {
+  return optionsResponse(request);
+}
+
 export async function POST(request: Request) {
+  const ip = request.headers.get("x-forwarded-for") ?? "unknown";
+  const rl = rateLimit(ip, "sync");
+  if (!rl.ok) {
+    return jsonFail("RATE_LIMITED", "Too many requests", { status: 429 });
+  }
+
   const token = getBearerToken(request.headers);
   const extension = token ? await verifyExtensionToken(token) : null;
   if (!extension?.sub) {
-    return jsonError("unauthorized", "Unauthorized.", { status: 401 });
+    return jsonFail("unauthorized", "Unauthorized.", { status: 401 });
   }
 
   const { config } = getExtensionConfig();
@@ -41,7 +54,7 @@ export async function POST(request: Request) {
     fallbackMinTier: "free",
   });
   if (!access.allowed) {
-    return jsonError(
+    return jsonFail(
       "feature_locked",
       `Trails sync requires ${access.requiredTier} plan.`,
       {
@@ -52,18 +65,17 @@ export async function POST(request: Request) {
     );
   }
 
-  const body = await request.json().catch(() => null);
-  const deviceId = typeof body?.deviceId === "string" ? body.deviceId.trim() : "";
-  const clientSyncAt = parseDate(body?.clientSyncAt);
-
-  if (!deviceId) {
-    return jsonError("device_id_required", "Device id is required.", {
-      status: 400,
-    });
+  const rawBody = await request.json().catch(() => null);
+  const parsed = parseBody(trailsSyncBodySchema, rawBody);
+  if (!parsed.ok) {
+    return jsonFail("VALIDATION_ERROR", parsed.error.issues[0]?.message ?? "Invalid input", { status: 400 });
   }
 
+  const deviceId = parsed.data.deviceId;
+  const clientSyncAt = parseDate(parsed.data.clientSyncAt);
+
   if (!clientSyncAt) {
-    return jsonError("client_sync_at_required", "clientSyncAt is required.", {
+    return jsonFail("client_sync_at_required", "clientSyncAt is required.", {
       status: 400,
     });
   }
@@ -79,7 +91,7 @@ export async function POST(request: Request) {
     const message = error instanceof Error ? error.message : "";
 
     if (message === "user_not_found") {
-      return jsonError("unauthorized", "Unauthorized.", {
+      return jsonFail("unauthorized", "Unauthorized.", {
         status: 401,
         retryable: false,
         details: "reason=user_not_found",
@@ -87,18 +99,18 @@ export async function POST(request: Request) {
     }
 
     if (message === "device_id_required") {
-      return jsonError("device_id_required", "Device id is required.", {
+      return jsonFail("device_id_required", "Device id is required.", {
         status: 400,
       });
     }
 
-    return jsonError("internal_error", "Internal error.", {
+    return jsonFail("internal_error", "Internal error.", {
       status: 500,
       retryable: true,
     });
   }
 
-  return jsonNoStore({
+  return jsonOk({
     serverSyncAt: result.serverSyncAt.toISOString(),
     updates: result.updates.map((trail) => ({
       id: trail.id,

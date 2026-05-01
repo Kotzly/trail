@@ -2,6 +2,8 @@
  * Lossless conversion between NavigationTreeJSON and CompactTreeJSON.
  *
  * Round-trip guarantee: fromCompact(toCompact(tree)) deep-equals tree.
+ *
+ * Current format = V3.
  */
 
 import type { NodeId, Timestamp, Url, Title, FaviconUrl, Tag } from "../types/ids.js";
@@ -27,7 +29,7 @@ export function toCompact(tree: NavigationTreeJSON): CompactTreeJSON {
   return {
     v: 3,
     r: tree.root ? nodeToTuple(tree.root) : null,
-    c: tree.currentNodeId as number | null,
+    c: (tree.currentNodeId ?? null) as string | null,
     n: tree.nodeCount,
   } as CompactTreeJSONV3;
 }
@@ -36,7 +38,7 @@ export function fromCompact(compact: CompactTreeJSON): NavigationTreeJSON {
   if (compact.v === 1) {
     return {
       root: compact.r ? tupleToNodeV1(compact.r) : null,
-      currentNodeId: compact.c as NodeId | null,
+      currentNodeId: (compact.c ?? null) as NodeId | null,
       nodeCount: compact.n,
     };
   }
@@ -44,42 +46,30 @@ export function fromCompact(compact: CompactTreeJSON): NavigationTreeJSON {
   if (compact.v === 2) {
     return {
       root: compact.r ? tupleToNodeV2(compact.r) : null,
-      currentNodeId: compact.c as NodeId | null,
+      currentNodeId: (compact.c ?? null) as NodeId | null,
       nodeCount: compact.n,
     };
   }
 
   return {
     root: compact.r ? tupleToNodeV3(compact.r) : null,
-    currentNodeId: compact.c as NodeId | null,
+    currentNodeId: (compact.c ?? null) as NodeId | null,
     nodeCount: compact.n,
   };
 }
 
 // ---------------------------------------------------------------------------
-// Node-level conversion
+// Node-level conversion (writer = V3)
 // ---------------------------------------------------------------------------
 
 function nodeToTuple(node: NavigationNodeJSON): CompactNodeTupleV3 {
   const d = node.data;
   const flags = d.pinned ? CF.PINNED : 0;
 
-  let layout: number[] | null = null;
-  if (d.layout) {
-    if (d.layout.radial) {
-      layout = [
-        d.layout.offsetX,
-        d.layout.offsetY,
-        d.layout.radial.angleDelta,
-        d.layout.radial.radiusDelta,
-      ];
-    } else {
-      layout = [d.layout.offsetX, d.layout.offsetY];
-    }
-  }
+  const layout: number[] | null = d.layout ? [d.layout.offsetX, d.layout.offsetY] : null;
 
   return [
-    node.id as number,
+    node.id as string,
     node.timestamp as number,
     d.url as string,
     d.title as string,
@@ -97,11 +87,7 @@ function nodeToTuple(node: NavigationNodeJSON): CompactNodeTupleV3 {
 
 function parseLayout(layoutArr: number[] | null): NodeData["layout"] | undefined {
   if (!layoutArr) return undefined;
-  const base = { offsetX: layoutArr[0]!, offsetY: layoutArr[1]! };
-  if (layoutArr.length >= 4) {
-    return { ...base, radial: { angleDelta: layoutArr[2]!, radiusDelta: layoutArr[3]! } };
-  }
-  return base;
+  return { offsetX: layoutArr[0]!, offsetY: layoutArr[1]! };
 }
 
 function tupleToNodeV3(tuple: CompactNodeTupleV3): NavigationNodeJSON {
@@ -120,16 +106,13 @@ function tupleToNodeV3(tuple: CompactNodeTupleV3): NavigationNodeJSON {
   if (fav !== null) {
     (data as { favicon?: FaviconUrl }).favicon = fav as FaviconUrl;
   }
-
   if (layout) {
     (data as { layout?: NodeData["layout"] }).layout = layout;
   }
-
   const lastVisitedAt = tuple[CI.LAST_VISITED_AT];
   if (typeof lastVisitedAt === "number" && Number.isFinite(lastVisitedAt)) {
     (data as { lastVisitedAt?: Timestamp }).lastVisitedAt = lastVisitedAt as Timestamp;
   }
-
   const visitCount = tuple[CI.VISIT_COUNT];
   if (typeof visitCount === "number" && Number.isFinite(visitCount) && visitCount > 0) {
     (data as { visitCount?: number }).visitCount = visitCount;
@@ -159,11 +142,9 @@ function tupleToNodeV2(tuple: CompactNodeTupleV2): NavigationNodeJSON {
   if (fav !== null) {
     (data as { favicon?: FaviconUrl }).favicon = fav as FaviconUrl;
   }
-
   if (layout) {
     (data as { layout?: NodeData["layout"] }).layout = layout;
   }
-
   const lastVisitedAt = tuple[CI_V2.LAST_VISITED_AT];
   if (typeof lastVisitedAt === "number" && Number.isFinite(lastVisitedAt)) {
     (data as { lastVisitedAt?: Timestamp }).lastVisitedAt = lastVisitedAt as Timestamp;
@@ -193,7 +174,6 @@ function tupleToNodeV1(tuple: CompactNodeTupleV1): NavigationNodeJSON {
   if (fav !== null) {
     (data as { favicon?: FaviconUrl }).favicon = fav as FaviconUrl;
   }
-
   if (layout) {
     (data as { layout?: NodeData["layout"] }).layout = layout;
   }

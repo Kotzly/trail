@@ -1,9 +1,10 @@
 import type { NodeId, Title, Url } from "@shared/types/ids.js";
-import MiniSearch from "@shared/vendor/minisearch.js";
+import MiniSearch from "minisearch";
 import { TreeNode } from "./tree-node.js";
 import { DefaultNavigationOptions, type NavigationOptions } from "@shared/types/tree.js";
 import { type NodeData, type NavigationNode, updateNodeMeta } from "@shared/types/node.js";
 import { createUrlKey } from "@shared/lib/url-key.js";
+import { buildNewTabRootData, isNewTabUrl } from "@shared/lib/root.js";
 
 export type NodeRedirect = { from: NodeId; to: NodeId };
 export type DeleteNodeResult = { removed: NavigationNode[]; redirects: NodeRedirect[] };
@@ -15,6 +16,40 @@ export class NavigationTree {
   private nodeMap: Map<NodeId, NavigationNode> = new Map<NodeId, NavigationNode>();
   private searchIndex: MiniSearch;
   private searchDocs: Map<NodeId, SearchDoc> = new Map<NodeId, SearchDoc>();
+  /**
+   * O(1) URL-key → nodes index. One key can map to multiple nodes
+   * (same URL visited from two different parts of the tree); callers
+   * use `findByUrl(url, near?)` to pick the closest one. Maintained
+   * by createChild / updateNodeData / deleteNode / merge paths.
+   */
+  private urlIndex: Map<string, Set<NavigationNode>> = new Map();
+
+  /**
+   * Subscribers to node-deletion events. Notified whenever any
+   * deleteNode / deleteChildren / deleteSubtree / merge path removes
+   * nodes from this tree. TabManager hooks in here so tabs mapped
+   * to deleted nodes are released (#22, #29).
+   */
+  private nodesDeletedListeners: Array<(ids: NodeId[]) => void> = [];
+
+  onNodesDeleted(listener: (ids: NodeId[]) => void): () => void {
+    this.nodesDeletedListeners.push(listener);
+    return () => {
+      const idx = this.nodesDeletedListeners.indexOf(listener);
+      if (idx !== -1) this.nodesDeletedListeners.splice(idx, 1);
+    };
+  }
+
+  private emitNodesDeleted(ids: NodeId[]): void {
+    if (ids.length === 0) return;
+    for (const listener of this.nodesDeletedListeners) {
+      try {
+        listener(ids);
+      } catch {
+        // Subscriber errors must not corrupt tree state.
+      }
+    }
+  }
 
   constructor(root?: NavigationNode) {
     this.searchIndex = NavigationTree.createSearchIndex();
@@ -34,6 +69,7 @@ export class NavigationTree {
       const doc = NavigationTree.buildSearchDoc(node);
       docs.push(doc);
       this.searchDocs.set(node.id, doc);
+      this.indexUrlForNode(node);
       ++count;
     });
     if (docs.length > 0) {
@@ -41,6 +77,26 @@ export class NavigationTree {
     }
 
     this.nodeCount = count;
+  }
+
+  private indexUrlForNode(node: NavigationNode): void {
+    const key = createUrlKey(node.data.url);
+    if (!key) return;
+    let set = this.urlIndex.get(key);
+    if (!set) {
+      set = new Set();
+      this.urlIndex.set(key, set);
+    }
+    set.add(node);
+  }
+
+  private unindexUrlForNode(node: NavigationNode, urlKey?: string): void {
+    const key = urlKey ?? createUrlKey(node.data.url);
+    if (!key) return;
+    const set = this.urlIndex.get(key);
+    if (!set) return;
+    set.delete(node);
+    if (set.size === 0) this.urlIndex.delete(key);
   }
 
   size(): number {
@@ -65,22 +121,60 @@ export class NavigationTree {
     }
   }
 
-  // todo: implement setRoot logic
-
   private mergeNodeData(base: NodeData, incoming: NodeData): NodeData {
     const tags = Array.from(new Set([...(base.tags ?? []), ...(incoming.tags ?? [])]));
     const title = incoming.title ? incoming.title : base.title;
     const favicon = incoming.favicon !== undefined ? incoming.favicon : base.favicon;
-    const layout = base.layout ?? incoming.layout;
+
+    // LWW for pinned + layout based on the stamped *UpdatedAt fields.
+    // If both sides have a stamp, newer wins. If only one, that one
+    // wins. If neither has a stamp, we fall back to the previous
+    // conservative policies (OR for pinned, base-wins for layout).
+    const basePinAt = base.pinnedUpdatedAt ?? 0;
+    const incPinAt = incoming.pinnedUpdatedAt ?? 0;
+    let pinned = Boolean(base.pinned || incoming.pinned);
+    let pinnedUpdatedAt = base.pinnedUpdatedAt ?? incoming.pinnedUpdatedAt;
+    if (basePinAt || incPinAt) {
+      pinned = incPinAt > basePinAt ? incoming.pinned : base.pinned;
+      pinnedUpdatedAt =
+        (incPinAt > basePinAt ? incoming.pinnedUpdatedAt : base.pinnedUpdatedAt) ?? pinnedUpdatedAt;
+    }
+
+    const baseLayoutAt = base.layoutUpdatedAt ?? 0;
+    const incLayoutAt = incoming.layoutUpdatedAt ?? 0;
+    let layout = base.layout ?? incoming.layout;
+    let layoutUpdatedAt = base.layoutUpdatedAt ?? incoming.layoutUpdatedAt;
+    if (baseLayoutAt || incLayoutAt) {
+      layout = incLayoutAt > baseLayoutAt ? incoming.layout : base.layout;
+      layoutUpdatedAt =
+        (incLayoutAt > baseLayoutAt ? incoming.layoutUpdatedAt : base.layoutUpdatedAt) ??
+        layoutUpdatedAt;
+    }
+
     return {
       ...base,
       url: base.url,
       title,
       favicon,
-      pinned: Boolean(base.pinned || incoming.pinned),
+      pinned,
+      ...(pinnedUpdatedAt ? { pinnedUpdatedAt } : {}),
       tags,
       ...(layout ? { layout } : {}),
+      ...(layoutUpdatedAt ? { layoutUpdatedAt } : {}),
     } as NodeData;
+  }
+
+  /**
+   * Walk up from `node` to root, returning true if any ancestor
+   * (including `node` itself) is `ancestor`.
+   */
+  private isDescendantOf(node: NavigationNode, ancestor: NavigationNode): boolean {
+    let cursor: NavigationNode | null = node;
+    while (cursor) {
+      if (cursor === ancestor) return true;
+      cursor = cursor.getParent();
+    }
+    return false;
   }
 
   private mergeDuplicateChildren(parent: NavigationNode): NodeRedirect[] {
@@ -100,16 +194,23 @@ export class NavigationTree {
       existing.data = this.mergeNodeData(existing.data, child.data);
       this.updateSearchEntry(existing);
 
+      // Ancestor-chain intersection: if `this.current` is a
+      // descendant of the subtree we're merging away (not just the
+      // direct child), re-point to the survivor. Previously only
+      // `this.current.id === child.id` was checked, leaving the
+      // cursor dangling in a merged-away subtree and making it a
+      // zombie (reachable via nodeMap but unreachable from root).
+      if (this.current && this.isDescendantOf(this.current, child)) {
+        this.current = existing;
+      }
+
       child.transferChildrenTo(existing);
       child.detach();
 
       this.nodeMap.delete(child.id);
       this.removeSearchEntry(child.id);
+      this.unindexUrlForNode(child);
       this.nodeCount = Math.max(0, this.nodeCount - 1);
-
-      if (this.current && this.current.id === child.id) {
-        this.current = existing;
-      }
 
       redirects.push({ from: child.id, to: existing.id });
       redirects.push(...this.mergeDuplicateChildren(existing));
@@ -119,56 +220,100 @@ export class NavigationTree {
   }
 
   navigate(data: NodeData, options: NavigationOptions = DefaultNavigationOptions): NavigationNode {
-    // no root ==> create it
+    return this.navigateUnder(this.current?.id ?? null, data, {
+      ...options,
+      setAsCurrent: true,
+    });
+  }
+
+  /**
+   * Attach a new node under an explicit parent (identified by id).
+   *
+   * This is the core primitive that Phase 2's opener-based parent
+   * inference uses — callers resolve the parent from the opener tab,
+   * not from `tree.current`, so background-tab navigations don't
+   * silently attach under whatever the sidepanel is looking at.
+   *
+   * Behavior:
+   * - If `parentId` is null or unknown, attach as a root sibling
+   *   (creates root if the tree is empty, otherwise attaches to the
+   *   existing root). Never falls back to `this.current`.
+   * - Same-URL-as-parent: update metadata in place, return parent.
+   * - Same-URL-as-existing-child: return that child.
+   * - backOnRevisit: walks ancestors of the parent for a URL match.
+   * - Otherwise: creates a fresh child of parent.
+   * - `setAsCurrent` (default false) controls whether to advance the
+   *   UI cursor. Callers that represent programmatic/background
+   *   navigations should pass false.
+   */
+  navigateUnder(
+    parentId: NodeId | null,
+    data: NodeData,
+    options: NavigationOptions & { setAsCurrent?: boolean } = DefaultNavigationOptions,
+  ): NavigationNode {
+    const setAsCurrent = options.setAsCurrent ?? false;
+
+    // Invariant: the root of a tree is ALWAYS a New-Tab URL node.
+    // It's the single anchor that Ctrl+T / Cmd+T tabs collapse into,
+    // so the tree can't lose the user's starting point. If the tree
+    // is empty and the incoming navigation is for a real page (not
+    // NTP), synthesise an NTP root first and fall through — the
+    // real URL becomes a child of the synthetic root via the normal
+    // "create child of parent" path below.
     if (!this.root) {
-      this.root = this.createChild(null, data);
-      this.current = this.root;
-      return this.root;
+      if (isNewTabUrl(data.url)) {
+        this.root = this.createChild(null, data);
+        if (setAsCurrent || !this.current) this.current = this.root;
+        return this.root;
+      }
+      this.root = this.createChild(null, buildNewTabRootData());
+      if (!this.current) this.current = this.root;
+      // intentional fall-through — parent resolution below picks up
+      // the freshly-created NTP root and attaches the incoming URL
+      // as its first child.
     }
 
-    // QUESTION: how should we handle this.current === null?
-    if (!this.current) {
-      this.current = this.root;
-    }
+    // Resolve the parent. Unknown parentId or null falls back to the
+    // tree's root — NOT to `this.current` (that was the original bug).
+    const parent = (parentId !== null ? this.findNodeById(parentId) : null) ?? this.root;
 
     const targetKey = createUrlKey(data.url);
-    const currentKey = createUrlKey(this.current.data.url);
+    const parentKey = createUrlKey(parent.data.url);
 
-    // same url as current ==> update metadata
-    if (currentKey === targetKey) {
-      this.current.data = updateNodeMeta(this.current.data, data);
-      this.updateSearchEntry(this.current);
-      return this.current;
+    // same url as parent ==> update metadata
+    if (parentKey === targetKey) {
+      parent.data = updateNodeMeta(parent.data, data);
+      this.updateSearchEntry(parent);
+      if (setAsCurrent) this.current = parent;
+      return parent;
     }
 
-    // if current has a child with the same url ==> update metadata
-    const existingChild = this.current
-      .getChildren()
-      .find((c) => createUrlKey(c.data.url) === targetKey);
+    // if parent has a child with the same url ==> update metadata + use it
+    const existingChild = parent.getChildren().find((c) => createUrlKey(c.data.url) === targetKey);
     if (existingChild) {
       existingChild.data = updateNodeMeta(existingChild.data, data);
       this.updateSearchEntry(existingChild);
-      this.current = existingChild;
+      if (setAsCurrent) this.current = existingChild;
       return existingChild;
     }
 
-    // if backOnRevisit: search ancestors
+    // if backOnRevisit: search ancestors of the parent
     if (options.backOnRevisit ?? DefaultNavigationOptions.backOnRevisit) {
-      let ancestor = this.current.getParent();
+      let ancestor = parent.getParent();
       while (ancestor) {
         if (createUrlKey(ancestor.data.url) === targetKey) {
           ancestor.data = updateNodeMeta(ancestor.data, data);
           this.updateSearchEntry(ancestor);
-          this.current = ancestor;
+          if (setAsCurrent) this.current = ancestor;
           return ancestor;
         }
         ancestor = ancestor.getParent();
       }
     }
 
-    // create a child
-    const newChild = this.createChild(this.current, data);
-    this.current = newChild;
+    // create a child of `parent`
+    const newChild = this.createChild(parent, data);
+    if (setAsCurrent) this.current = newChild;
     return newChild;
   }
 
@@ -176,6 +321,7 @@ export class NavigationTree {
     const child = node ? node.addChild(data) : new TreeNode(data);
     this.nodeMap.set(child.id, child);
     this.updateSearchEntry(child);
+    this.indexUrlForNode(child);
     this.nodeCount++;
     return child;
   }
@@ -193,7 +339,6 @@ export class NavigationTree {
     return nodes;
   }
 
-  // todo: remove this functionality of deleting nodes
   deleteNode(nodeId: NodeId): DeleteNodeResult {
     const node = this.findNodeById(nodeId);
     if (!node || node.isRoot()) return { removed: [], redirects: [] };
@@ -205,6 +350,7 @@ export class NavigationTree {
     node.remove();
     this.nodeMap.delete(node.id);
     this.removeSearchEntry(node.id);
+    this.unindexUrlForNode(node);
     this.nodeCount = Math.max(0, this.nodeCount - 1);
 
     if (this.current && this.current.id === nodeId) {
@@ -215,6 +361,9 @@ export class NavigationTree {
     if (parent) {
       redirects = this.mergeDuplicateChildren(parent);
     }
+
+    const deletedIds = [node.id, ...redirects.map((r) => r.from)];
+    this.emitNodesDeleted(deletedIds);
 
     return { removed, redirects };
   }
@@ -234,6 +383,7 @@ export class NavigationTree {
     for (const removedNode of removed) {
       this.nodeMap.delete(removedNode.id);
       this.removeSearchEntry(removedNode.id);
+      this.unindexUrlForNode(removedNode);
     }
     this.nodeCount = Math.max(0, this.nodeCount - removed.length);
 
@@ -241,6 +391,7 @@ export class NavigationTree {
       this.current = node;
     }
 
+    this.emitNodesDeleted(removed.map((n) => n.id));
     return removed;
   }
 
@@ -256,7 +407,9 @@ export class NavigationTree {
       this.nodeMap.clear();
       this.searchIndex = NavigationTree.createSearchIndex();
       this.searchDocs.clear();
+      this.urlIndex.clear();
       this.nodeCount = 0;
+      this.emitNodesDeleted(removed.map((n) => n.id));
       return removed;
     }
 
@@ -266,6 +419,7 @@ export class NavigationTree {
     for (const removedNode of removed) {
       this.nodeMap.delete(removedNode.id);
       this.removeSearchEntry(removedNode.id);
+      this.unindexUrlForNode(removedNode);
     }
     this.nodeCount = Math.max(0, this.nodeCount - removed.length);
 
@@ -273,6 +427,7 @@ export class NavigationTree {
       this.current = parent ?? null;
     }
 
+    this.emitNodesDeleted(removed.map((n) => n.id));
     return removed;
   }
 
@@ -282,6 +437,7 @@ export class NavigationTree {
     this.nodeMap.clear();
     this.searchIndex = NavigationTree.createSearchIndex();
     this.searchDocs.clear();
+    this.urlIndex.clear();
     this.nodeCount = 0;
   }
 
@@ -305,26 +461,54 @@ export class NavigationTree {
       const nodeB = this.nodeMap.get(b);
       const timeA = nodeA?.timestamp ?? 0;
       const timeB = nodeB?.timestamp ?? 0;
-      if (timeA === timeB) return Number(a) - Number(b);
+      if (timeA === timeB) return (a as string).localeCompare(b as string);
       return timeA - timeB;
     });
     return ids;
   }
 
-  findByUrl(url: Url): NavigationNode | null {
+  /**
+   * O(1) URL lookup via the urlIndex. When multiple nodes share the
+   * same URL key (same URL reached from two different parts of the
+   * tree), prefer the one closest to `near` (via ancestor walk). If
+   * `near` is not provided, return the first match in insertion
+   * order. Never returns a detached node (those are unindexed on
+   * delete).
+   */
+  findByUrl(url: Url, near?: NavigationNode): NavigationNode | null {
     const targetKey = createUrlKey(url);
-    for (const node of this.iter() ?? []) {
-      if (createUrlKey(node.data.url) === targetKey) {
-        return node;
-      }
+    if (!targetKey) return null;
+    const set = this.urlIndex.get(targetKey);
+    if (!set || set.size === 0) return null;
+    if (set.size === 1 || !near) {
+      return set.values().next().value ?? null;
     }
-    return null;
+    // Proximity: walk up from `near` to root; the first ancestor
+    // that's in the set wins.
+    let cursor: NavigationNode | null = near;
+    while (cursor) {
+      if (set.has(cursor)) return cursor;
+      cursor = cursor.getParent();
+    }
+    // Otherwise, walk down from `near`'s subtree looking for a match.
+    for (const node of near.iter()) {
+      if (set.has(node)) return node;
+    }
+    // No proximity winner — fall back to the first inserted.
+    return set.values().next().value ?? null;
   }
 
-  setCurrentById(nodeId: NodeId): void {
+  /**
+   * Set the current cursor by id.
+   * Returns true if the node was found and current was updated;
+   * false if the id does not exist (silent no-op for the caller's
+   * awareness — callers that need to react to a miss should check).
+   */
+  setCurrentById(nodeId: NodeId): boolean {
     const node = this.findNodeById(nodeId);
-    if (!node) return;
+    if (!node) return false;
     this.setCurrent(node);
+    return true;
   }
 
   getCurrentId(): NodeId | null {
@@ -339,6 +523,36 @@ export class NavigationTree {
     const node = this.findNodeById(nodeId);
     if (!node) return;
     this.updateSearchEntry(node);
+  }
+
+  /**
+   * Centralized node-data mutation. All external writers should go
+   * through this instead of `node.data = {...}` so invariants stay
+   * intact:
+   *   - search index is refreshed if url / title / favicon changed
+   *   - URL-key index (added in a follow-up commit) stays consistent
+   *   - future mutation subscribers (for sidepanel sync) can observe
+   *
+   * Returns the updated node or null if the id wasn't found.
+   */
+  updateNodeData(nodeId: NodeId, patch: Partial<NodeData>): NavigationNode | null {
+    const node = this.findNodeById(nodeId);
+    if (!node) return null;
+    const prev = node.data;
+    const next: NodeData = { ...prev, ...patch } as NodeData;
+    const prevUrlKey = createUrlKey(prev.url);
+    const nextUrlKey = createUrlKey(next.url);
+    node.data = next;
+    if (prevUrlKey !== nextUrlKey) {
+      this.unindexUrlForNode(node, prevUrlKey);
+      this.indexUrlForNode(node);
+    }
+    const searchAffected =
+      prev.url !== next.url || prev.title !== next.title || prev.favicon !== next.favicon;
+    if (searchAffected) {
+      this.updateSearchEntry(node);
+    }
+    return node;
   }
 
   private updateSearchEntry(node: NavigationNode): void {

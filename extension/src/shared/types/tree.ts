@@ -31,6 +31,13 @@ export type TreeSummary = TreeMeta & {
   rootUrl?: Url;
   rootTitle?: Title;
   rootFavicon?: FaviconUrl;
+  /**
+   * Last time the user opened/stashed/materialized this tree locally.
+   * Optional for backwards compatibility — entries written before this
+   * field existed will be missing it; retention sort falls back to
+   * `savedAt` in that case.
+   */
+  lastOpenedAt?: number;
 };
 
 export type TreeRecord = TreeSummary & {
@@ -38,26 +45,19 @@ export type TreeRecord = TreeSummary & {
 };
 
 /**
- * A stub entry in the archive index: the tree payload is NOT stored locally,
+ * A stub entry in the tree index: the tree payload is NOT stored locally,
  * it exists only on the server.  Opening a stub triggers a cloud fetch.
  */
 export type TreeStub = TreeSummary & { stub: true };
 
 /**
- * Each entry in the archive index is either a full summary (with a
+ * Each entry in the tree index is either a full summary (with a
  * corresponding compressed blob in `trail_ar_{id}`) or a stub.
  */
-export type ArchiveIndexEntry = TreeSummary | TreeStub;
+export type TreeIndexEntry = TreeSummary | TreeStub;
 
-export function isTreeStub(entry: ArchiveIndexEntry): entry is TreeStub {
+export function isTreeStub(entry: TreeIndexEntry): entry is TreeStub {
   return "stub" in entry && entry.stub === true;
 }
 
-export function isNavigationTreeJSON(value: unknown): value is NavigationTreeJSON {
-  if (!value || typeof value !== "object") return false;
-  if (!("root" in value)) return false;
-  const v = value as Record<string, unknown>;
-  if (!(v.currentNodeId === null || typeof v.currentNodeId === "number")) return false;
-  if (!Number.isFinite(v.nodeCount)) return false;
-  return true;
-}
+export { isNavigationTreeJSON } from "../schemas/node.js";

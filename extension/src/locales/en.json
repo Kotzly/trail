@@ -1,0 +1,824 @@
+{
+  "extName": {
+    "message": "Trail - Visual Browsing History",
+    "description": "Extension name shown in Chrome Web Store and toolbar."
+  },
+  "extDescription": {
+    "message": "Your browsing sessions, reimagined as an interactive graph.",
+    "description": "Short description shown under the extension name."
+  },
+  "openTrail": {
+    "message": "Open Trail",
+    "description": "Tooltip on the toolbar action icon."
+  },
+  "onboarding": {
+    "stepTitle": {
+      "welcome": "Welcome to Trail",
+      "privacy": "What Trail records",
+      "branch": "How Trail branches",
+      "start": "Choose a starting tree",
+      "ready": "Keyboard shortcuts"
+    },
+    "stepDescription": "Trail setup — step $1 of $2",
+    "skipAriaLabel": "Skip onboarding",
+    "back": "Back",
+    "primary": {
+      "letsGo": "Let's go",
+      "showMore": "Show me more",
+      "gotIt": "Got it"
+    },
+    "pickOne": "Pick one to continue",
+    "loadDemoError": "Load demo tree",
+    "welcome": {
+      "title": "Every click becomes a node.",
+      "body": "Trail turns your browsing into a map you can revisit, rearrange, and understand."
+    },
+    "privacy": {
+      "title": "We see less than you think.",
+      "body": "Trail records just enough to draw the map. Nothing stored leaves your device — unless you opt in to cloud sync later.",
+      "recordedHeader": "Recorded",
+      "neverHeader": "Never",
+      "recordedItems": {
+        "url": "Page URL",
+        "title": "Page title",
+        "favicon": "Favicon"
+      },
+      "neverItems": {
+        "keystrokes": "Keystrokes",
+        "formContent": "Form content",
+        "passwords": "Passwords"
+      },
+      "footer": "Local-first by default. Cloud sync is opt-in."
+    },
+    "branch": {
+      "title": "Backtracking doesn't lose your work.",
+      "body": "Revisit a page, click a new link — Trail branches so you keep both paths.",
+      "footnote": "Quick glances fade on their own. If you return, they reappear.",
+      "settingsHint": "Tune it in Settings → Behavior."
+    },
+    "start": {
+      "title": "Start with something real, or start empty.",
+      "body": "Either works. You can always switch trees later.",
+      "demoTitle": "Load the Japan demo tree",
+      "demoBody": "~25 nodes you can pan, collapse, and edit.",
+      "freshTitle": "Start fresh",
+      "freshBody": "Your next click becomes the first node.",
+      "footnote": "Your current tree (if any) stays saved — you can switch back from the sidepanel."
+    },
+    "ready": {
+      "title": "You're set.",
+      "body": "A few shortcuts to make it feel yours.",
+      "footer": "Happy trailing.",
+      "shortcut": {
+        "commandPalette": "Command palette",
+        "undo": "Undo (last 30)",
+        "renameNode": "Rename node",
+        "allShortcuts": "All shortcuts"
+      }
+    },
+    "v2": {
+      "hook": {
+        "eyebrow": "01 — A seed",
+        "title": "Never lose a tab again.",
+        "body": "Trail turns every click into a node you can return to — weeks later, with two letters.",
+        "cta": "Show me"
+      },
+      "problem": {
+        "title": "You know the feeling.",
+        "questions": {
+          "q1": "Wait — where was that tab I just had?",
+          "q2": "How did I end up on this page?",
+          "q3": "I hit back. Now it's gone."
+        },
+        "footer": "That's the hole Trail fills.",
+        "cta": "Keep going"
+      },
+      "persona": {
+        "title": "What do you lose in your browser?",
+        "subtitle": "Pick whichever feels most like you.",
+        "options": {
+          "research": {
+            "title": "Research threads",
+            "body": "I compare five things at once and get lost."
+          },
+          "article": {
+            "title": "That one article",
+            "body": "I meant to come back. I didn't."
+          },
+          "learning": {
+            "title": "Learning paths",
+            "body": "I was deep in something. Now it's gone."
+          },
+          "tabs": {
+            "title": "Open tabs",
+            "body": "I keep tabs open because I'm scared to close them."
+          }
+        }
+      },
+      "solution": {
+        "imagineLabel": "Imagine",
+        "research": {
+          "title": "Every path you explored, kept.",
+          "body": "Click back, try another — both are saved. Nothing dies when you change your mind.",
+          "imagine": "You compare five laptops. Hop between them. Close every tab. Next Tuesday, every path is still there, side by side.",
+          "chips": {
+            "c1": "Parallel paths",
+            "c2": "Nothing overwrites",
+            "c3": "Revisit anytime"
+          }
+        },
+        "article": {
+          "title": "Every click, a searchable node.",
+          "body": "That thing from Tuesday is two letters away.",
+          "imagine": "You half-read an article at 11pm. Close the tab. Friday afternoon, type two words — it's right there.",
+          "chips": {
+            "c1": "Searchable",
+            "c2": "Survives tab close",
+            "c3": "Weeks-old, findable"
+          }
+        },
+        "learning": {
+          "title": "Your learning is a tree, not a list.",
+          "body": "Trail draws the tree so you can pick up where you left off.",
+          "imagine": "You're deep in a React rabbit hole. Life happens. You come back — the exact branch you were on is right where you left it.",
+          "chips": {
+            "c1": "Threads kept",
+            "c2": "Resume mid-thought",
+            "c3": "No more 'wait, where was I'"
+          }
+        },
+        "tabs": {
+          "title": "Close tabs. Keep them addressable.",
+          "body": "Open any node from yesterday like it's still a tab.",
+          "imagine": "40 tabs down to 4. Everything else lives in the graph — one click and you're back in it.",
+          "chips": {
+            "c1": "Less RAM",
+            "c2": "One click back",
+            "c3": "Peace of mind"
+          }
+        }
+      },
+      "features": {
+        "title": "Three ideas, that's it.",
+        "bullets": {
+          "b1": "Every tab you open is a node you can return to.",
+          "b2": "Go back, then click somewhere else? Both paths are saved.",
+          "b3": "Search what you actually did, not just URLs you typed."
+        },
+        "cta": "Let me feel it",
+        "skipCta": "No, thank you"
+      }
+    },
+    "tour": {
+      "badge": "Tour",
+      "progress": "Step $1 of $2",
+      "skip": "Skip",
+      "confirmSkip": "Exit the tour? Your tour tree will be deleted.",
+      "confirmSkipTitle": "Exit the tour?",
+      "confirmSkipBody": "Your tour tree will be deleted. You can start over from the sidepanel later.",
+      "confirmSkipCancel": "Stay in the tour",
+      "confirmSkipConfirm": "Exit tour",
+      "regionAriaLabel": "Onboarding coach",
+      "arm": {
+        "title": "Open any site.",
+        "body": "A news front page, a blog, GitHub, Wikipedia — anything with links. I'll watch the tree start.",
+        "pickForMeCta": "Pick for me"
+      },
+      "clickResult": {
+        "title": "Nice. Click any link on that page.",
+        "body": "Whatever looks interesting. We'll use it as the starting point."
+      },
+      "goBack": {
+        "title": "Now press Back.",
+        "body": "Go back to the page you came from. Your first click stays saved in the tree."
+      },
+      "clickAnother": {
+        "title": "Good. Now click a different link.",
+        "body": "Pick any other link on the same page. That's where Trail does the interesting part."
+      },
+      "celebrateBranch": {
+        "title": "You branched.",
+        "body": "Both paths are saved. Neither disappears when you change your mind.",
+        "cta": "Nice"
+      },
+      "returnToAbandoned": {
+        "title": "One more — click the highlighted node.",
+        "body": "See the ring in the graph? That's the first result you opened. Click it here to jump back."
+      }
+    },
+    "celebration": {
+      "eyebrow": "Your first trail",
+      "title": "$1 nodes in $2 seconds.",
+      "body": "This is what every browsing session could look like.",
+      "bodyByPersona": {
+        "research": "Your real research looks just like this — only longer.",
+        "article": "Every article you meant to reread is findable now.",
+        "learning": "Next time a thread resumes, you'll pick up right here.",
+        "tabs": "You can close every one of them. Nothing gets lost."
+      },
+      "cta": "That's enough"
+    },
+    "cta": {
+      "eyebrow": "Keep going",
+      "title": "Keep it across devices?",
+      "taglines": {
+        "research": "Your research deserves to outlive this tab.",
+        "article": "That article will still be here tomorrow.",
+        "learning": "Pick up where you left off — from any device.",
+        "tabs": "Every tab, every device, still addressable."
+      },
+      "signIn": "Sign in",
+      "skip": "Maybe later"
+    },
+    "hintStrip": {
+      "regionAriaLabel": "Onboarding hint",
+      "dismissAriaLabel": "Dismiss",
+      "resume": {
+        "title": "Tour paused",
+        "body": "Pick up from where you left off.",
+        "cta": "Resume tour"
+      },
+      "pin": {
+        "title": "Pin Trail to your toolbar",
+        "body": "Click the puzzle piece in your toolbar, then the pin next to Trail. One click to open from anywhere.",
+        "cta": "Show me how",
+        "gotIt": "Got it"
+      }
+    }
+  },
+  "trees": {
+    "title": "Trees",
+    "description": "Create, open, import, and export your trees.",
+    "import": "Import",
+    "importAriaLabel": "Import a .trail or .json export",
+    "newTree": "New tree",
+    "activeDescription": "Currently open in the sidepanel.",
+    "open": "Open",
+    "nodes": "$1 nodes",
+    "createDialog": {
+      "title": "Create a new tree",
+      "description": "Trees are independent browsing maps. Each tree keeps its own nodes and history.",
+      "nameLabel": "Name",
+      "namePlaceholder": "e.g. Research, Shopping, Trip planning",
+      "cancel": "Cancel",
+      "creating": "Creating…",
+      "create": "Create"
+    },
+    "actions": {
+      "exportTree": "Export tree",
+      "export": "Export",
+      "rename": "Rename",
+      "delete": "Delete"
+    },
+    "deleteDialog": {
+      "title": "Delete \"$1\"?",
+      "description": "This permanently deletes the tree and all its nodes. This cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "sync": {
+      "working": "Working…",
+      "pending": "Sync pending",
+      "inProgressAria": "In progress",
+      "cloudOnlyTooltip": "Cloud only — click to download to this device",
+      "cloudOnlyAria": "Download tree to this device",
+      "syncedActiveTooltip": "Synced · $1 · active tree",
+      "syncedActiveTooltipNoTime": "Synced · active tree",
+      "syncedActiveAria": "Synced (active tree)",
+      "localActiveTooltip": "Local only · active tree (open another tree to unload this one)",
+      "localActiveAria": "Local only (active tree)",
+      "syncedOfferUnloadTooltip": "Synced · $1 · click to remove from this device",
+      "syncedOfferUnloadTooltipNoTime": "Synced · click to remove from this device",
+      "unloadAria": "Unload tree from this device",
+      "localOfferUploadTooltip": "Local only — click to sync to cloud and remove from this device",
+      "uploadAndUnloadAria": "Upload and unload tree"
+    },
+    "relative": {
+      "justNow": "just now",
+      "minutesAgo": "$1m ago",
+      "hoursAgo": "$1h ago",
+      "daysAgo": "$1d ago"
+    },
+    "toast": {
+      "imported": "Tree imported.",
+      "importFailed": "Import failed",
+      "downloaded": "Tree downloaded to this device.",
+      "unloaded": "Tree unloaded — kept in the cloud only.",
+      "createFailed": "Couldn't create tree",
+      "openFailed": "Couldn't open tree",
+      "renameFailed": "Couldn't rename tree",
+      "deleteFailed": "Couldn't delete tree",
+      "downloadFailed": "Couldn't download tree",
+      "unloadFailed": "Couldn't unload tree"
+    },
+    "groupHeading": {
+      "active": "Active",
+      "otherTrees": "All trees"
+    }
+  },
+  "account": {
+    "title": "Account",
+    "descriptionCloudOff": "Cloud sync is not configured in this build.",
+    "descriptionCloudOn": "Sign in to sync your trees across devices. Your data stays on your device until you explicitly sign in.",
+    "localOnlyAlertTitle": "Local-only mode",
+    "localOnlyAlertBodyPrefix": "This build of Trail has no Supabase credentials baked in, so cloud sync, sign-in, and cross-device support are turned off. Everything still works locally — your trees live in",
+    "localOnlyAlertBodySuffix": "on this profile.",
+    "cardTitle": "Trail account",
+    "signingOut": "Signing out…",
+    "signOut": "Sign out",
+    "signedInFallback": "Signed in",
+    "notSignedInBody": "You're not signed in. Your trees are stored locally only. We never see your password — it's hashed before it leaves your device.",
+    "openSignIn": "Open sign-in",
+    "signOutFailed": "Sign-out failed",
+    "provider": {
+      "google": "Google",
+      "email": "Email"
+    },
+    "sync": {
+      "title": "Sync",
+      "status": {
+        "idle": "Up to date",
+        "saving": "Syncing…",
+        "saved": "Up to date",
+        "error": "Sync error",
+        "offline": "Offline"
+      },
+      "statusLabel": "Status",
+      "treesSynced": "Trees synced",
+      "pending": "Pending",
+      "lastSync": "Last sync",
+      "dash": "—"
+    },
+    "security": {
+      "title": "Security",
+      "changePassword": "Change password",
+      "dialogDescription": "Choose a new password. You'll stay signed in on this device.",
+      "newPassword": "New password",
+      "confirmPassword": "Confirm password",
+      "cancel": "Cancel",
+      "updating": "Updating…",
+      "updatePassword": "Update password",
+      "passwordsMismatch": "Passwords don't match.",
+      "passwordUpdated": "Password updated.",
+      "sectionDescription": "Update the password used to sign in to your account.",
+      "passwordHint": "At least 8 characters with uppercase, lowercase, a number, and a symbol."
+    },
+    "danger": {
+      "title": "Danger zone",
+      "description": "These actions are irreversible. Read each description carefully before you confirm.",
+      "cancel": "Cancel",
+      "clearLocal": {
+        "name": "Clear local data",
+        "description": "Wipes every tree and tree-related state on this profile (sync queue, undo history, tab restoration). Sign-in, settings, and open browser tabs stay. Cloud data is not touched — signed-in users will see their cloud trees reappear as cloud-only entries after the next sync.",
+        "button": "Clear",
+        "confirmTitle": "Clear all local trees?",
+        "confirmBody": "Wipes every tree and tree-related state on this profile. Sign-in, settings, and open browser tabs stay. Cloud data is untouched."
+      },
+      "delete": {
+        "name": "Delete account",
+        "description": "Permanently deletes your Trail account and every tree stored in the cloud. Local data is cleared right away; server-side removal finishes within 30 days. This cannot be undone.",
+        "button": "Delete",
+        "confirmTitle": "Delete your Trail account?",
+        "confirmBody": "This requests deletion of your account and all cloud-stored trees. Local data is cleared immediately. Server-side deletion completes within 30 days per our Privacy Policy. This cannot be undone.",
+        "confirmAction": "Delete everything"
+      },
+      "toast": {
+        "cleared": "Local trees cleared. Your browser tabs are untouched.",
+        "clearFailed": "Failed to clear local data",
+        "deletionRequested": "Account deletion requested",
+        "deletionBody": "Your local data has been cleared and your session ended. Server-side data removal completes within 30 days.",
+        "deleteFailed": "Failed to request account deletion"
+      }
+    }
+  },
+  "menus": {
+    "untitledTab": "Untitled tab",
+    "untitled": "Untitled",
+    "muteTab": "Mute tab",
+    "unmuteTab": "Unmute tab",
+    "closeTab": "Close tab",
+    "openInThisTab": "Open in this tab",
+    "openInNewTab": "Open in new tab",
+    "openTabsOne": "$1 open tab",
+    "openTabsMany": "$1 open tabs",
+    "closeAllTabs": "Close all tabs",
+    "closeAllTabsConfirm": "Confirm: close all tabs",
+    "pin": "Pin",
+    "unpin": "Unpin",
+    "pinSelected": "Pin selected",
+    "unpinSelected": "Unpin selected",
+    "collapseNode": "Collapse node",
+    "expandNode": "Expand node",
+    "collapseSelected": "Collapse selected",
+    "expandSelected": "Expand selected",
+    "rename": "Rename…",
+    "copyUrl": "Copy URL",
+    "copyUrls": "Copy URLs",
+    "copyTitle": "Copy title",
+    "urlCopied": "URL copied",
+    "titleCopied": "Title copied",
+    "urlsCopiedOne": "$1 URL copied",
+    "urlsCopiedMany": "$1 URLs copied",
+    "deleteTree": "Delete tree",
+    "deleteTreeConfirm": "Confirm: delete tree",
+    "deleteNode": "Delete node",
+    "deleteNodeConfirm": "Confirm: delete node",
+    "deleteChildren": "Delete children",
+    "deleteChildrenConfirm": "Confirm: delete children",
+    "deleteSubtree": "Delete subtree",
+    "deleteSubtreeConfirm": "Confirm: delete subtree",
+    "deleteNodes": "Delete nodes",
+    "deleteNodesConfirm": "Confirm: delete nodes",
+    "deleteSubtrees": "Delete subtrees",
+    "deleteSubtreesConfirm": "Confirm: delete subtrees",
+    "nodesSelectedOne": "$1 node selected",
+    "nodesSelectedMany": "$1 nodes selected",
+    "closeSelectedTabs": "Close selected tabs",
+    "openPageOp": "Open page",
+    "unfoldChain": "Unfold chain ($1 hidden)",
+    "refoldChain": "Refold chain"
+  },
+  "feedback": {
+    "messageLabel": "Message",
+    "contactLabel": "Contact",
+    "contactOptional": "(optional)",
+    "contactPlaceholder": "Email or @handle if you'd like a reply",
+    "cancel": "Cancel",
+    "sending": "Sending…",
+    "send": "Send",
+    "toastSuccess": "Thanks — we got it.",
+    "toastSuccessSentry": "Your report was attached to our crash dashboard.",
+    "toastSuccessFallback": "Our team reads every message.",
+    "toastFailure": "Couldn't send your message",
+    "bug": {
+      "title": "Report a bug",
+      "description": "Tell us what went wrong. If a recent crash was captured, we'll attach it automatically.",
+      "placeholder": "What happened? What did you expect?"
+    },
+    "feature": {
+      "title": "Suggest a feature",
+      "description": "What would make Trail better for you?",
+      "placeholder": "Describe the feature you'd like to see…"
+    },
+    "support": {
+      "title": "Contact support",
+      "description": "Stuck on something? We'll get back to you.",
+      "placeholder": "How can we help?"
+    }
+  },
+  "login": {
+    "form": {
+      "welcomeBack": "Welcome back",
+      "signInDescription": "Sign in with Google or email",
+      "loginWithGoogle": "Login with Google",
+      "orContinueWith": "Or continue with",
+      "emailLabel": "Email",
+      "emailPlaceholder": "me@example.com",
+      "passwordLabel": "Password",
+      "forgotPassword": "Forgot your password?",
+      "login": "Login",
+      "noAccount": "Don't have an account?",
+      "signUp": "Sign up",
+      "termsPrefix": "By clicking Login, you agree to our",
+      "termsOfService": "Terms of Service",
+      "and": "and",
+      "privacyPolicy": "Privacy Policy"
+    },
+    "signupForm": {
+      "createAccount": "Create your account",
+      "createDescription": "Create account with Google or email",
+      "signUpWithGoogle": "Sign up with Google",
+      "passwordHint": "At least 8 characters with uppercase, lowercase, a number, and a symbol.",
+      "submit": "Create account",
+      "haveAccount": "Already have an account?",
+      "signIn": "Sign in",
+      "termsPrefix": "By clicking continue, you agree to our"
+    },
+    "passwordRequired": "Password is required.",
+    "signupOtpSent": "We sent a 6-digit code to your email. Enter it below to finish.",
+    "recoveryOtpSent": "We sent a recovery code to your email. Enter it below, then choose a new password.",
+    "otpInvalidFormat": "Enter the 6-digit code.",
+    "recoveryCodeAccepted": "Code accepted. Choose a new password to finish.",
+    "codeResent": "Code re-sent. Check your inbox.",
+    "passwordsMismatch": "Passwords don't match.",
+    "signedInTitle": "Welcome, $1",
+    "signedInFallbackName": "there",
+    "signedInDescription": "You're signed in. Your trees will start syncing across devices automatically. Open Trail from the extension icon in your toolbar.",
+    "done": "Done",
+    "cloudUnconfiguredTitle": "Cloud sync not configured",
+    "cloudUnconfiguredDescription": "This build of Trail has no Supabase credentials baked in. Sign-in is disabled — your trees still work locally.",
+    "setPassword": {
+      "title": "Choose a new password",
+      "signedInAs": "Signed in as",
+      "newPasswordLabel": "New password",
+      "passwordHelp": "At least 8 characters with uppercase, lowercase, a number, and a symbol.",
+      "confirmPasswordLabel": "Confirm password",
+      "updating": "Updating…",
+      "updatePassword": "Update password"
+    },
+    "verify": {
+      "title": "Confirm your email",
+      "descriptionPrefix": "We sent a 6-digit code to",
+      "codeLabel": "6-digit code",
+      "verifying": "Verifying…",
+      "verifyCode": "Verify code",
+      "didntGetIt": "Didn't get it?",
+      "resendCode": "Resend code",
+      "useDifferentEmail": "Use a different email"
+    }
+  },
+  "settings": {
+    "behavior": {
+      "title": "Behavior",
+      "description": "Customize how Trail works.",
+      "moreInfo": "More info",
+      "shortcutsLabel": "Keyboard shortcuts",
+      "shortcutsDescription": "Enable keyboard shortcuts in the side panel.",
+      "confirmNewTreeLabel": "Confirm new tree",
+      "confirmNewTreeDescription": "Ask for confirmation before creating a new tree.",
+      "keepTabsLabel": "Keep tabs on switch",
+      "keepTabsDescription": "Keep open tabs when switching trees.",
+      "adaptivePerfLabel": "Adaptive performance",
+      "adaptivePerfDescription": "Automatically adjust rendering quality.",
+      "cleanupTitle": "Auto-cleanup",
+      "cleanupDescription": "Trail quietly removes low-value pages to keep your map readable.",
+      "glanceLabel": "Quick-peek pruning",
+      "glanceTooltip": "If you open a page, leave within a few seconds, and never come back, Trail removes it. If you ever return to that URL later, the node comes back automatically.",
+      "glanceDescription": "Remove pages you viewed briefly and never returned to.",
+      "thresholdLabel": "Threshold · $1 s",
+      "thresholdDescription": "Pages viewed under this duration are eligible for pruning.",
+      "roundTripLabel": "Round-trip cleanup",
+      "roundTripTooltip": "If you click a link and immediately go back without staying, the side-trip is skipped. Useful for accidental clicks and captcha round-trips.",
+      "roundTripDescription": "When you visit A → B → A, skip the detour.",
+      "generalEyebrow": "General",
+      "urlFilteringTitle": "URL filtering",
+      "urlFilteringDescriptionPart1": "Decide which URLs Trail records. Supports",
+      "urlFilteringDescriptionPart2": "(single-segment wildcard) and",
+      "urlFilteringDescriptionPart3": "(cross-segment wildcard) — see examples below.",
+      "schemesLabel": "URL schemes to track",
+      "schemesDescriptionPart1": "Trail records pages using these schemes. Defaults to regular web pages only. Add",
+      "schemesDescriptionPart2": "to record local files,",
+      "schemesDescriptionPart3": "for extension pages.",
+      "schemesPlaceholder": "chrome-extension:",
+      "schemesAddLabel": "Add scheme",
+      "schemesEmpty": "No schemes — nothing will be tracked. Add at least one (e.g. https:).",
+      "blocklistLabel": "Blocked URLs",
+      "blocklistDescriptionIntro": "Patterns Trail never records. Matched against hostname + path, case-insensitive.",
+      "blocklistExample1": "any subdomain of",
+      "blocklistExample2": "exact hostname match",
+      "blocklistExample3": "any URL segment containing \"banking\"",
+      "blocklistExample4": "path ending in an",
+      "blocklistExample4Suffix": "segment",
+      "blocklistExample5": "any URL under",
+      "blocklistPlaceholder": "*.bank.com",
+      "blocklistAddLabel": "Add pattern",
+      "blocklistEmpty": "Nothing blocked. Add a pattern to hide URLs from your tree.",
+      "collapseLabel": "Fold repetitive chains",
+      "collapseDescription": "Sites whose URL changes on every keystroke (translators, live-search apps) clutter the tree. Linear chains of matching URLs are auto-folded — only the most recent node stays visible, with a $1 badge for the hidden steps. Same pattern syntax as blocked URLs. History is preserved; double-click the tip to unfold, double-click again to re-fold.",
+      "collapsePlaceholder": "*translat*",
+      "collapseAddLabel": "Add pattern",
+      "collapseEmpty": "No chain-fold patterns. Add a pattern to collapse rapid-fire URL changes."
+    },
+    "appearance": {
+      "title": "Appearance",
+      "description": "Customize how the graph looks.",
+      "themeTitle": "Theme",
+      "themeDescription": "Pick a color palette and light/dark mode.",
+      "modeLabel": "Mode",
+      "modeLight": "Light",
+      "modeDark": "Dark",
+      "modeSystem": "System",
+      "themePresetLabel": "Color theme",
+      "displayTitle": "Display",
+      "displayDescription": "Decide how much detail each node shows.",
+      "layoutLabel": "Layout mode",
+      "layoutTree": "Tree",
+      "layoutMindmap": "Mind map",
+      "densityLabel": "Density",
+      "densityCompact": "Compact",
+      "densityComfortable": "Comfortable",
+      "densitySpacious": "Spacious",
+      "truncationLabel": "Title truncation",
+      "truncationStart": "Start",
+      "truncationMiddle": "Middle",
+      "truncationEnd": "End",
+      "showFavicons": "Show favicons",
+      "showUrls": "Show URLs",
+      "showConnections": "Show connections",
+      "showTabCounts": "Show tab counts",
+      "dimClosedNodes": "Dim closed nodes",
+      "layoutEyebrow": "Layout"
+    },
+    "shortcuts": {
+      "title": "Keyboard shortcuts",
+      "description": "All shortcuts at a glance.",
+      "groupNavigation": "Navigation",
+      "groupEditing": "Editing",
+      "groupViews": "Views & panels",
+      "openPaletteSearch": "Open command palette (search everything)",
+      "openPalette": "Open command palette",
+      "moveUp": "Move focus up",
+      "moveDown": "Move focus down",
+      "moveLeft": "Move focus left",
+      "moveRight": "Move focus right",
+      "navigate": "Navigate to selected node",
+      "openInNewTab": "Open selected node in new tab",
+      "closePopups": "Close popups / clear selection",
+      "renameNode": "Rename selected node",
+      "deleteNode": "Delete node",
+      "deleteSubtree": "Delete node and all children",
+      "togglePin": "Toggle pin on selection",
+      "undo": "Undo",
+      "redo": "Redo",
+      "selectAll": "Select all visible",
+      "clearSelection": "Clear selection",
+      "togglePinned": "Toggle pinned dropdown",
+      "toggleTreeSwitcher": "Toggle tree switcher",
+      "toggleTagFilter": "Toggle tag filter",
+      "cycleLayout": "Cycle layout (tree ↔ mindmap)",
+      "toggleConnections": "Toggle connection lines",
+      "openSettings": "Open settings",
+      "showOverlay": "Show shortcut tooltips overlay"
+    },
+    "about": {
+      "title": "About Trail",
+      "description": "Your browsing sessions, reimagined as a graph.",
+      "version": "Version $1",
+      "homepage": "Homepage →",
+      "replayWalkthrough": "Replay walkthrough",
+      "replayToast": "Open the Trail sidepanel to see the walkthrough again.",
+      "feedbackTitle": "Feedback",
+      "feedbackDescription": "Tell us what's broken or what you'd like to see.",
+      "reportBug": "Report a bug",
+      "suggestFeature": "Suggest a feature",
+      "contactSupport": "Contact support",
+      "appEyebrow": "Trail",
+      "feedbackEyebrow": "Feedback"
+    },
+    "privacy": {
+      "title": "Privacy",
+      "description": "Control what leaves your device. Your browsing tree is always stored locally first.",
+      "telemetryTitle": "Diagnostic & usage data",
+      "telemetryDescription": "Help us improve Trail. We never send URLs, page titles, or tree content.",
+      "errorsLabel": "Crash reports",
+      "errorsDescription": "Send anonymized error reports via Sentry when Trail crashes.",
+      "analyticsLabel": "Product analytics",
+      "analyticsDescription": "Anonymous usage stats (feature opened, action taken) via PostHog. No personal data.",
+      "consentNote": "Changes take effect when you next open the sidepanel or settings.",
+      "recordsTitle": "What Trail records",
+      "skipIncognitoLabel": "Skip incognito windows",
+      "skipIncognitoDescription": "Don't record navigations in private browsing.",
+      "policiesTitle": "Policies",
+      "privacyPolicy": "Privacy Policy →",
+      "termsOfService": "Terms of Service →"
+    },
+    "peek": {
+      "openSidepanel": "Open sidepanel"
+    },
+    "sidebar": {
+      "resizeAria": "Resize sidebar",
+      "dragToResize": "Drag to resize · click to collapse",
+      "clickToExpand": "Click to expand"
+    }
+  },
+  "sidepanel": {
+    "bootstrap": {
+      "loadingTitle": "Loading your trails",
+      "loadingLogoLabel": "Loading Trail",
+      "loadingDescription": "Restoring your navigation graph…",
+      "errorTitle": "Could not load Trail",
+      "errorDescription": "Something prevented Trail from starting. This is usually temporary.",
+      "retry": "Retry"
+    },
+    "search": {
+      "label": "Search",
+      "title": "Search Trail",
+      "description": "Search nodes, jump between trees, or run commands",
+      "placeholder": "Search nodes or type a command...",
+      "empty": "No matches.",
+      "headingNodes": "Nodes",
+      "headingRecent": "Recent & frequent",
+      "headingActions": "Actions",
+      "openSettings": "Open settings",
+      "openFirstInNewTab": "Open first result in new tab",
+      "kbdOpen": "Open",
+      "kbdClose": "Close"
+    },
+    "treesDropdown": {
+      "label": "Saved trees",
+      "import": "Import trail",
+      "searchPlaceholder": "Search trees…",
+      "noMatches": "No trees match",
+      "emptyTitle": "No trees yet",
+      "emptyDescription": "Create a new tree to get started",
+      "treeCountOne": "tree",
+      "treeCountMany": "trees",
+      "newTreeNameTitle": "Name your new tree",
+      "metaActiveNow": "active now",
+      "metaSynced": "synced $1",
+      "metaCloud": "cloud",
+      "metaUnavailable": "unavailable",
+      "exportedToast": "Exported as JSON",
+      "unsupportedFile": "Unsupported file format",
+      "importedToast": "Trail imported",
+      "unnamedTree": "Unnamed Tree"
+    },
+    "pinnedDropdown": {
+      "label": "Pinned pages",
+      "header": "Pinned",
+      "searchPlaceholder": "Search pinned…",
+      "noMatches": "Nothing matches",
+      "emptyTitle": "No pinned pages yet",
+      "emptyDescription": "Right-click a node in the graph to pin it"
+    },
+    "settingsPopover": {
+      "label": "Settings"
+    },
+    "syncConflict": {
+      "title": "Tree updated on another device",
+      "subtitle": "Last remote change $1.",
+      "fork": "Fork tree",
+      "keepMine": "Keep mine",
+      "useServer": "Use server",
+      "forkFailed": "Couldn't fork tree: $1",
+      "forkSuccess": "Forked local copy and synced with cloud.",
+      "serverUnreachable": "Couldn't reach the server — try again in a moment.",
+      "keepMineFailed": "Couldn't keep local version: $1",
+      "keepMineSuccess": "Overwrote the cloud with your local version.",
+      "useServerFailed": "Couldn't use server version: $1",
+      "useServerSuccess": "Loaded the server version."
+    },
+    "deleteTreeConfirm": {
+      "fallbackLabel": "this tree",
+      "createNewTree": "Create new tree",
+      "deleteAction": "Delete \"$1\"",
+      "description": "This removes all $1 page$2 in this tree$3. This cannot be undone.",
+      "andClosesTabs": " and closes $1 open tab$2",
+      "pluralS": "s"
+    },
+    "deleteToasts": {
+      "undo": "Undo",
+      "deleteFailed": "Couldn't delete — please try again.",
+      "restoreFailed": "Couldn't undo deletion: $1",
+      "nodeOne": "Deleted 1 node",
+      "nodeMany": "Deleted $1 nodes",
+      "subtreeOne": "Deleted 1 node + $2 descendants",
+      "subtreeMany": "Deleted $1 nodes + $2 descendants",
+      "subtreeWithHidden": "Deleted $1 + $2 hidden",
+      "tree": "Deleted tree \"$1\"",
+      "tabsClosedSuffix": " · closed $1 tab$2"
+    },
+    "selectionBar": {
+      "selected": "$1 selected",
+      "delete": "Delete",
+      "deleteSubtree": "Delete subtree",
+      "pin": "Pin",
+      "unpin": "Unpin",
+      "clear": "Clear"
+    },
+    "paletteDelete": {
+      "deleteCurrentNode": "Delete current node",
+      "deleteSelected": "Delete selected ($1)",
+      "deleteCurrentTree": "Delete current tree"
+    },
+    "operations": {
+      "renameNode": "Rename node",
+      "moveNode": "Move node",
+      "rename": "Rename",
+      "loadTreeFromCloud": "Load tree from cloud",
+      "openTree": "Open tree",
+      "deleteTree": "Delete tree",
+      "export": "Export",
+      "createTree": "Create tree",
+      "import": "Import",
+      "openPage": "Open page",
+      "unpin": "Unpin"
+    }
+  },
+  "accountFooter": {
+    "signIn": "Sign in",
+    "accountSettings": "Account settings",
+    "signOut": "Sign out",
+    "notSignedIn": "Not signed in",
+    "signedIn": "Signed in",
+    "account": "Account",
+    "signOutFailed": "Sign-out failed"
+  },
+  "patternList": {
+    "add": "Add",
+    "removeAria": "Remove $1",
+    "helperPrefix": "Press",
+    "helperMiddle": "or click",
+    "helperSuffix": "to add."
+  },
+  "whatsNew": {
+    "upgraded": {
+      "title": "Trail is now 1.0",
+      "body": "You now have an account, cloud sync across devices, and a permanent home for your trees. Your local data is intact — sign in to back it up.",
+      "cta": {
+        "signin": "Sign in",
+        "dismiss": "Later"
+      }
+    }
+  }
+}

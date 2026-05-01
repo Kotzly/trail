@@ -1,33 +1,28 @@
 /**
- * Unified tree loading with fallback chain:
- *   active tree → archive blob → cloud GET
+ * Unified tree loading entry point.
  *
- * Single entry point for all tree loading. Replaces:
- *   - ensureTreeLoaded() from tree-storage
- *   - fetchTrailFromCloud() from cloud-fetch
- *   - inline loading in editor-handlers
+ * Resolution order:
+ *   1. Active tree (in-memory / chrome.storage)
+ *   2. Local stored blob (compressed, chrome.storage)
+ *   3. Remote Supabase payload (only when signed in; materializes to
+ *      local storage for subsequent loads)
  */
 
 import { NavigationTreeMapper } from "@shared/lib/mapper.js";
 import { isTreeStub, type TreeRecord } from "@shared/types/tree.js";
-import type { Url, Title, FaviconUrl } from "@shared/types/ids.js";
 import { treeStorage } from "./tree-storage.js";
-import { syncApi, SyncApiError, type PullTreeResponse } from "./sync/api.js";
-import { createLogger } from "@shared/lib/logger.js";
 
-const log = createLogger("tree-loader");
-
-/**
- * Load a tree by ID, trying local sources first then falling back to cloud.
- * Returns null if the tree doesn't exist anywhere.
- */
 export async function loadTree(treeId: string): Promise<TreeRecord | null> {
-  // 1. Check if it's the active tree
+  // 1. Active tree — the live in-memory copy.
   const activeMeta = await treeStorage.getActiveMeta();
   if (activeMeta.id === treeId) {
-    const tree = await treeStorage.getOrCreateTree();
+    // `getOrCreateTree()` and `getActiveSavedAt()` are independent
+    // session-storage reads — parallelize (closes P2.40).
+    const [tree, savedAt] = await Promise.all([
+      treeStorage.getOrCreateTree(),
+      treeStorage.getActiveSavedAt(),
+    ]);
     const treeJSON = NavigationTreeMapper.toJSON(tree);
-    const savedAt = await treeStorage.getActiveSavedAt();
     return {
       ...activeMeta,
       nodeCount: tree.size(),
@@ -36,67 +31,31 @@ export async function loadTree(treeId: string): Promise<TreeRecord | null> {
     };
   }
 
-  // 2. Check archive blob (local compressed storage)
-  const fullRecord = await treeStorage.getFullArchiveRecord(treeId);
+  // 2. Stored locally.
+  const fullRecord = await treeStorage.getFullStoredRecord(treeId);
   if (fullRecord) return fullRecord;
 
-  // 3. Check if it's in the index but has no blob (stub or missing blob)
-  const index = await treeStorage.getArchiveIndex();
+  // 3. Stub on server only — try to fetch + materialize.
+  const index = await treeStorage.getTreeIndex();
   const entry = index.find((e) => e.id === treeId);
+  if (!entry || !isTreeStub(entry)) return null;
 
-  if (entry) {
-    const cloudRecord = await fetchFromCloud(treeId);
-    if (cloudRecord) {
-      await treeStorage.saveArchiveTree(treeId, cloudRecord.tree);
-      if (isTreeStub(entry)) {
-        await treeStorage.unstubArchiveEntry(treeId);
-      }
-      return {
-        ...entry,
-        nodeCount: cloudRecord.nodeCount,
-        savedAt: cloudRecord.savedAt,
-        tree: cloudRecord.tree,
-      };
-    }
-  }
+  // Lazy import so the sync module isn't pulled in for purely-local flows.
+  const { fetchRemoteTreePayload } = await import("../sync/sync-engine.js");
+  const payload = await fetchRemoteTreePayload(treeId);
+  if (!payload) return null;
 
-  // 4. Not in local index — try direct cloud fetch
-  return fetchFromCloud(treeId);
-}
-
-/**
- * Fetch a tree from the cloud API and return as a TreeRecord.
- * Returns null on any error.
- */
-async function fetchFromCloud(treeId: string): Promise<TreeRecord | null> {
-  try {
-    const response = await syncApi.pullTree(treeId);
-    return remoteToTreeRecord(response);
-  } catch (error) {
-    if (error instanceof SyncApiError && error.kind === "not_found") {
-      return null;
-    }
-    if (error instanceof SyncApiError && error.kind === "unauthorized") {
-      return null;
-    }
-    log.warn("Failed to fetch tree from cloud", { treeId, error: error instanceof Error ? error.message : String(error) });
-    return null;
-  }
-}
-
-function remoteToTreeRecord(remote: PullTreeResponse): TreeRecord {
-  const record: TreeRecord = {
-    id: remote.id,
-    label: remote.label,
-    labelSource: remote.labelSource,
-    labelUpdatedAt: Date.parse(remote.labelUpdatedAt),
-    createdAt: Date.parse(remote.createdAt),
-    nodeCount: remote.nodeCount,
-    savedAt: Date.parse(remote.savedAt),
-    tree: remote.payload,
+  return {
+    id: entry.id,
+    label: entry.label,
+    labelSource: entry.labelSource,
+    labelUpdatedAt: entry.labelUpdatedAt,
+    createdAt: entry.createdAt,
+    savedAt: entry.savedAt,
+    nodeCount: entry.nodeCount,
+    ...(entry.rootUrl ? { rootUrl: entry.rootUrl } : {}),
+    ...(entry.rootTitle ? { rootTitle: entry.rootTitle } : {}),
+    ...(entry.rootFavicon ? { rootFavicon: entry.rootFavicon } : {}),
+    tree: payload,
   };
-  if (remote.rootUrl) record.rootUrl = remote.rootUrl as Url;
-  if (remote.rootTitle) record.rootTitle = remote.rootTitle as Title;
-  if (remote.rootFavicon) record.rootFavicon = remote.rootFavicon as FaviconUrl;
-  return record;
 }

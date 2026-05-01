@@ -1,3 +1,5 @@
+import { z } from "zod";
+import { Mutex } from "async-mutex";
 import { storage } from "wxt/utils/storage";
 import {
   isTreeStub,
@@ -7,33 +9,39 @@ import {
   type TreeRecord,
   type TreeStub,
   type TreeSummary,
-  type ArchiveIndexEntry,
+  type TreeIndexEntry,
 } from "@shared/types/tree.js";
 import { NavigationTree } from "../state/nav-tree.js";
 import { NavigationTreeMapper } from "@shared/lib/mapper.js";
 import { uuidv7 } from "@shared/lib/uuid.js";
 import { findBestTrailFavicon } from "@shared/lib/tree-favicon.js";
+import { buildNewTabRootData, isNewTabUrl } from "@shared/lib/root.js";
 import { encodeTree, decodeTree } from "@shared/lib/tree-codec.js";
-import { quotaAwareSet, type BulkEntry } from "./quota-manager.js";
 import {
   activeTreeItem,
   activeTreeMetaItem,
-  archiveIndexItem,
+  treeIndexItem,
   treeSavedAtItem,
-  archiveBlobKey,
+  treeBlobKey,
 } from "../../shared/config/storage-items.js";
-import type { Title, Url } from "@shared/types/ids.js";
-import type { NodeData } from "@shared/types/node.js";
+import type { FaviconUrl, Title, Url } from "@shared/types/ids.js";
 import { createLogger } from "@shared/lib/logger.js";
 
 const log = createLogger("tree-storage");
 
+type BulkEntry =
+  | { item: { setValue: (v: unknown) => Promise<void> }; value: unknown }
+  | {
+      key: `local:${string}` | `session:${string}` | `sync:${string}` | `managed:${string}`;
+      value: unknown;
+    };
+
 /** Adapter to satisfy the BulkEntry item shape (which uses `unknown` for generic bulk writes). */
-const archiveIndexBulkItem: { key: string; setValue: (v: unknown) => Promise<void> } = {
+const treeIndexBulkItem: { key: string; setValue: (v: unknown) => Promise<void> } = {
   get key() {
-    return archiveIndexItem.key;
+    return treeIndexItem.key;
   },
-  setValue: (v) => archiveIndexItem.setValue(v as ArchiveIndexEntry[]),
+  setValue: (v) => treeIndexItem.setValue(v as TreeIndexEntry[]),
 };
 
 // ---------------------------------------------------------------------------
@@ -47,40 +55,60 @@ const LABEL_MAX = 80;
 // Helpers
 // ---------------------------------------------------------------------------
 
-function normalizeLabel(raw: unknown): string {
-  if (typeof raw !== "string") return DEFAULT_LABEL;
-  const trimmed = raw.trim();
-  return trimmed ? trimmed.slice(0, LABEL_MAX) : DEFAULT_LABEL;
-}
+const labelSchema = z
+  .unknown()
+  .transform((raw) => (typeof raw === "string" ? raw.trim().slice(0, LABEL_MAX) : ""))
+  .transform((s) => s || DEFAULT_LABEL);
 
-function normalizeLabelSource(raw: unknown): TreeLabelSource {
-  if (raw === "user" || raw === "auto" || raw === "system") return raw;
-  return "system";
-}
+const labelSourceSchema = z
+  .unknown()
+  .transform(
+    (raw): TreeLabelSource =>
+      raw === "user" || raw === "auto" || raw === "system" ? raw : "system",
+  );
+
+const finiteNumberOr = (fallback: () => number) =>
+  z
+    .unknown()
+    .transform((raw) => (typeof raw === "number" && Number.isFinite(raw) ? raw : fallback()));
+
+const optionalString = z.unknown().transform((raw) => (typeof raw === "string" ? raw : undefined));
+
+const metaSchema = z
+  .object({
+    id: z.string(),
+    label: labelSchema,
+    labelSource: labelSourceSchema,
+    createdAt: finiteNumberOr(() => Date.now()),
+    labelUpdatedAt: z.unknown(),
+  })
+  .transform(
+    ({ id, label, labelSource, createdAt, labelUpdatedAt }) =>
+      ({
+        id,
+        label,
+        labelSource,
+        createdAt,
+        labelUpdatedAt:
+          typeof labelUpdatedAt === "number" && Number.isFinite(labelUpdatedAt)
+            ? labelUpdatedAt
+            : createdAt,
+      }) satisfies TreeMeta,
+  );
 
 function normalizeMeta(raw: unknown): TreeMeta | null {
-  if (!raw || typeof raw !== "object") return null;
-  const candidate = raw as Partial<TreeMeta>;
-  if (typeof candidate.id !== "string") return null;
-  const createdAt = Number.isFinite(candidate.createdAt)
-    ? (candidate.createdAt as number)
-    : Date.now();
-  const labelUpdatedAt = Number.isFinite(candidate.labelUpdatedAt)
-    ? (candidate.labelUpdatedAt as number)
-    : createdAt;
-  return {
-    id: candidate.id,
-    label: normalizeLabel(candidate.label),
-    labelSource: normalizeLabelSource(candidate.labelSource),
-    labelUpdatedAt,
-    createdAt,
-  } as TreeMeta;
+  const parsed = metaSchema.safeParse(raw);
+  return parsed.success ? parsed.data : null;
+}
+
+function normalizeLabel(raw: unknown): string {
+  return labelSchema.parse(raw);
 }
 
 function buildSummary(tree: NavigationTree, meta: TreeMeta, savedAt: number): TreeSummary {
-  const root = tree.getRoot();
-  const rootData = root?.data;
   const treeJSON = NavigationTreeMapper.toJSON(tree);
+  const identifying = pickIdentifyingNode(tree);
+  const rootData = identifying?.data;
   return {
     ...meta,
     nodeCount: tree.size(),
@@ -91,22 +119,79 @@ function buildSummary(tree: NavigationTree, meta: TreeMeta, savedAt: number): Tr
   } as TreeSummary;
 }
 
-function normalizeIndexEntry(raw: unknown): ArchiveIndexEntry | null {
-  if (!raw || typeof raw !== "object") return null;
-  const candidate = raw as Partial<ArchiveIndexEntry>;
-  if (typeof candidate.id !== "string") return null;
-  const meta = normalizeMeta(candidate);
-  if (!meta) return null;
-  const savedAt = Number.isFinite(candidate.savedAt) ? (candidate.savedAt as number) : Date.now();
-  const nodeCount = Number.isFinite(candidate.nodeCount) ? (candidate.nodeCount as number) : 0;
-  const entry: ArchiveIndexEntry = { ...meta, savedAt, nodeCount };
-  if (typeof candidate.rootUrl === "string") entry.rootUrl = candidate.rootUrl;
-  if (typeof candidate.rootTitle === "string") entry.rootTitle = candidate.rootTitle;
-  if (typeof candidate.rootFavicon === "string") entry.rootFavicon = candidate.rootFavicon;
-  // Preserve stub marker
-  if ("stub" in candidate && (candidate as Partial<TreeStub>).stub === true) {
-    return { ...entry, stub: true as const } satisfies TreeStub;
+/**
+ * Pick the node that best identifies the tree in summary UI. The actual
+ * root is the synthetic `chrome://newtab/` wrapper which renders as a
+ * useless "newtab" host. Navigation handlers keep `tree.current` in sync
+ * with `markNodeVisited`, so it already tracks the last active node —
+ * use it directly.
+ *
+ * Fallbacks (current is null → user on an untrackable surface, or still
+ * points at the synthetic NTP root):
+ * - NTP root with ≥1 child → first child
+ * - otherwise → the root itself (empty or legacy non-NTP tree)
+ */
+function pickIdentifyingNode(tree: NavigationTree): ReturnType<NavigationTree["getRoot"]> {
+  const current = tree.getCurrent();
+  if (current && !isNewTabUrl(current.data.url)) return current;
+
+  const root = tree.getRoot();
+  if (!root) return null;
+  if (isNewTabUrl(root.data.url)) {
+    const [firstChild] = root.getChildren();
+    return firstChild ?? root;
   }
+  return root;
+}
+
+/**
+ * Public helper used by the sync push path so the cloud row carries the
+ * same identifying url/title/favicon as the local summary.
+ */
+export function pickTreeIdentifyingData(tree: NavigationTree): {
+  url?: Url;
+  title?: Title;
+  favicon?: FaviconUrl;
+} {
+  const node = pickIdentifyingNode(tree);
+  if (!node) return {};
+  const { url, title, favicon } = node.data;
+  return {
+    ...(url ? { url } : {}),
+    ...(title ? { title } : {}),
+    ...(favicon ? { favicon } : {}),
+  };
+}
+
+const optionalFiniteNumber = z
+  .unknown()
+  .transform((raw) => (typeof raw === "number" && Number.isFinite(raw) ? raw : undefined));
+
+const indexEntryExtrasSchema = z.object({
+  savedAt: finiteNumberOr(() => Date.now()),
+  nodeCount: finiteNumberOr(() => 0),
+  rootUrl: optionalString,
+  rootTitle: optionalString,
+  rootFavicon: optionalString,
+  lastOpenedAt: optionalFiniteNumber,
+  stub: z.unknown().transform((raw) => raw === true),
+});
+
+function normalizeIndexEntry(raw: unknown): TreeIndexEntry | null {
+  const meta = normalizeMeta(raw);
+  if (!meta) return null;
+  const extras = indexEntryExtrasSchema.safeParse(raw);
+  if (!extras.success) return null;
+  const entry = {
+    ...meta,
+    savedAt: extras.data.savedAt,
+    nodeCount: extras.data.nodeCount,
+  } as TreeIndexEntry;
+  if (extras.data.rootUrl) entry.rootUrl = extras.data.rootUrl as Url;
+  if (extras.data.rootTitle) entry.rootTitle = extras.data.rootTitle as Title;
+  if (extras.data.rootFavicon) entry.rootFavicon = extras.data.rootFavicon as FaviconUrl;
+  if (extras.data.lastOpenedAt !== undefined) entry.lastOpenedAt = extras.data.lastOpenedAt;
+  if (extras.data.stub) return { ...entry, stub: true as const } satisfies TreeStub;
   return entry;
 }
 
@@ -123,6 +208,7 @@ function extractSummary(record: TreeRecord): TreeSummary {
   if (record.rootUrl) summary.rootUrl = record.rootUrl;
   if (record.rootTitle) summary.rootTitle = record.rootTitle;
   if (record.rootFavicon) summary.rootFavicon = record.rootFavicon;
+  if (record.lastOpenedAt !== undefined) summary.lastOpenedAt = record.lastOpenedAt;
   return summary;
 }
 
@@ -166,54 +252,55 @@ function toUint8Array(data: unknown): Uint8Array | null {
   return null;
 }
 
+const legacyRecordExtrasSchema = z.object({
+  tree: z.record(z.string(), z.unknown()),
+  savedAt: finiteNumberOr(() => Date.now()),
+  nodeCount: finiteNumberOr(() => 0),
+  rootUrl: optionalString,
+  rootTitle: optionalString,
+  rootFavicon: optionalString,
+});
+
 /** Normalize a legacy TreeRecord stored in the old single-blob format. */
 function normalizeLegacyRecord(raw: unknown): TreeRecord | null {
-  if (!raw || typeof raw !== "object") return null;
-  const candidate = raw as Partial<TreeRecord>;
-  if (typeof candidate.id !== "string") return null;
-  if (!candidate.tree || typeof candidate.tree !== "object") return null;
-  const meta = normalizeMeta(candidate);
+  const meta = normalizeMeta(raw);
   if (!meta) return null;
-  const savedAt = Number.isFinite(candidate.savedAt) ? (candidate.savedAt as number) : Date.now();
-  const nodeCount = Number.isFinite(candidate.nodeCount) ? (candidate.nodeCount as number) : 0;
-  const rootUrl = typeof candidate.rootUrl === "string" ? candidate.rootUrl : undefined;
-  const rootTitle = typeof candidate.rootTitle === "string" ? candidate.rootTitle : undefined;
-  const rootFavicon = typeof candidate.rootFavicon === "string" ? candidate.rootFavicon : undefined;
+  const extras = legacyRecordExtrasSchema.safeParse(raw);
+  if (!extras.success) return null;
   return {
     ...meta,
-    savedAt,
-    nodeCount,
-    rootUrl,
-    rootTitle,
-    rootFavicon,
-    tree: candidate.tree as NavigationTreeJSON,
+    savedAt: extras.data.savedAt,
+    nodeCount: extras.data.nodeCount,
+    rootUrl: extras.data.rootUrl as Url | undefined,
+    rootTitle: extras.data.rootTitle as Title | undefined,
+    rootFavicon: extras.data.rootFavicon as FaviconUrl | undefined,
+    tree: extras.data.tree as unknown as NavigationTreeJSON,
   } as TreeRecord;
 }
 
 // ---------------------------------------------------------------------------
-// Promise-based mutex for tree operations
+// Mutex for tree operations
 // ---------------------------------------------------------------------------
 
-let treeLock: Promise<void> = Promise.resolve();
+export const treeMutex = new Mutex();
 
-function withTreeLock<T>(fn: () => Promise<T>): Promise<T> {
-  let release!: () => void;
-  const next = new Promise<void>((resolve) => {
-    release = resolve;
-  });
-  const prev = treeLock;
-  treeLock = next;
-
+/**
+ * Run `fn` under the tree mutex. All mutation paths must wrap their
+ * tree writes here; persistence (cacheTree/flushSaveNow) uses the same
+ * lock so readers see consistent state.
+ *
+ * PATTERN: read externals (browser.tabs.get, queries) OUTSIDE the lock.
+ * The lock is narrow — no I/O to Chrome APIs inside `fn`.
+ */
+export function withTreeLock<T>(fn: () => Promise<T>): Promise<T> {
   const waitStart = Date.now();
-  return prev
-    .then(() => {
-      const waited = Date.now() - waitStart;
-      if (waited > 5000) {
-        log.warn("Lock acquisition slow", { waitedMs: waited });
-      }
-      return fn();
-    })
-    .finally(() => release());
+  return treeMutex.runExclusive(() => {
+    const waited = Date.now() - waitStart;
+    if (waited > 1500) {
+      log.warn("Lock acquisition slow", { waitedMs: waited });
+    }
+    return fn();
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -223,10 +310,10 @@ function withTreeLock<T>(fn: () => Promise<T>): Promise<T> {
 class TreeStorageService {
   cachedTree: NavigationTree | null = null;
   cachedMeta: TreeMeta | null = null;
-  private cachedIndex: ArchiveIndexEntry[] | null = null;
+  private cachedIndex: TreeIndexEntry[] | null = null;
   private loading: Promise<NavigationTree> | undefined = undefined;
   private metaLoading: Promise<TreeMeta> | undefined = undefined;
-  private indexLoading: Promise<ArchiveIndexEntry[]> | undefined = undefined;
+  private indexLoading: Promise<TreeIndexEntry[]> | undefined = undefined;
   private cachedSavedAt: number | null = null;
   private savedAtLoading: Promise<number> | undefined = undefined;
   private dirty = false;
@@ -235,9 +322,26 @@ class TreeStorageService {
   private migrated = false;
 
   /**
-   * When true, the cached tree is an editor tree for a non-active (archived)
-   * tree.  flushSaveNow() will skip persisting so the real active
-   * tree in storage is never overwritten.
+   * Monotonically increasing counter bumped on every tree mutation.
+   * Used by the sidepanel to drop stale snapshots (see useBootstrap
+   * generation guard). Resets to 0 on service-worker restart; consumers
+   * treat it as session-local, not persisted.
+   */
+  private generation = 0;
+
+  getGeneration(): number {
+    return this.generation;
+  }
+
+  /** Internal: bump the generation. Call after every successful mutation under `withTreeLock`. */
+  bumpGeneration(): number {
+    return ++this.generation;
+  }
+
+  /**
+   * When true, the cached tree is an editor tree for a non-active tree.
+   * flushSaveNow() will skip persisting so the real active tree in
+   * storage is never overwritten.
    */
   private _editingNonActiveTree = false;
 
@@ -274,12 +378,7 @@ class TreeStorageService {
 
         if (!json || !json.root) {
           const tree = new NavigationTree();
-          tree.navigate({
-            url: "chrome://newtab/" as Url,
-            title: "New Tab" as Title,
-            pinned: false,
-            tags: [],
-          } as NodeData);
+          tree.navigate(buildNewTabRootData());
           this.cachedTree = tree;
           return tree;
         }
@@ -287,14 +386,11 @@ class TreeStorageService {
         this.cachedTree = NavigationTreeMapper.fromJSON(json);
         return this.cachedTree;
       } catch (error) {
-        log.error("Error loading tree", { error: error instanceof Error ? error.message : String(error) });
+        log.error("Error loading tree", {
+          error: error instanceof Error ? error.message : String(error),
+        });
         const tree = new NavigationTree();
-        tree.navigate({
-          url: "chrome://newtab/" as Url,
-          title: "New Tab" as Title,
-          pinned: false,
-          tags: [],
-        } as NodeData);
+        tree.navigate(buildNewTabRootData());
         this.cachedTree = tree;
         return tree;
       } finally {
@@ -318,7 +414,9 @@ class TreeStorageService {
           return normalized;
         }
       } catch (error) {
-        log.error("Error loading meta", { error: error instanceof Error ? error.message : String(error) });
+        log.error("Error loading meta", {
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
 
       const createdAt = Date.now();
@@ -333,7 +431,9 @@ class TreeStorageService {
       try {
         await activeTreeMetaItem.setValue(meta);
       } catch (error) {
-        log.error("Error saving default meta", { error: error instanceof Error ? error.message : String(error) });
+        log.error("Error saving default meta", {
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
       return meta;
     })();
@@ -359,7 +459,9 @@ class TreeStorageService {
     try {
       await activeTreeMetaItem.setValue(meta);
     } catch (error) {
-      log.error("Error saving meta", { error: error instanceof Error ? error.message : String(error) });
+      log.error("Error saving meta", {
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -376,6 +478,7 @@ class TreeStorageService {
   cacheTree(tree: NavigationTree): void {
     this.cachedTree = tree;
     this.dirty = true;
+    this.bumpGeneration();
     this.scheduleSave();
   }
 
@@ -398,13 +501,30 @@ class TreeStorageService {
       }
 
       const tree = this.cachedTree;
-      this.dirty = false;
       try {
         await this.saveTreeToChrome(tree);
+        // Set dirty = false ONLY after the save resolves. If the SW is
+        // terminated mid-await, dirty stays true and the next wake
+        // re-flushes (#56). Previously dirty was lowered pre-await,
+        // so SW termination during the write silently dropped the
+        // pending mutation from the dirty tracker.
+        this.dirty = false;
         await this.setActiveSavedAt(Date.now());
+        const treeJSON = NavigationTreeMapper.toJSON(tree);
+        void import("../messaging/notifications.js")
+          .then(({ requestLayoutRefinement }) => {
+            requestLayoutRefinement(treeJSON);
+          })
+          .catch((error) => {
+            log.warn("Failed to refresh layout cache after flush", {
+              error: error instanceof Error ? error.message : String(error),
+            });
+          });
       } catch (error) {
-        log.error("Error flushing tree save", { error: error instanceof Error ? error.message : String(error) });
-        this.dirty = true;
+        log.error("Error flushing tree save", {
+          error: error instanceof Error ? error.message : String(error),
+        });
+        // dirty is already true (never lowered), schedule a retry.
         this.scheduleSave();
       }
     });
@@ -435,7 +555,9 @@ class TreeStorageService {
           return this.cachedSavedAt;
         }
       } catch (error) {
-        log.error("Error loading savedAt", { error: error instanceof Error ? error.message : String(error) });
+        log.error("Error loading savedAt", {
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
 
       const now = Date.now();
@@ -443,7 +565,9 @@ class TreeStorageService {
       try {
         await treeSavedAtItem.setValue(now);
       } catch (error) {
-        log.error("Error saving default savedAt", { error: error instanceof Error ? error.message : String(error) });
+        log.error("Error saving default savedAt", {
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
       return now;
     })();
@@ -454,23 +578,25 @@ class TreeStorageService {
   }
 
   // -----------------------------------------------------------------------
-  // Archive index (summaries only — fast, lightweight)
+  // Tree index (summaries only — fast, lightweight)
   // -----------------------------------------------------------------------
 
-  async getArchiveIndex(): Promise<ArchiveIndexEntry[]> {
+  async getTreeIndex(): Promise<TreeIndexEntry[]> {
     if (this.cachedIndex) return this.cachedIndex;
     if (this.indexLoading) return this.indexLoading;
     this.indexLoading = (async () => {
       try {
         await this.ensureMigrated();
-        const rawArr = await archiveIndexItem.getValue();
+        const rawArr = await treeIndexItem.getValue();
         const list = rawArr
           .map(normalizeIndexEntry)
-          .filter((entry): entry is ArchiveIndexEntry => Boolean(entry));
+          .filter((entry): entry is TreeIndexEntry => Boolean(entry));
         this.cachedIndex = list;
         return list;
       } catch (error) {
-        log.error("Error loading archive index", { error: error instanceof Error ? error.message : String(error) });
+        log.error("Error loading tree index", {
+          error: error instanceof Error ? error.message : String(error),
+        });
         this.cachedIndex = [];
         return this.cachedIndex;
       } finally {
@@ -480,20 +606,45 @@ class TreeStorageService {
     return this.indexLoading;
   }
 
-  async getArchivedSummaries(): Promise<ArchiveIndexEntry[]> {
-    return this.getArchiveIndex();
+  async getStoredSummaries(): Promise<TreeIndexEntry[]> {
+    return this.getTreeIndex();
   }
 
   /**
-   * Replace the archive index directly. Used by sync engine.
+   * Replace the tree index directly. Used by sync engine.
    */
-  async setArchiveIndex(index: ArchiveIndexEntry[]): Promise<void> {
+  async setTreeIndex(index: TreeIndexEntry[]): Promise<void> {
     return withTreeLock(async () => {
       this.cachedIndex = index;
       try {
-        await archiveIndexItem.setValue(index);
+        await treeIndexItem.setValue(index);
       } catch (error) {
-        log.error("Error saving archive index", { error: error instanceof Error ? error.message : String(error) });
+        log.error("Error saving tree index", {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    });
+  }
+
+  /**
+   * Drop every remote-only stub entry from the local tree index. Stubs
+   * are pointers to trees that exist on the server but were never
+   * downloaded locally — they're inaccessible while signed out and
+   * showing them as "available" would mislead. Trees with local
+   * payload are preserved.
+   */
+  async dropRemoteStubs(): Promise<void> {
+    return withTreeLock(async () => {
+      const index = await this.getTreeIndex();
+      const localOnly = index.filter((entry) => !isTreeStub(entry));
+      if (localOnly.length === index.length) return;
+      this.cachedIndex = localOnly;
+      try {
+        await treeIndexItem.setValue(localOnly);
+      } catch (error) {
+        log.error("Error dropping remote stubs", {
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
     });
   }
@@ -502,172 +653,290 @@ class TreeStorageService {
   // Per-tree compressed blobs
   // -----------------------------------------------------------------------
 
-  async getArchiveTree(treeId: string): Promise<NavigationTreeJSON | null> {
+  async getStoredTree(treeId: string): Promise<NavigationTreeJSON | null> {
     try {
-      const raw = await storage.getItem<unknown>(archiveBlobKey(treeId));
+      const raw = await storage.getItem<unknown>(treeBlobKey(treeId));
       if (!raw) return null;
       const bytes = toUint8Array(raw);
       if (!bytes) return null;
       return decodeTree(bytes);
     } catch (error) {
-      log.error("Archive tree decode error", { treeId, error: error instanceof Error ? error.message : String(error) });
+      log.error("Stored tree decode error", {
+        treeId,
+        error: error instanceof Error ? error.message : String(error),
+      });
       return null;
     }
   }
 
-  async saveArchiveTree(treeId: string, tree: NavigationTreeJSON): Promise<void> {
+  async saveStoredTree(treeId: string, tree: NavigationTreeJSON): Promise<void> {
     const compressed = encodeTree(tree);
     const blob = serializeBlob(compressed);
-    await storage.setItem(archiveBlobKey(treeId), blob);
+    await storage.setItem(treeBlobKey(treeId), blob);
   }
 
   /**
-   * Delete just the blob for an archive entry. Used by sync engine
+   * Insert a brand-new stored tree (blob + index entry) from a JSON
+   * payload. Used by the sync-conflict fork flow to snapshot the user's
+   * local work before force-pulling the server copy.
+   *
+   * If an entry with the same id already exists, it is replaced.
+   */
+  async addStoredTreeFromJSON(meta: TreeMeta, json: NavigationTreeJSON): Promise<void> {
+    return withTreeLock(async () => {
+      const index = await this.getTreeIndex();
+      const root = json.root;
+      const identifying = root?.data;
+      const summary: TreeSummary = {
+        ...meta,
+        nodeCount: json.nodeCount,
+        savedAt: Date.now(),
+        ...(identifying?.url ? { rootUrl: identifying.url } : {}),
+        ...(identifying?.title ? { rootTitle: identifying.title } : {}),
+        ...((findBestTrailFavicon(json) ?? identifying?.favicon)
+          ? { rootFavicon: findBestTrailFavicon(json) ?? identifying?.favicon }
+          : {}),
+      };
+      const nextIndex = [summary, ...index.filter((e) => e.id !== meta.id)];
+      this.cachedIndex = nextIndex;
+      await writeBulkDirect([
+        { item: treeIndexBulkItem, value: nextIndex },
+        { key: treeBlobKey(meta.id), value: serializeBlob(encodeTree(json)) },
+      ]);
+    });
+  }
+
+  /**
+   * Delete just the blob for a stored tree entry. Used by sync engine
    * when a remote delete is received.
    */
-  async deleteArchiveBlob(treeId: string): Promise<void> {
+  async deleteStoredBlob(treeId: string): Promise<void> {
     try {
-      await storage.removeItem(archiveBlobKey(treeId));
+      await storage.removeItem(treeBlobKey(treeId));
     } catch (error) {
-      log.error("Error deleting archive blob", { treeId, error: error instanceof Error ? error.message : String(error) });
+      log.error("Error deleting stored tree blob", {
+        treeId,
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
   // -----------------------------------------------------------------------
-  // Full archive operations (load all trees)
+  // Full stored-tree operations (load all trees)
   // -----------------------------------------------------------------------
 
-  async getArchives(): Promise<TreeRecord[]> {
-    const index = await this.getArchiveIndex();
+  async getAllStoredTrees(): Promise<TreeRecord[]> {
+    const index = await this.getTreeIndex();
     const records: TreeRecord[] = [];
     for (const entry of index) {
       if (isTreeStub(entry)) continue;
-      const tree = await this.getArchiveTree(entry.id);
+      const tree = await this.getStoredTree(entry.id);
       if (!tree) continue;
       records.push({ ...entry, tree });
     }
     return records;
   }
 
-  async setArchives(records: TreeRecord[]): Promise<void> {
+  async setAllStoredTrees(records: TreeRecord[]): Promise<void> {
     return withTreeLock(async () => {
-      const prevIndex = await this.getArchiveIndex();
+      const prevIndex = await this.getTreeIndex();
       const prevIds = new Set(prevIndex.map((e) => e.id));
       const nextIds = new Set(records.map((r) => r.id));
 
       const entries: BulkEntry[] = [];
-      const summaries: ArchiveIndexEntry[] = [];
+      const summaries: TreeIndexEntry[] = [];
 
       for (const record of records) {
         summaries.push(extractSummary(record));
         entries.push({
-          key: archiveBlobKey(record.id),
+          key: treeBlobKey(record.id),
           value: serializeBlob(encodeTree(record.tree)),
         });
       }
-      entries.push({ item: archiveIndexBulkItem, value: summaries });
+      entries.push({ item: treeIndexBulkItem, value: summaries });
       this.cachedIndex = summaries;
 
       try {
-        await quotaAwareSet(entries);
+        await writeBulkDirect(entries);
       } catch (error) {
-        log.error("Error writing archives", { error: error instanceof Error ? error.message : String(error) });
+        log.error("Error writing stored trees", {
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
 
       const removedIds = [...prevIds].filter((id) => !nextIds.has(id));
       if (removedIds.length > 0) {
         try {
           for (const id of removedIds) {
-            await storage.removeItem(archiveBlobKey(id));
+            await storage.removeItem(treeBlobKey(id));
           }
         } catch (error) {
-          log.error("Error cleaning old archive blobs", { error: error instanceof Error ? error.message : String(error) });
+          log.error("Error cleaning old tree blobs", {
+            error: error instanceof Error ? error.message : String(error),
+          });
         }
       }
     });
   }
 
   // -----------------------------------------------------------------------
-  // Archive mutations
+  // Stored-tree mutations
   // -----------------------------------------------------------------------
 
-  async archiveActiveTree(): Promise<TreeRecord | null> {
+  async stashActiveTree(): Promise<TreeRecord | null> {
     return withTreeLock(async () => {
       const tree = await this._getOrCreateTreeInner();
       const root = tree.getRoot();
       if (!root) return null;
       const meta = await this.getActiveMeta();
       const treeJSON = NavigationTreeMapper.toJSON(tree);
-      const summary = buildSummary(tree, meta, Date.now());
+      const now = Date.now();
+      const summary = buildSummary(tree, meta, now);
+      summary.lastOpenedAt = now;
       const record: TreeRecord = { ...summary, tree: treeJSON };
 
-      const index = await this.getArchiveIndex();
+      const index = await this.getTreeIndex();
       const nextIndex = [extractSummary(record), ...index.filter((e) => e.id !== meta.id)];
       this.cachedIndex = nextIndex;
 
       const blob = serializeBlob(encodeTree(treeJSON));
       try {
-        await quotaAwareSet([
-          { item: archiveIndexBulkItem, value: nextIndex },
-          { key: archiveBlobKey(record.id), value: blob },
+        await writeBulkDirect([
+          { item: treeIndexBulkItem, value: nextIndex },
+          { key: treeBlobKey(record.id), value: blob },
         ]);
       } catch (error) {
-        log.error("Error archiving active tree", { error: error instanceof Error ? error.message : String(error) });
+        log.error("Error stashing active tree", {
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
       return record;
     });
   }
 
-  async takeArchivedTree(treeId: string): Promise<TreeRecord | null> {
+  async takeStoredTree(treeId: string): Promise<TreeRecord | null> {
     return withTreeLock(async () => {
-      const index = await this.getArchiveIndex();
+      const index = await this.getTreeIndex();
       const idx = index.findIndex((e) => e.id === treeId);
       if (idx < 0) return null;
 
       const summary = index[idx]!;
-      const tree = await this.getArchiveTree(treeId);
-      if (!tree) return null;
+      const tree = await this.getStoredTree(treeId);
+      if (!tree) {
+        // Orphan entry: index has the tree but the blob is missing.
+        // Prune it so it stops showing in the switcher.
+        log.warn("takeStoredTree: blob missing, pruning orphan index entry", {
+          treeId,
+          stub: isTreeStub(summary),
+        });
+        const prunedIndex = [...index];
+        prunedIndex.splice(idx, 1);
+        this.cachedIndex = prunedIndex;
+        try {
+          await treeIndexItem.setValue(prunedIndex);
+        } catch (error) {
+          log.error("Error pruning orphan tree index entry", {
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        return null;
+      }
 
       const nextIndex = [...index];
       nextIndex.splice(idx, 1);
       this.cachedIndex = nextIndex;
 
       try {
-        await archiveIndexItem.setValue(nextIndex);
-        await storage.removeItem(archiveBlobKey(treeId));
+        await treeIndexItem.setValue(nextIndex);
+        await storage.removeItem(treeBlobKey(treeId));
       } catch (error) {
-        log.error("Error taking archived tree", { error: error instanceof Error ? error.message : String(error) });
+        log.error("Error taking stored tree", {
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
 
       return { ...summary, tree };
     });
   }
 
-  async getFullArchiveRecord(treeId: string): Promise<TreeRecord | null> {
-    const index = await this.getArchiveIndex();
+  async getFullStoredRecord(treeId: string): Promise<TreeRecord | null> {
+    const index = await this.getTreeIndex();
     const entry = index.find((e) => e.id === treeId);
     if (!entry) return null;
     if (isTreeStub(entry)) return null;
-    const tree = await this.getArchiveTree(treeId);
+    const tree = await this.getStoredTree(treeId);
     if (!tree) return null;
     return { ...entry, tree };
   }
 
-  async unstubArchiveEntry(treeId: string): Promise<void> {
+  async unstubTreeEntry(treeId: string): Promise<void> {
     return withTreeLock(async () => {
-      const index = await this.getArchiveIndex();
+      const index = await this.getTreeIndex();
       const idx = index.findIndex((e) => e.id === treeId);
       if (idx < 0) return;
       const entry = index[idx]!;
       if (!isTreeStub(entry)) return;
 
       const { stub: _stub, ...summary } = entry;
-      index[idx] = summary as TreeSummary;
+      const next = { ...summary, lastOpenedAt: Date.now() } as TreeSummary;
+      index[idx] = next;
       this.cachedIndex = index;
       try {
-        await archiveIndexItem.setValue(index);
+        await treeIndexItem.setValue(index);
       } catch (error) {
-        log.error("Error unstubbing archive entry", { error: error instanceof Error ? error.message : String(error) });
+        log.error("Error unstubbing tree entry", {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    });
+  }
+
+  /**
+   * Record that a tree was opened/touched locally. Used by the storage
+   * retention sweeper to sort candidates by recency. Cheap no-op if
+   * the entry is missing or already a stub (stubs aren't candidates).
+   */
+  async touchLastOpened(treeId: string): Promise<void> {
+    return withTreeLock(async () => {
+      const index = await this.getTreeIndex();
+      const idx = index.findIndex((e) => e.id === treeId);
+      if (idx < 0) return;
+      const entry = index[idx]!;
+      const next = { ...entry, lastOpenedAt: Date.now() };
+      index[idx] = next;
+      this.cachedIndex = index;
+      try {
+        await treeIndexItem.setValue(index);
+      } catch (error) {
+        log.error("Error updating lastOpenedAt", {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    });
+  }
+
+  /**
+   * Mark a local index entry as `stub: true` so the local blob can be
+   * dropped while keeping the cloud-backed summary visible. Inverse of
+   * `unstubTreeEntry`. The caller is responsible for removing the
+   * per-tree blob separately (via `deleteStoredBlob`).
+   */
+  async stubTreeEntry(treeId: string): Promise<void> {
+    return withTreeLock(async () => {
+      const index = await this.getTreeIndex();
+      const idx = index.findIndex((e) => e.id === treeId);
+      if (idx < 0) return;
+      const entry = index[idx]!;
+      if (isTreeStub(entry)) return;
+
+      index[idx] = { ...entry, stub: true as const };
+      this.cachedIndex = index;
+      try {
+        await treeIndexItem.setValue(index);
+      } catch (error) {
+        log.error("Error stubbing tree entry", {
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
     });
   }
@@ -686,7 +955,7 @@ class TreeStorageService {
         };
         await this.setActiveMeta(next);
       }
-      const index = await this.getArchiveIndex();
+      const index = await this.getTreeIndex();
       const idx = index.findIndex((e) => e.id === treeId);
       if (idx >= 0) {
         const current = index[idx]!;
@@ -698,25 +967,40 @@ class TreeStorageService {
         };
         this.cachedIndex = index;
         try {
-          await archiveIndexItem.setValue(index);
+          await treeIndexItem.setValue(index);
         } catch (error) {
-          log.error("Error saving renamed tree index", { error: error instanceof Error ? error.message : String(error) });
+          log.error("Error saving renamed tree index", {
+            error: error instanceof Error ? error.message : String(error),
+          });
         }
       }
     });
   }
 
-  async clearArchivesOnly(): Promise<void> {
+  async clearStoredTrees(): Promise<void> {
     return withTreeLock(async () => {
-      const index = await this.getArchiveIndex();
+      const index = await this.getTreeIndex();
 
+      // Best-effort cleanup: try each removal independently so one
+      // failure doesn't abort the rest (#55). Previously a single
+      // try wrapped the loop, leaving partial state behind on any
+      // throw.
       try {
-        await archiveIndexItem.removeValue();
-        for (const e of index) {
-          await storage.removeItem(archiveBlobKey(e.id));
-        }
+        await treeIndexItem.removeValue();
       } catch (error) {
-        log.error("Error clearing archives", { error: error instanceof Error ? error.message : String(error) });
+        log.warn("clearStoredTrees: index removeValue failed", {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+      for (const e of index) {
+        try {
+          await storage.removeItem(treeBlobKey(e.id));
+        } catch (error) {
+          log.warn("clearStoredTrees: blob removeItem failed", {
+            id: e.id,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
       }
 
       this.cachedIndex = null;
@@ -726,18 +1010,25 @@ class TreeStorageService {
 
   async clearAllTrees(): Promise<void> {
     return withTreeLock(async () => {
-      const index = await this.getArchiveIndex();
+      const index = await this.getTreeIndex();
 
-      try {
-        await activeTreeItem.removeValue();
-        await activeTreeMetaItem.removeValue();
-        await archiveIndexItem.removeValue();
-        await treeSavedAtItem.removeValue();
-        for (const e of index) {
-          await storage.removeItem(archiveBlobKey(e.id));
+      // Per-key try: any single removeItem failure doesn't block the
+      // rest (#55).
+      const safeRemove = async (label: string, fn: () => Promise<void>): Promise<void> => {
+        try {
+          await fn();
+        } catch (error) {
+          log.warn(`clearAllTrees: ${label} failed`, {
+            error: error instanceof Error ? error.message : String(error),
+          });
         }
-      } catch (error) {
-        log.error("Error clearing all trees", { error: error instanceof Error ? error.message : String(error) });
+      };
+      await safeRemove("activeTree", () => activeTreeItem.removeValue());
+      await safeRemove("activeTreeMeta", () => activeTreeMetaItem.removeValue());
+      await safeRemove("treeIndex", () => treeIndexItem.removeValue());
+      await safeRemove("treeSavedAt", () => treeSavedAtItem.removeValue());
+      for (const e of index) {
+        await safeRemove(`blob:${e.id}`, () => storage.removeItem(treeBlobKey(e.id)));
       }
 
       this.cachedTree = null;
@@ -757,25 +1048,27 @@ class TreeStorageService {
     });
   }
 
-  async deleteArchivedTree(treeId: string): Promise<boolean> {
+  async deleteTree(treeId: string): Promise<boolean> {
     return withTreeLock(async () => {
-      const index = await this.getArchiveIndex();
+      const index = await this.getTreeIndex();
       const next = index.filter((e) => e.id !== treeId);
       if (next.length === index.length) return false;
       this.cachedIndex = next;
       try {
-        await archiveIndexItem.setValue(next);
-        await storage.removeItem(archiveBlobKey(treeId));
+        await treeIndexItem.setValue(next);
+        await storage.removeItem(treeBlobKey(treeId));
       } catch (error) {
-        log.error("Error deleting archived tree", { error: error instanceof Error ? error.message : String(error) });
+        log.error("Error deleting tree", {
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
       return true;
     });
   }
 
-  async updateArchivedTree(treeId: string, tree: NavigationTree, savedAt: number): Promise<void> {
+  async updateStoredTree(treeId: string, tree: NavigationTree, savedAt: number): Promise<void> {
     return withTreeLock(async () => {
-      const index = await this.getArchiveIndex();
+      const index = await this.getTreeIndex();
       const idx = index.findIndex((e) => e.id === treeId);
       if (idx < 0) return;
 
@@ -801,12 +1094,70 @@ class TreeStorageService {
       this.cachedIndex = index;
 
       try {
-        await quotaAwareSet([
-          { item: archiveIndexBulkItem, value: index },
-          { key: archiveBlobKey(treeId), value: serializeBlob(encodeTree(treeJSON)) },
+        await writeBulkDirect([
+          { item: treeIndexBulkItem, value: index },
+          { key: treeBlobKey(treeId), value: serializeBlob(encodeTree(treeJSON)) },
         ]);
       } catch (error) {
-        log.error("Error updating archived tree", { error: error instanceof Error ? error.message : String(error) });
+        log.error("Error updating stored tree", {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    });
+  }
+
+  /**
+   * Like `updateStoredTree` but also carries a merged label into the
+   * index. Used by the sync-conflict apply path where the user picked
+   * a specific label side (may differ from both the stored label and
+   * whatever `renameTree` would force via `labelSource: "user"`).
+   *
+   * Accepts NavigationTreeJSON directly (not `NavigationTree`) because
+   * the merge runs in pure-function land before entering this storage
+   * layer.
+   */
+  async updateStoredTreeWithLabel(
+    treeId: string,
+    treeJSON: NavigationTreeJSON,
+    label: string,
+    labelSource: TreeLabelSource,
+    labelUpdatedAt: number,
+    savedAt: number,
+  ): Promise<void> {
+    return withTreeLock(async () => {
+      const index = await this.getTreeIndex();
+      const idx = index.findIndex((e) => e.id === treeId);
+      if (idx < 0) return;
+
+      const existing = index[idx]!;
+      const root = treeJSON.root;
+      const favicon = findBestTrailFavicon(treeJSON) ?? root?.data.favicon;
+
+      const updated: TreeSummary = {
+        id: existing.id,
+        label,
+        labelSource,
+        labelUpdatedAt,
+        createdAt: existing.createdAt,
+        nodeCount: treeJSON.nodeCount,
+        savedAt,
+        ...(root?.data.url && { rootUrl: root.data.url }),
+        ...(root?.data.title && { rootTitle: root.data.title }),
+        ...(favicon && { rootFavicon: favicon }),
+      };
+
+      index[idx] = updated;
+      this.cachedIndex = index;
+
+      try {
+        await writeBulkDirect([
+          { item: treeIndexBulkItem, value: index },
+          { key: treeBlobKey(treeId), value: serializeBlob(encodeTree(treeJSON)) },
+        ]);
+      } catch (error) {
+        log.error("Error updating stored tree with label", {
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
     });
   }
@@ -815,40 +1166,69 @@ class TreeStorageService {
   // Migration from legacy single-blob format
   // -----------------------------------------------------------------------
 
+  /**
+   * Singleflight guard for `ensureMigrated`. Previous implementation
+   * set `this.migrated = true` BEFORE awaiting the storage reads, so
+   * a second caller arriving during the migration saw "done" and read
+   * legacy-shape cached data. We now cache the in-flight promise and
+   * only mark migrated AFTER the work completes successfully.
+   */
+  private migrationPromise: Promise<void> | null = null;
+
   private async ensureMigrated(): Promise<void> {
     if (this.migrated) return;
-    this.migrated = true;
+    if (this.migrationPromise) return this.migrationPromise;
 
-    try {
-      const rawArr = await archiveIndexItem.getValue();
-      if (rawArr.length === 0) return;
+    this.migrationPromise = (async () => {
+      try {
+        const rawArr = await treeIndexItem.getValue();
+        if (rawArr.length === 0) {
+          this.migrated = true;
+          return;
+        }
 
-      const first = rawArr[0];
-      if (!first || typeof first !== "object") return;
-      if (!("tree" in first) || !first.tree || typeof first.tree !== "object") {
-        return;
-      }
+        const first = rawArr[0];
+        if (!first || typeof first !== "object") {
+          this.migrated = true;
+          return;
+        }
+        if (!("tree" in first) || !first.tree || typeof first.tree !== "object") {
+          this.migrated = true;
+          return;
+        }
 
-      // Migrating legacy archives to per-tree format.
-      const summaries: TreeSummary[] = [];
-      const entries: BulkEntry[] = [];
+        // Migrating legacy stored trees to per-tree blob format.
+        const summaries: TreeSummary[] = [];
+        const entries: BulkEntry[] = [];
 
-      for (const entry of rawArr) {
-        const record = normalizeLegacyRecord(entry);
-        if (!record) continue;
-        summaries.push(extractSummary(record));
-        entries.push({
-          key: archiveBlobKey(record.id),
-          value: serializeBlob(encodeTree(record.tree)),
+        for (const entry of rawArr) {
+          const record = normalizeLegacyRecord(entry);
+          if (!record) continue;
+          summaries.push(extractSummary(record));
+          entries.push({
+            key: treeBlobKey(record.id),
+            value: serializeBlob(encodeTree(record.tree)),
+          });
+        }
+
+        entries.push({ item: treeIndexBulkItem, value: summaries });
+        await writeBulkDirect(entries);
+        this.cachedIndex = summaries;
+        this.migrated = true;
+      } catch (error) {
+        log.error("Migration error", {
+          error: error instanceof Error ? error.message : String(error),
         });
+        // Clear the in-flight promise on failure so a subsequent call
+        // retries. Do NOT set `migrated = true` — we want retry next.
+        throw error;
       }
+    })().catch((error) => {
+      this.migrationPromise = null;
+      throw error;
+    });
 
-      entries.push({ item: archiveIndexBulkItem, value: summaries });
-      await writeBulkDirect(entries);
-      this.cachedIndex = summaries;
-    } catch (error) {
-      log.error("Migration error", { error: error instanceof Error ? error.message : String(error) });
-    }
+    return this.migrationPromise;
   }
 
   // -----------------------------------------------------------------------
@@ -870,7 +1250,9 @@ class TreeStorageService {
     try {
       await treeSavedAtItem.setValue(savedAt);
     } catch (error) {
-      log.error("Error saving savedAt", { error: error instanceof Error ? error.message : String(error) });
+      log.error("Error saving savedAt", {
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 }

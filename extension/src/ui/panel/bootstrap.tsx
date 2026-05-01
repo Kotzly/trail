@@ -2,32 +2,22 @@ import { createRoot } from "react-dom/client";
 import { QueryClientProvider } from "@tanstack/react-query";
 
 import App from "@apps/sidepanel/ui/App.js";
-import ErrorBoundary from "@apps/sidepanel/ui/components/ErrorBoundary.js";
-import { initBackendConfig } from "@shared/config/backend.js";
-import { queryClient } from "@apps/sidepanel/ui/query/client.js";
+import ErrorBoundary from "@ui/components/error-boundary.js";
+import { queryClient } from "@ui/query/client.js";
+import { ThemeProvider } from "@ui/providers/theme-provider.js";
 import { browser } from "@shared/platform/webext.js";
-import type { CachedLayoutResult } from "@shared/graph-layout-cache/types.js";
-
-declare global {
-  var __trailCachedLayout: CachedLayoutResult | null | undefined;
-}
+import { MotionPlatformProvider } from "@features/graph/motion/index.js";
 
 export type MountPanelAppOptions = {
   rootId?: string;
   connectPortName?: string;
-  cachedLayout?: CachedLayoutResult | null;
 };
 
 export function mountPanelApp(options: MountPanelAppOptions = {}): void {
-  const { rootId = "root", connectPortName, cachedLayout } = options;
+  const { rootId = "root", connectPortName } = options;
 
   if (connectPortName) {
     browser.runtime.connect({ name: connectPortName });
-  }
-
-  // Stash pre-fetched layout for GraphCanvas consumption
-  if (cachedLayout !== undefined) {
-    globalThis.__trailCachedLayout = cachedLayout;
   }
 
   const rootEl = document.getElementById(rootId);
@@ -35,12 +25,14 @@ export function mountPanelApp(options: MountPanelAppOptions = {}): void {
     throw new Error(`Missing #${rootId} element`);
   }
 
-  void initBackendConfig();
-
   createRoot(rootEl).render(
-    <ErrorBoundary>
+    <ErrorBoundary source="sidepanel">
       <QueryClientProvider client={queryClient}>
-        <App />
+        <MotionPlatformProvider>
+          <ThemeProvider>
+            <App />
+          </ThemeProvider>
+        </MotionPlatformProvider>
       </QueryClientProvider>
     </ErrorBoundary>,
   );

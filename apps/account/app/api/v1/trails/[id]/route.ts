@@ -1,17 +1,24 @@
 import { getBearerToken } from "@/src/server/backend/auth/headers";
 import { verifyExtensionToken } from "@/src/server/backend/auth/extension-auth";
-import { resolveUserId } from "@/src/server/backend/auth/resolve-user";
-import { jsonError } from "@/src/server/backend/error-response";
-import { jsonNoStore } from "@/src/server/backend/response";
+import { getAuthenticatedUserId } from "@/src/server/auth/get-authenticated-user";
+import { jsonFail, jsonOk } from "@/src/server/backend/error-response";
 import {
   type ApiLabelSource,
   type DbLabelSource,
   toTrailRecord,
 } from "@/src/server/backend/trail-serializers";
 import { isJsonValue } from "@/src/server/backend/json";
-import { upsertTrail } from "@/src/server/backend/trails-sync";
+import { upsertTrail, SyncError } from "@/src/server/backend/trails-sync";
 import type { TrailLabelSource } from "@/src/server/backend/trails-sync";
 import { db } from "@trail/db";
+import type { Database } from "@trail/db/types";
+import { rateLimit } from "@/src/server/api/rate-limit";
+import { corsHeaders, optionsResponse } from "@/src/server/api/cors";
+import {
+  trailPutBodySchema,
+  trailPatchBodySchema,
+} from "@/src/server/api/schemas";
+import { parseBody } from "@/src/server/api/validate";
 
 export const runtime = "nodejs";
 
@@ -39,6 +46,38 @@ function parseDeletedAt(value: unknown): Date | null | undefined {
   return parsed;
 }
 
+type DbTrailRow = Database["public"]["Tables"]["trails"]["Row"];
+type DbTrailUpdate = Database["public"]["Tables"]["trails"]["Update"];
+type TrailPayload = DbTrailUpdate["payload"];
+
+function rowToTrailRecord(row: DbTrailRow) {
+  return toTrailRecord({
+    id: row.id,
+    userId: row.user_id,
+    deviceId: row.device_id,
+    label: row.label,
+    labelSource: row.label_source as DbLabelSource,
+    labelUpdatedAt: new Date(row.label_updated_at),
+    createdAt: new Date(row.created_at),
+    updatedAt: new Date(row.updated_at),
+    savedAt: new Date(row.saved_at),
+    nodeCount: row.node_count,
+    rootUrl: row.root_url,
+    rootTitle: row.root_title,
+    rootFavicon: row.root_favicon,
+    payload: row.payload,
+    deletedAt: row.deleted_at ? new Date(row.deleted_at) : null,
+  });
+}
+
+/* ------------------------------------------------------------------ */
+/*  OPTIONS                                                            */
+/* ------------------------------------------------------------------ */
+
+export function OPTIONS(request: Request) {
+  return optionsResponse(request);
+}
+
 /* ------------------------------------------------------------------ */
 /*  GET /api/v1/trails/:id                                             */
 /* ------------------------------------------------------------------ */
@@ -47,25 +86,40 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const ip = request.headers.get("x-forwarded-for") ?? "unknown";
+  const rl = rateLimit(ip, "default");
+  if (!rl.ok) {
+    return jsonFail("RATE_LIMITED", "Too many requests", { status: 429 });
+  }
+
   const { id } = await params;
   if (!id) {
-    return jsonError("trail_not_found", "Trail not found.", { status: 404 });
+    return jsonFail("trail_not_found", "Trail not found.", { status: 404 });
   }
 
   const token = getBearerToken(request.headers);
-  const userId = await resolveUserId(token);
+  const userId = await getAuthenticatedUserId(token);
   if (!userId) {
-    return jsonError("unauthorized", "Unauthorized.", { status: 401 });
+    return jsonFail("unauthorized", "Unauthorized.", { status: 401 });
   }
 
-  const trail = await db.trail.findFirst({
-    where: { id, userId, deletedAt: null },
-  });
-  if (!trail) {
-    return jsonError("trail_not_found", "Trail not found.", { status: 404 });
+  const result = await db
+    .from("trails")
+    .select("*")
+    .eq("id", id)
+    .eq("user_id", userId)
+    .is("deleted_at", null)
+    .limit(1)
+    .maybeSingle();
+
+  if (result.error) {
+    return jsonFail("internal_error", "Internal error.", { status: 500 });
+  }
+  if (!result.data) {
+    return jsonFail("trail_not_found", "Trail not found.", { status: 404 });
   }
 
-  return jsonNoStore(toTrailRecord(trail as typeof trail & { payload: unknown }));
+  return jsonOk(rowToTrailRecord(result.data));
 }
 
 /* ------------------------------------------------------------------ */
@@ -95,36 +149,46 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const ip = request.headers.get("x-forwarded-for") ?? "unknown";
+  const rl = rateLimit(ip, "default");
+  if (!rl.ok) {
+    return jsonFail("RATE_LIMITED", "Too many requests", { status: 429 });
+  }
+
   const { id } = await params;
   if (!id) {
-    return jsonError("trail_not_found", "Trail not found.", { status: 404 });
+    return jsonFail("trail_not_found", "Trail not found.", { status: 404 });
   }
 
   const token = getBearerToken(request.headers);
   const extension = token ? await verifyExtensionToken(token) : null;
   if (!extension?.sub) {
-    return jsonError("unauthorized", "Unauthorized.", { status: 401 });
+    return jsonFail("unauthorized", "Unauthorized.", { status: 401 });
   }
 
-  const body = await request.json().catch(() => null);
-  if (!body || typeof body !== "object") {
-    return jsonError("invalid_payload", "Invalid payload.", { status: 400 });
+  const rawBody = await request.json().catch(() => null);
+  if (!rawBody || typeof rawBody !== "object") {
+    return jsonFail("invalid_payload", "Invalid payload.", { status: 400 });
   }
 
-  const deviceId = typeof body.deviceId === "string" ? body.deviceId.trim() : "";
-  if (!deviceId) {
-    return jsonError("device_id_required", "Device id is required.", { status: 400 });
+  const parsed = parseBody(trailPutBodySchema, rawBody);
+  if (!parsed.ok) {
+    return jsonFail(
+      "VALIDATION_ERROR",
+      parsed.error.issues[0]?.message ?? "Invalid input",
+      { status: 400 },
+    );
   }
 
-  const label = typeof body.label === "string" ? body.label : "";
+  const body = parsed.data;
+  const deviceId = body.deviceId;
+  const label = body.label;
   const labelSource = toDbLabelSourceStrict(body.labelSource);
   const labelUpdatedAt = parseDate(body.labelUpdatedAt);
   const createdAt = parseDate(body.createdAt);
   const updatedAt = parseDate(body.updatedAt);
   const savedAt = parseDate(body.savedAt);
-  const nodeCount = typeof body.nodeCount === "number" && Number.isInteger(body.nodeCount) && body.nodeCount >= 0
-    ? body.nodeCount
-    : null;
+  const nodeCount = body.nodeCount;
   const payload = body.payload ?? null;
 
   if (
@@ -134,21 +198,24 @@ export async function PUT(
     !createdAt ||
     !updatedAt ||
     !savedAt ||
-    nodeCount === null ||
     !isJsonValue(payload)
   ) {
-    return jsonError("invalid_payload", "Missing required fields.", { status: 400 });
+    return jsonFail("invalid_payload", "Missing required fields.", {
+      status: 400,
+    });
   }
 
   let deletedAtRaw: Date | null;
   if (body.deletedAt === null || body.deletedAt === undefined) {
     deletedAtRaw = null;
   } else {
-    const parsed = parseDate(body.deletedAt);
-    if (!parsed) {
-      return jsonError("invalid_payload", "Invalid deletedAt value.", { status: 400 });
+    const parsedDate = parseDate(body.deletedAt);
+    if (!parsedDate) {
+      return jsonFail("invalid_payload", "Invalid deletedAt value.", {
+        status: 400,
+      });
     }
-    deletedAtRaw = parsed;
+    deletedAtRaw = parsedDate;
   }
 
   try {
@@ -157,7 +224,7 @@ export async function PUT(
       deviceId,
       trail: {
         id,
-        deviceId: typeof body.trailDeviceId === "string" ? body.trailDeviceId : null,
+        deviceId: body.trailDeviceId ?? null,
         label,
         labelSource: labelSource as TrailLabelSource,
         labelUpdatedAt,
@@ -165,23 +232,30 @@ export async function PUT(
         updatedAt,
         savedAt,
         nodeCount,
-        rootUrl: typeof body.rootUrl === "string" ? body.rootUrl : null,
-        rootTitle: typeof body.rootTitle === "string" ? body.rootTitle : null,
-        rootFavicon: typeof body.rootFavicon === "string" ? body.rootFavicon : null,
+        rootUrl: body.rootUrl ?? null,
+        rootTitle: body.rootTitle ?? null,
+        rootFavicon: body.rootFavicon ?? null,
         payload,
         deletedAt: deletedAtRaw,
       },
     });
 
-    return jsonNoStore({
+    return jsonOk({
       updatedAt: result.updatedAt.toISOString(),
       applied: result.applied,
     });
   } catch (error) {
+    if (error instanceof SyncError) {
+      return jsonFail(error.code, error.message, {
+        status: error.status,
+        retryable: false,
+      });
+    }
+
     const message = error instanceof Error ? error.message : "";
 
     if (message === "user_not_found") {
-      return jsonError("unauthorized", "Unauthorized.", {
+      return jsonFail("unauthorized", "Unauthorized.", {
         status: 401,
         retryable: false,
         details: "reason=user_not_found",
@@ -189,12 +263,12 @@ export async function PUT(
     }
 
     if (message === "device_id_required") {
-      return jsonError("device_id_required", "Device id is required.", {
+      return jsonFail("device_id_required", "Device id is required.", {
         status: 400,
       });
     }
 
-    return jsonError("internal_error", "Internal error.", {
+    return jsonFail("internal_error", "Internal error.", {
       status: 500,
       retryable: true,
     });
@@ -209,44 +283,57 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const ip = request.headers.get("x-forwarded-for") ?? "unknown";
+  const rl = rateLimit(ip, "default");
+  if (!rl.ok) {
+    return jsonFail("RATE_LIMITED", "Too many requests", { status: 429 });
+  }
+
   const { id } = await params;
   if (!id) {
-    return jsonError("trail_not_found", "Trail not found.", { status: 404 });
+    return jsonFail("trail_not_found", "Trail not found.", { status: 404 });
   }
 
   const token = getBearerToken(request.headers);
-  const userId = await resolveUserId(token);
+  const userId = await getAuthenticatedUserId(token);
   if (!userId) {
-    return jsonError("unauthorized", "Unauthorized.", { status: 401 });
+    return jsonFail("unauthorized", "Unauthorized.", { status: 401 });
   }
 
-  const body = await request.json().catch(() => null);
-  const label = typeof body?.label === "string" ? body.label : undefined;
+  const rawBody = await request.json().catch(() => null);
+  const patchParsed = parseBody(trailPatchBodySchema, rawBody);
+  if (!patchParsed.ok) {
+    return jsonFail(
+      "VALIDATION_ERROR",
+      patchParsed.error.issues[0]?.message ?? "Invalid input",
+      { status: 400 },
+    );
+  }
+
+  const body = patchParsed.data;
+  const label = body.label;
   const labelSource =
-    body?.labelSource !== undefined ? toDbLabelSource(body.labelSource) : undefined;
+    body.labelSource !== undefined
+      ? toDbLabelSource(body.labelSource)
+      : undefined;
   if (labelSource === null) {
-    return jsonError("invalid_label_source", "Invalid labelSource.", {
+    return jsonFail("invalid_label_source", "Invalid labelSource.", {
       status: 400,
     });
   }
-  const deletedAt = parseDeletedAt(body?.deletedAt);
-  const payload = body?.payload !== undefined ? body.payload : undefined;
-  const nodeCount =
-    typeof body?.nodeCount === "number" && Number.isInteger(body.nodeCount) && body.nodeCount >= 0
-      ? body.nodeCount
-      : undefined;
-  const rootUrl =
-    typeof body?.rootUrl === "string" ? body.rootUrl : body?.rootUrl === null ? null : undefined;
-  const rootTitle =
-    typeof body?.rootTitle === "string" ? body.rootTitle : body?.rootTitle === null ? null : undefined;
-  const rootFavicon =
-    typeof body?.rootFavicon === "string" ? body.rootFavicon : body?.rootFavicon === null ? null : undefined;
+  const deletedAt = parseDeletedAt(body.deletedAt);
+  const payload = body.payload;
+  const nodeCount = body.nodeCount;
+  const rootUrl = body.rootUrl;
+  const rootTitle = body.rootTitle;
+  const rootFavicon = body.rootFavicon;
   const savedAtRaw =
-    typeof body?.savedAt === "string" ? new Date(body.savedAt) : undefined;
+    typeof body.savedAt === "string" ? new Date(body.savedAt) : undefined;
   const savedAt =
     savedAtRaw && !Number.isNaN(savedAtRaw.getTime()) ? savedAtRaw : undefined;
 
-  const hasMetaUpdate = label !== undefined || labelSource !== undefined || deletedAt !== undefined;
+  const hasMetaUpdate =
+    label !== undefined || labelSource !== undefined || deletedAt !== undefined;
   const hasPayloadUpdate =
     payload !== undefined ||
     nodeCount !== undefined ||
@@ -256,89 +343,109 @@ export async function PATCH(
     savedAt !== undefined;
 
   if (!hasMetaUpdate && !hasPayloadUpdate) {
-    return jsonError("invalid_payload", "Invalid update payload.", {
+    return jsonFail("invalid_payload", "Invalid update payload.", {
       status: 400,
     });
   }
 
   const now = new Date();
-  const data: Record<string, unknown> = {};
+  const data: DbTrailUpdate = { updated_at: now.toISOString() };
   if (label !== undefined) {
     data.label = label;
-    data.labelUpdatedAt = now;
+    data.label_updated_at = now.toISOString();
   }
   if (labelSource !== undefined) {
-    data.labelSource = labelSource;
-    data.labelUpdatedAt = now;
+    data.label_source = labelSource;
+    data.label_updated_at = now.toISOString();
   }
   if (deletedAt !== undefined) {
-    data.deletedAt = deletedAt;
+    data.deleted_at = deletedAt ? deletedAt.toISOString() : null;
   }
   if (payload !== undefined) {
-    data.payload = payload;
+    if (!isJsonValue(payload)) {
+      return jsonFail("invalid_payload", "Payload must be JSON-serializable.", {
+        status: 400,
+      });
+    }
+    data.payload = payload as TrailPayload;
   }
   if (nodeCount !== undefined) {
-    data.nodeCount = nodeCount;
+    data.node_count = nodeCount;
   }
   if (rootUrl !== undefined) {
-    data.rootUrl = rootUrl;
+    data.root_url = rootUrl;
   }
   if (rootTitle !== undefined) {
-    data.rootTitle = rootTitle;
+    data.root_title = rootTitle;
   }
   if (rootFavicon !== undefined) {
-    data.rootFavicon = rootFavicon;
+    data.root_favicon = rootFavicon;
   }
   if (savedAt !== undefined) {
-    data.savedAt = savedAt;
-  }
-  data.updatedAt = now;
-
-  const updated = await db.$transaction(async (tx) => {
-    const existing = await tx.trail.findFirst({ where: { id, userId } });
-    if (!existing) return null;
-    return tx.trail.update({ where: { id }, data });
-  });
-
-  if (!updated) {
-    return jsonError("trail_not_found", "Trail not found.", { status: 404 });
+    data.saved_at = savedAt.toISOString();
   }
 
-  return jsonNoStore(
-    toTrailRecord(updated as typeof updated & { payload: unknown }),
-  );
+  const result = await db
+    .from("trails")
+    .update(data)
+    .eq("id", id)
+    .eq("user_id", userId)
+    .select()
+    .single();
+
+  if (result.error) {
+    if (result.error.code === "PGRST116") {
+      return jsonFail("trail_not_found", "Trail not found.", { status: 404 });
+    }
+    return jsonFail("internal_error", "Internal error.", { status: 500 });
+  }
+  if (!result.data) {
+    return jsonFail("trail_not_found", "Trail not found.", { status: 404 });
+  }
+
+  return jsonOk(rowToTrailRecord(result.data));
 }
 
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const ip = request.headers.get("x-forwarded-for") ?? "unknown";
+  const rl = rateLimit(ip, "default");
+  if (!rl.ok) {
+    return jsonFail("RATE_LIMITED", "Too many requests", { status: 429 });
+  }
+
   const { id } = await params;
   if (!id) {
-    return jsonError("trail_not_found", "Trail not found.", { status: 404 });
+    return jsonFail("trail_not_found", "Trail not found.", { status: 404 });
   }
 
   const token = getBearerToken(request.headers);
-  const userId = await resolveUserId(token);
+  const userId = await getAuthenticatedUserId(token);
   if (!userId) {
-    return jsonError("unauthorized", "Unauthorized.", { status: 401 });
+    return jsonFail("unauthorized", "Unauthorized.", { status: 401 });
   }
 
   const now = new Date();
-  const updated = await db.$transaction(async (tx) => {
-    const existing = await tx.trail.findFirst({ where: { id, userId } });
-    if (!existing) return null;
-    return tx.trail.update({
-      where: { id },
-      data: { deletedAt: now, updatedAt: now },
-    });
-  });
 
-  if (!updated) {
-    return jsonError("trail_not_found", "Trail not found.", { status: 404 });
+  const result = await db
+    .from("trails")
+    .update({ deleted_at: now.toISOString(), updated_at: now.toISOString() })
+    .eq("id", id)
+    .eq("user_id", userId)
+    .select()
+    .single();
+
+  if (result.error) {
+    if (result.error.code === "PGRST116") {
+      return jsonFail("trail_not_found", "Trail not found.", { status: 404 });
+    }
+    return jsonFail("internal_error", "Internal error.", { status: 500 });
+  }
+  if (!result.data) {
+    return jsonFail("trail_not_found", "Trail not found.", { status: 404 });
   }
 
-  return jsonNoStore(
-    toTrailRecord(updated as typeof updated & { payload: unknown }),
-  );
+  return jsonOk(rowToTrailRecord(result.data));
 }

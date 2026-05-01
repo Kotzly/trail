@@ -1,0 +1,106 @@
+.trail-logo {
+  width: 90px;
+  height: 90px;
+  display: block;
+  --trail-logo-bg: transparent;
+  --trail-logo-border: var(--muted-foreground);
+  --trail-logo-accent: var(--primary);
+  --trail-logo-node: var(--foreground);
+  --trail-logo-base-opacity: 0.35;
+}
+
+.trail-logo--sm {
+  width: 28px;
+  height: 28px;
+}
+
+.trail-logo-hero {
+  width: 120px;
+  height: 120px;
+}
+
+.trail-logo--empty {
+  --trail-logo-bg: transparent;
+}
+
+.trail-logo--field {
+  --trail-logo-bg: var(--card);
+  --trail-logo-node: var(--card-foreground);
+  --trail-logo-base-opacity: 0.7;
+}
+
+.trail-logo__base {
+  opacity: var(--trail-logo-base-opacity);
+}
+
+.trail-logo__sparkPath {
+  opacity: 0;
+  stroke-dasharray: 0.14 0.86;
+  stroke-dashoffset: 0.14;
+  will-change: stroke-dashoffset, opacity;
+}
+
+.trail-logo__node {
+  transform-box: fill-box;
+  transform-origin: center;
+  will-change: transform;
+}
+
+.trail-logo--loop .trail-logo__sparkPath {
+  animation: trailLogoSpark 3200ms cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  animation-delay: var(--trail-logo-delay, 0ms);
+}
+
+.trail-logo--loop .trail-logo__node {
+  animation: trailLogoNodePulse 3200ms cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  animation-delay: var(--trail-logo-delay, 0ms);
+}
+
+@keyframes trailLogoSpark {
+  0% {
+    opacity: 0;
+    stroke-dashoffset: 0.14;
+  }
+  1% {
+    opacity: 1;
+  }
+  18% {
+    opacity: 1;
+    stroke-dashoffset: -0.86;
+  }
+  20% {
+    opacity: 0;
+    stroke-dashoffset: -0.86;
+  }
+  100% {
+    opacity: 0;
+    stroke-dashoffset: -0.86;
+  }
+}
+
+@keyframes trailLogoNodePulse {
+  0% {
+    transform: scale(1);
+  }
+  3% {
+    transform: scale(1.35);
+  }
+  12% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trail-logo__sparkPath {
+    animation: none !important;
+    opacity: 1;
+    stroke-dasharray: none;
+    stroke-dashoffset: 0;
+  }
+  .trail-logo__node {
+    animation: none !important;
+  }
+}

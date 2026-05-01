@@ -1,4 +1,4 @@
-import { RPC_METHOD, defineRpcHandlers, ok, err } from "@shared/rpc/contracts.js";
+import { RPC_METHOD, defineRpcHandlers } from "@shared/rpc/contracts.js";
 import { treeStorage } from "../../services/tree-storage.js";
 import { notifyTreeUpdate } from "../notifications.js";
 import { CommandManager } from "@shared/lib/commands.js";
@@ -9,13 +9,12 @@ export const pinHandlers = defineRpcHandlers({
   async [RPC_METHOD.TOGGLE_PIN](message) {
     const tree = await treeStorage.getOrCreateTree();
     const node = tree.findNodeById(message.nodeId);
-    if (!node) return err("Node not found");
+    if (!node) throw new Error("Node not found");
 
     CommandManager.saveSnapshot(NavigationTreeMapper.toJSON(tree), "Toggle pin" as Description);
     node.data.pinned = !node.data.pinned;
     treeStorage.cacheTree(tree);
     await notifyTreeUpdate(tree, "pins");
-    return ok();
   },
 
   async [RPC_METHOD.BULK_PIN](message) {
@@ -27,7 +26,6 @@ export const pinHandlers = defineRpcHandlers({
     }
     treeStorage.cacheTree(tree);
     await notifyTreeUpdate(tree, "pins");
-    return ok();
   },
 
   async [RPC_METHOD.BULK_UNPIN](message) {
@@ -39,6 +37,5 @@ export const pinHandlers = defineRpcHandlers({
     }
     treeStorage.cacheTree(tree);
     await notifyTreeUpdate(tree, "pins");
-    return ok();
   },
 });

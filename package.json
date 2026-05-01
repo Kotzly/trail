@@ -1,43 +1,49 @@
 {
   "name": "trail",
   "private": true,
-  "packageManager": "pnpm@10.29.3",
+  "packageManager": "pnpm@10.33.0",
   "scripts": {
-    "dev": "sh -c 'pnpm -r --parallel --filter \"!./apps/video\" dev & pnpm --dir extension dev:local; wait'",
-    "dev:web": "pnpm -r --parallel --filter '!./apps/video' dev",
-    "dev:extension": "pnpm --dir extension dev:local",
+    "dev": "sh -c 'pnpm -r --parallel dev & pnpm --dir extension dev; wait'",
+    "dev:web": "pnpm -r --parallel dev",
+    "dev:extension": "pnpm --dir extension dev",
     "dev:marketing": "pnpm --filter @trail/marketing dev",
     "dev:account": "pnpm --filter @trail/account dev",
-    "build": "pnpm run db:generate && pnpm -r --filter '!./apps/video' build",
-    "lint": "pnpm -r --filter '!./apps/video' lint",
-    "test": "pnpm -r --filter '!./apps/video' test",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test",
     "test:e2e": "cypress run",
     "test:e2e:open": "cypress open",
-    "typecheck": "pnpm -r --filter '!./apps/video' typecheck",
-    "format": "pnpm -r --filter '!./apps/video' format",
-    "db:generate": "pnpm --filter @trail/db prisma generate",
-    "db:migrate": "pnpm --filter @trail/db prisma migrate dev",
-    "db:migrate:deploy": "pnpm --filter @trail/db prisma migrate deploy",
-    "db:studio": "pnpm --filter @trail/db prisma studio"
+    "typecheck": "pnpm -r typecheck",
+    "format": "pnpm -r format",
+    "clean": "rm -rf node_modules apps/*/node_modules apps/*/.next apps/*/dist extension/node_modules extension/.wxt extension/.output packages/*/node_modules packages/*/dist",
+    "db:migrate": "npx supabase db push",
+    "db:types": "npx supabase gen types typescript --project-id tevskvkyhenzqxkcgbbm > packages/db/src/generated/database.types.ts",
+    "prepare": "husky"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
-      "@prisma/engines",
       "cypress",
       "esbuild",
-      "prisma",
       "sharp",
       "unrs-resolver"
-    ]
+    ],
+    "overrides": {
+      "picomatch": ">=4.0.4",
+      "follow-redirects": ">=1.16.0",
+      "postcss": ">=8.5.10"
+    }
   },
   "devDependencies": {
+    "@supabase/supabase-js": "^2.103.3",
+    "@types/node": "^25.6.0",
+    "@types/pg": "^8.20.0",
     "cypress": "^15.11.0",
     "eslint": "^9.39.2",
     "eslint-config-next": "^16.1.6",
-    "next": "16.1.6"
-  },
-  "dependencies": {
-    "@radix-ui/react-slot": "^1.2.4",
-    "class-variance-authority": "^0.7.1"
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
+    "next": "16.2.3",
+    "pg": "^8.20.0",
+    "supabase": "^2.84.5"
   }
 }

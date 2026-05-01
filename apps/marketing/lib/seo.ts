@@ -18,7 +18,10 @@ export const defaultKeywords = [
 ];
 
 type SanityImage = {
-  asset?: { url?: string; metadata?: { dimensions?: { width?: number; height?: number } } };
+  asset?: {
+    url?: string;
+    metadata?: { dimensions?: { width?: number; height?: number } };
+  };
 } | null;
 
 type MetadataInput = {
@@ -28,12 +31,22 @@ type MetadataInput = {
   ogImage?: SanityImage;
   keywords?: string[];
   absoluteTitle?: boolean;
+  locale?: string;
 };
 
 export function resolveSiteUrl(siteUrl?: string | null): string {
   const trimmed = siteUrl?.trim();
   if (!trimmed) return FALLBACK_SITE_URL;
   return trimmed.endsWith("/") ? trimmed.slice(0, -1) : trimmed;
+}
+
+const OG_LOCALE_MAP: Record<string, string> = {
+  en: "en_US",
+  ru: "ru_RU",
+};
+
+export function resolveOgLocale(locale: string): string {
+  return OG_LOCALE_MAP[locale] ?? OG_LOCALE_MAP.en!;
 }
 
 function resolveOgImage(image?: SanityImage) {
@@ -97,6 +110,7 @@ export function buildMetadata({
   ogImage,
   keywords,
   absoluteTitle,
+  locale,
 }: MetadataInput): Metadata {
   const image = resolveOgImage(ogImage);
   return {
@@ -112,7 +126,7 @@ export function buildMetadata({
       description,
       url: path,
       siteName: SITE_NAME,
-      locale: "en_US",
+      locale: resolveOgLocale(locale ?? "en"),
       type: "website",
       images: [image],
     },

@@ -1,7 +1,9 @@
+import { z } from "zod";
 import type { Description, JSONString } from "../types/ids.js";
 import type { CommandState } from "../rpc/contracts.js";
 import { type NavigationTreeJSON } from "../types/tree.js";
 import { undoHistoryItem } from "../config/storage-items.js";
+import pDebounce from "p-debounce";
 
 // max history stack size (todo: make this configurable by the user)
 const MAX_HISTORY = 30;
@@ -11,38 +13,41 @@ export type Snapshot = {
   description: Description;
 };
 
+const snapshotSchema = z
+  .object({
+    treeJSON: z.string(),
+    description: z.string(),
+  })
+  .transform(({ treeJSON, description }) => ({
+    treeJSON: treeJSON as JSONString,
+    description: description as Description,
+  }));
+
 export class CommandManager {
   private static undoStack: Snapshot[] = [];
   private static redoStack: Snapshot[] = [];
   private static loaded = false;
   private static loading: Promise<void> | null = null;
   private static dirtyDuringLoad = false;
-  private static persistTimer: ReturnType<typeof setTimeout> | null = null;
 
   private static sanitizeStack(raw: unknown): Snapshot[] {
     if (!Array.isArray(raw)) return [];
-    const list: Snapshot[] = [];
-    for (const entry of raw) {
-      if (!entry || typeof entry !== "object") continue;
-      const candidate = entry as { treeJSON?: unknown; description?: unknown };
-      if (typeof candidate.treeJSON !== "string") continue;
-      if (typeof candidate.description !== "string") continue;
-      list.push({
-        treeJSON: candidate.treeJSON as JSONString,
-        description: candidate.description as Description,
-      });
-    }
-    return list;
+    return raw.flatMap((entry) => {
+      const parsed = snapshotSchema.safeParse(entry);
+      return parsed.success ? [parsed.data] : [];
+    });
   }
 
-  private static schedulePersist(): void {
-    if (this.persistTimer) {
-      clearTimeout(this.persistTimer);
-    }
-    this.persistTimer = setTimeout(() => {
-      this.persistTimer = null;
-      void this.persistNow();
-    }, 300);
+  private static schedulePersist = pDebounce(() => CommandManager.persistNow(), 300);
+
+  /**
+   * Synchronously flush any pending debounced persist. Called from
+   * service-worker onSuspend so undo history queued in the debounce
+   * window doesn't evaporate with the SW.
+   */
+  static async flushNow(): Promise<void> {
+    if (!this.loaded) return;
+    await this.persistNow();
   }
 
   private static async persistNow(): Promise<void> {
@@ -87,11 +92,11 @@ export class CommandManager {
       description: desc,
     });
 
-    this.redoStack = this.redoStack.slice(0, 0); // new action invalidates redo history
+    this.redoStack = []; // new action invalidates redo history
     while (this.undoStack.length > MAX_HISTORY) {
-      this.undoStack.shift(); // todo: check code for correctness
+      this.undoStack.shift();
     }
-    this.schedulePersist();
+    void this.schedulePersist();
   }
   static undo(currentTreeJSON: NavigationTreeJSON): NavigationTreeJSON | null {
     if (this.undoStack.length === 0) return null;
@@ -106,7 +111,7 @@ export class CommandManager {
     });
 
     const previousState = this.undoStack.pop();
-    this.schedulePersist();
+    void this.schedulePersist();
     return previousState ? (JSON.parse(previousState.treeJSON) as NavigationTreeJSON) : null;
   }
   static redo(currentTreeJSON: NavigationTreeJSON): NavigationTreeJSON | null {
@@ -123,7 +128,7 @@ export class CommandManager {
 
     // Pop and return next state
     const nextState = this.redoStack.pop();
-    this.schedulePersist();
+    void this.schedulePersist();
     return nextState ? (JSON.parse(nextState.treeJSON) as NavigationTreeJSON) : null;
   }
 
@@ -155,8 +160,8 @@ export class CommandManager {
     if (!this.loaded && this.loading) {
       this.dirtyDuringLoad = true;
     }
-    this.undoStack = this.undoStack.slice(0, 0);
-    this.redoStack = this.redoStack.slice(0, 0);
-    this.schedulePersist();
+    this.undoStack = [];
+    this.redoStack = [];
+    void this.schedulePersist();
   }
 }

@@ -1,13 +1,12 @@
 {
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "composite": true,
-    "rootDir": "./src",
     "outDir": "./dist",
     "types": ["chrome"],
-    "sourceMap": true
+    "sourceMap": true,
+    "noEmit": true
   },
-  "include": ["./src"],
+  "include": ["./src", ".wxt/i18n/index.ts"],
   "exclude": [
     "./src/entrypoints/**/*.tsx",
     "./src/entrypoints/background.ts",

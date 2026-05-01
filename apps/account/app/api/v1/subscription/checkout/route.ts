@@ -1,45 +1,45 @@
 import { getBearerToken } from "@/src/server/backend/auth/headers";
-import { getUserFromBillingBearerToken } from "@/src/server/backend/auth/billing-user";
+import { getAuthenticatedUser } from "@/src/server/auth/get-authenticated-user";
 import {
   BillingProviderError,
-  type CheckoutInterval,
   getBillingProvider,
 } from "@/src/server/backend/billing/provider";
-import { jsonError } from "@/src/server/backend/error-response";
-import { jsonNoStore } from "@/src/server/backend/response";
+import { jsonFail, jsonOk } from "@/src/server/backend/error-response";
+import { rateLimit } from "@/src/server/api/rate-limit";
+import { optionsResponse } from "@/src/server/api/cors";
+import { subscriptionCheckoutBodySchema } from "@/src/server/api/schemas";
+import { parseBody } from "@/src/server/api/validate";
 
 export const runtime = "nodejs";
 
-function isInterval(value: unknown): value is CheckoutInterval {
-  return value === "month" || value === "year";
-}
-
-function isPlanId(value: unknown): value is "pro" | "teams" {
-  return value === "pro" || value === "teams";
-}
-
-function isOptionalString(value: unknown): value is string | undefined {
-  return value === undefined || typeof value === "string";
+export function OPTIONS(request: Request) {
+  return optionsResponse(request);
 }
 
 export async function POST(request: Request) {
-  const token = getBearerToken(request.headers);
-  const user = await getUserFromBillingBearerToken(token);
-  if (!user) {
-    return jsonError("unauthorized", "Unauthorized.", { status: 401 });
+  const ip = request.headers.get("x-forwarded-for") ?? "unknown";
+  const rl = rateLimit(ip, "default");
+  if (!rl.ok) {
+    return jsonFail("RATE_LIMITED", "Too many requests", { status: 429 });
   }
 
-  const body = await request.json().catch(() => null);
-  if (
-    !isPlanId(body?.planId) ||
-    !isInterval(body.interval) ||
-    !isOptionalString(body.successUrl) ||
-    !isOptionalString(body.cancelUrl)
-  ) {
-    return jsonError("invalid_checkout", "Invalid checkout input.", {
-      status: 400,
-    });
+  const token = getBearerToken(request.headers);
+  const user = await getAuthenticatedUser(token);
+  if (!user) {
+    return jsonFail("unauthorized", "Unauthorized.", { status: 401 });
   }
+
+  const rawBody = await request.json().catch(() => null);
+  const parsed = parseBody(subscriptionCheckoutBodySchema, rawBody);
+  if (!parsed.ok) {
+    return jsonFail(
+      "VALIDATION_ERROR",
+      parsed.error.issues[0]?.message ?? "Invalid input",
+      { status: 400 },
+    );
+  }
+
+  const body = parsed.data;
 
   try {
     const link = await getBillingProvider().createCheckoutSession({
@@ -50,10 +50,10 @@ export async function POST(request: Request) {
       successUrl: body.successUrl,
       cancelUrl: body.cancelUrl,
     });
-    return jsonNoStore(link);
+    return jsonOk(link);
   } catch (error) {
     if (error instanceof BillingProviderError) {
-      return jsonError(error.code, error.message, {
+      return jsonFail(error.code, error.message, {
         status: error.status,
         retryable: error.retryable,
         details: error.details,

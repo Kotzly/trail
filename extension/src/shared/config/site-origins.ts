@@ -1,16 +1,8 @@
-const PRODUCTION_ORIGINS: readonly string[] = ["https://gettrail.net", "https://app.gettrail.net"];
+const PRODUCTION_ORIGINS: readonly string[] = ["https://gettrail.net"];
 
-const DEV_ORIGINS: readonly string[] = [
-  "http://localhost:3000",
-  "http://localhost:3001",
-  "http://127.0.0.1:3000",
-  "http://127.0.0.1:3001",
-];
+const DEV_ORIGINS: readonly string[] = ["http://localhost:3000", "http://127.0.0.1:3000"];
 
-const PRODUCTION_MATCH_PATTERNS: readonly string[] = [
-  "https://gettrail.net/*",
-  "https://app.gettrail.net/*",
-];
+const PRODUCTION_MATCH_PATTERNS: readonly string[] = ["https://gettrail.net/*"];
 
 const DEV_MATCH_PATTERNS: readonly string[] = ["http://localhost/*", "http://127.0.0.1/*"];
 

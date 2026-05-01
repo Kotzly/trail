@@ -1,0 +1,116 @@
+/*
+ * Pane cursor + edge pointer-events overrides.
+ *
+ * xyflow sets `cursor: pointer` on the pane whenever selection is active
+ * (`selectionOnDrag` enabled). The pointing-hand cursor over empty graph
+ * area implies a click will do something — it doesn't. Keep the default
+ * arrow; the marquee drag itself is discoverable without a cursor hint.
+ *
+ * Edges receive `pointer-events: visibleStroke` from xyflow's base CSS,
+ * so pressing on an edge path swallows the pointerdown and the marquee
+ * drag doesn't start there. Edges aren't interactive in Trail — make
+ * them pass-through so the pane beneath gets the event.
+ */
+
+.react-flow__pane.selection {
+  cursor: default;
+}
+
+.react-flow__edge,
+.react-flow__edge.selectable {
+  pointer-events: none;
+  cursor: default;
+}
+
+/* Smooth edge color transitions (active-path highlight on/off).
+   Stroke is the only smoothly-animatable visual property — the path
+   `d` attribute can't be CSS-interpolated. Opacity transitions are
+   added so we can hide edges during topology morphs (see below). */
+.react-flow__edge-path {
+  transition:
+    stroke 80ms var(--ease-out),
+    opacity 200ms var(--ease-out);
+}
+
+/*
+ * Topology reshape (collapse / expand / chain-unfold).
+ *
+ * While the relayout transition tweens node transforms (350ms), the
+ * SVG edge `d` attribute snaps to the new geometry immediately —
+ * edges visibly disconnect from their endpoints during the morph.
+ * Fading edges to ~25% opacity for the morph duration hides this
+ * mismatch; the eye reads the morph as "nodes glide, edges blur and
+ * settle" rather than "edges teleport while nodes glide". Once the
+ * `graph--reshaping` class lifts, edges fade back to full opacity
+ * already drawn at their final positions. Classic crossfade trick.
+ */
+.graph--reshaping .react-flow__edge-path {
+  opacity: 0.25;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .react-flow__edge-path {
+    transition: none;
+  }
+  .graph--reshaping .react-flow__edge-path {
+    opacity: 1;
+  }
+}
+
+/*
+ * Onboarding tour spotlights.
+ *
+ * `pulse` — soft radiating ring that gently breathes. Used on the node
+ *   the coach just narrated about (e.g. the Google search node after
+ *   the branch forms). Purely attention, no CTA.
+ *
+ * `target` — persistent bold ring. Used to invite a click on a
+ *   specific node (e.g. the abandoned result the user should jump back
+ *   to). Brighter, slower, doesn't fade.
+ *
+ * Both outline outside the node's border so the inner content isn't
+ * affected. The spotlight survives tree re-layout because it's
+ * matched by `nodeId`, not pixel position.
+ */
+
+@keyframes trail-spotlight-pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 55%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 12px color-mix(in oklab, var(--primary) 0%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 0%, transparent);
+  }
+}
+
+.trail-spotlight-pulse {
+  animation: trail-spotlight-pulse-ring 1.8s ease-out infinite;
+}
+
+.trail-spotlight-target {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 6px color-mix(in oklab, var(--primary) 18%, transparent);
+  animation: trail-spotlight-target-breath 2.4s ease-in-out infinite;
+}
+
+@keyframes trail-spotlight-target-breath {
+  0%,
+  100% {
+    outline-offset: 3px;
+    box-shadow: 0 0 0 6px color-mix(in oklab, var(--primary) 18%, transparent);
+  }
+  50% {
+    outline-offset: 5px;
+    box-shadow: 0 0 0 10px color-mix(in oklab, var(--primary) 10%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trail-spotlight-pulse,
+  .trail-spotlight-target {
+    animation: none;
+  }
+}

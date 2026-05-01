@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale, getMessages } from "next-intl/server";
+import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
-import { accountCopy } from "@trail/content";
-import { Providers } from "./providers";
 
 export const metadata: Metadata = {
-  title: accountCopy.meta.title,
-  description: accountCopy.meta.description,
+  title: "Trail Account",
+  description: "Trail account and API",
   icons: {
     icon: [
       {
@@ -20,19 +21,20 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const [locale, messages] = await Promise.all([getLocale(), getMessages()]);
+
   return (
-    <html
-      lang="en"
-      data-theme="system"
-      suppressHydrationWarning
-    >
-      <body className="min-h-screen bg-background text-foreground">
-        <Providers>{children}</Providers>
+    <html lang={locale} suppressHydrationWarning>
+      <body className="min-h-screen bg-background text-foreground antialiased">
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          {children}
+          <Toaster />
+        </NextIntlClientProvider>
       </body>
     </html>
   );

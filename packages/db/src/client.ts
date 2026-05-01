@@ -1,45 +1,53 @@
-import { PrismaClient } from "./generated/client";
-export { Prisma } from "./generated/client";
-import { PrismaPg } from "@prisma/adapter-pg";
-import { Pool } from "pg";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-const globalForPrisma = globalThis as {
-  prisma?: PrismaClient;
-  prismaPool?: Pool;
+import type { Database } from "./generated/database.types.js";
+
+export type { Database, SupabaseClient };
+export type TrailDbClient = SupabaseClient<Database>;
+
+type GlobalWithSupabase = typeof globalThis & {
+  __trailSupabase?: TrailDbClient;
 };
 
-const databaseUrl = process.env.DATABASE_URL;
-
-if (!databaseUrl) {
-  throw new Error(
-    "Missing database connection string. Set DATABASE_URL environment variable."
-  );
-}
-
-try {
-  const parsed = new URL(databaseUrl);
-  if (parsed.protocol !== "postgres:" && parsed.protocol !== "postgresql:") {
-    throw new Error("DATABASE_URL must use postgres:// or postgresql:// protocol.");
+function readEnv(): { url: string; key: string } {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!url) {
+    throw new Error(
+      "Missing Supabase URL. Set NEXT_PUBLIC_SUPABASE_URL environment variable.",
+    );
   }
-} catch (err) {
-  if (err instanceof Error && err.message.includes("protocol")) throw err;
-  throw new Error("DATABASE_URL is not a valid URL.");
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!key) {
+    throw new Error(
+      "Missing SUPABASE_SERVICE_ROLE_KEY. The db client requires the service role key for server-to-server operations (bypasses RLS).",
+    );
+  }
+  return { url, key };
 }
 
-const pool =
-  globalForPrisma.prismaPool ??
-  new Pool({
-    connectionString: databaseUrl,
-    ssl: databaseUrl.includes("neon.tech") ? { rejectUnauthorized: true } : undefined,
+export function createDb(): TrailDbClient {
+  const { url, key } = readEnv();
+  return createClient<Database>(url, key, {
+    auth: { autoRefreshToken: false, persistSession: false },
   });
-
-const adapter = new PrismaPg(pool);
-
-export const db = globalForPrisma.prisma ?? new PrismaClient({ adapter });
-
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = db;
-  globalForPrisma.prismaPool = pool;
 }
 
-export type { PrismaClient };
+function getOrCreate(): TrailDbClient {
+  const g = globalThis as GlobalWithSupabase;
+  if (g.__trailSupabase) return g.__trailSupabase;
+  const instance = createDb();
+  if (process.env.NODE_ENV !== "production") {
+    g.__trailSupabase = instance;
+  }
+  return instance;
+}
+
+export const db: TrailDbClient = new Proxy({} as TrailDbClient, {
+  get(_target, prop, receiver) {
+    const instance = getOrCreate();
+    return Reflect.get(instance, prop, receiver);
+  },
+  has(_target, prop) {
+    return prop in getOrCreate();
+  },
+});

@@ -99,8 +99,11 @@ export class TemporaryTabSelectionManager {
           session.previewTabId = tabId as TabId;
           return { previewedTabId: tabId as TabId };
         }
+        // Focus failed (transient — window closing, OS denied, etc.).
+        // Do NOT unregister: that was destructive cleanup masquerading
+        // as real cleanup (#57). The tab may still exist and be
+        // mapped correctly; dropping the mapping loses user data.
         tabManager.clearSuppressActivate(tabId as TabId);
-        tabManager.unregister(tabId as TabId);
       }
     }
 
@@ -120,8 +123,8 @@ export class TemporaryTabSelectionManager {
         session.previewTabId = tabId as TabId;
         return { previewedTabId: tabId as TabId };
       }
+      // Transient focus failure — clear suppression, keep mapping. (#57)
       tabManager.clearSuppressActivate(tabId as TabId);
-      tabManager.unregister(tabId as TabId);
     }
 
     session.previewTabId = null;
@@ -169,7 +172,9 @@ export class TemporaryTabSelectionManager {
         this.end(sessionId);
         return;
       }
-      tabManager.unregister(tabId as TabId);
+      // Transient focus failure during accept — do not destroy the
+      // mapping (#57). The tab may still be valid; dropping it loses
+      // user state.
     }
 
     if (session.options.allowCreateOnCommit) {
@@ -223,7 +228,7 @@ export class TemporaryTabSelectionManager {
           return;
         }
         tabManager.clearSuppressActivate(tabId as TabId);
-        tabManager.unregister(tabId as TabId);
+        // Transient cancel-focus failure — keep mapping (#57).
       }
     }
 

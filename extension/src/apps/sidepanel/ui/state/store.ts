@@ -1,35 +1,29 @@
 import { create } from "zustand";
 import type { NodeId, Tag } from "@shared/types/ids.js";
+import type { OnboardingPersona, OnboardingPhase } from "@shared/config/storage-items.js";
 import type { Settings } from "@shared/types/settings.js";
 import type { TabState } from "@shared/types/tabs.js";
 import type {
   CommandState,
-  EditorModeState,
-  SyncStatus,
   TreeUpdateReason,
   TreeUpdatedInput,
   TreesSnapshot,
 } from "@shared/rpc/contracts.js";
+
+export type SyncStatus = "idle" | "saving" | "saved" | "error";
 import { NavigationTreeMapper } from "@shared/lib/mapper.js";
 import type { NavigationTree } from "@background/state/nav-tree.js";
 import { PinnedManager } from "@background/state/pinned.js";
-import type { TagDefinition } from "@shared/types/tags.js";
-import type { TreeMeta, TreeSummary } from "@shared/types/tree.js";
+import type { TreeMeta, TreeSummary, NavigationTreeJSON } from "@shared/types/tree.js";
 import type { ResolvedFlags } from "@shared/types/flags.js";
-import { getCollapsedAncestorIds } from "@features/graph/graph/collapse-utils.js";
 import type {
-  AccountError,
-  AccountConfig,
-  AccountSnapshot,
-  AuthSession,
-  BillingStatus,
-  OnboardingState,
-  Plan,
-  Subscription,
-  User,
-} from "../../../../shared/types/account.js";
-
-export type MetaKeyPair = { short: "^"; long: "ctrl" } | { short: "⌘"; long: "cmd" };
+  ApplyError,
+  ConflictPickState,
+  ConflictPreview,
+  LabelPick,
+  NodePick,
+  StructuralPick,
+} from "@shared/types/tree-diff.js";
 
 type GraphTool = "hand" | "select";
 
@@ -66,39 +60,19 @@ type OverlayEffectsState = {
   blurCount: number;
 };
 
-type AccountStatus = "idle" | "loading" | "ready" | "error";
-type NetworkStatus = "online" | "offline";
-
-export type AccountState = {
-  status: AccountStatus;
-  network: NetworkStatus;
-  session: AuthSession;
-  config: AccountConfig;
-  user: User | null;
-  subscription: Subscription | null;
-  billing: BillingStatus | null;
-  plans: Plan[];
-  onboarding: OnboardingState;
-  error: AccountError | null;
-  lastSyncedAt: string | null;
-  sessionExpired: boolean;
-  authRequired: boolean;
-  guestWelcomeDismissed: boolean;
-  authPolicyLoaded: boolean;
-};
-
 type StoreState = {
   settings: Settings | null;
   flags: ResolvedFlags | null;
-  account: AccountState;
   tree: NavigationTree | null;
+  treeJSON: NavigationTreeJSON | null;
+  precomputedPositions: Record<string, { x: number; y: number }> | null;
   treeUpdate: {
     reason: TreeUpdateReason;
     at: number;
   } | null;
   trees: {
     active: TreeMeta | null;
-    archived: TreeSummary[];
+    others: TreeSummary[];
   };
   pins: PinnedManager | null;
   tabStates: Record<NodeId, TabState>;
@@ -108,8 +82,6 @@ type StoreState = {
   currentNodeId: NodeId | null;
   nodeCount: number;
   commandState: CommandState | null;
-  tagDefs: Record<string, TagDefinition>;
-  tagDefsList: TagDefinition[];
   tagFilter: {
     selected: Set<Tag>;
   };
@@ -122,17 +94,12 @@ type StoreState = {
     baseCurrentId: NodeId | null;
   };
   overlayEffects: OverlayEffectsState;
-  deleteTreeConfirm: {
-    open: boolean;
-    rootId: NodeId | null;
-  };
   ui: {
     settingsOpen: boolean;
     themePickerOpen: boolean;
     pinnedOpen: boolean;
     treesOpen: boolean;
     tagFilterOpen: boolean;
-    tooltipsOpen: boolean;
   };
   graph: {
     tool: GraphTool;
@@ -145,24 +112,63 @@ type StoreState = {
     collapsedByTree: Map<NodeId, Set<NodeId>>;
     collapseVersion: number;
     collapseAction: { kind: "collapse" | "expand"; nodeIds: Set<NodeId> } | null;
+    /**
+     * Tip node IDs the user has manually unfolded for chain-fold
+     * (collapselist patterns). The fold transform skips these chains,
+     * rendering them as normal parent→child nodes. Saved per tree,
+     * resets on tree switch (same lifecycle as `collapsedNodeIds`).
+     */
+    unfoldedChainIds: Set<NodeId>;
+    unfoldedChainsByTree: Map<NodeId, Set<NodeId>>;
+    /**
+     * Nodes the user has expanded **by clicking the `+N` badge** (as
+     * opposed to context-menu Expand or double-click). The TrailNode
+     * uses this to render a re-collapse arrow next to the node — a
+     * shortcut to undo the badge action. Cleared on any other
+     * collapse/expand path.
+     */
+    badgeExpandedIds: Set<NodeId>;
+    badgeExpandedByTree: Map<NodeId, Set<NodeId>>;
   };
-  editorMode: EditorModeState;
   syncStatus: SyncStatus;
+  commandPalette: { open: boolean };
+  renameTarget: NodeId | null;
+  authState: AuthUiState;
+  syncConflict: SyncConflictUiState | null;
   contextMenu: ContextMenuState;
   pickTarget: { type: "duplicate"; sourceNodeId: NodeId } | null;
-  metaKey: MetaKeyPair | null;
-  isMac: boolean;
+  /**
+   * Interactive onboarding v2 state. Mirrors the persisted
+   * `onboardingStateItem` (storage-items.ts) so UI can read synchronously
+   * without awaiting storage. Writes go through the onboarding API,
+   * which updates both storage and this slice.
+   */
+  onboarding: {
+    phase: OnboardingPhase | null;
+    wizardStep: number;
+    tourStep: number;
+    persona: OnboardingPersona | null;
+    tourTreeId: string | null;
+    startedAt: number | null;
+    completedAt: number | null;
+    softCtaDismissed: { signin?: boolean; pin?: boolean };
+    /**
+     * Currently spotlighted node for the coach. Lives in state (not
+     * tree data) so it survives tree re-renders, and the layout
+     * transform merges it into `TrailNodeData.spotlight` by id.
+     */
+    spotlight: {
+      nodeId: NodeId | null;
+      kind: "pulse" | "target" | null;
+    };
+  };
 };
 
 type StoreActions = {
   bootstrapGraph: (settings: Settings, payload: TreeUpdatedInput) => void;
-  setPlatformMeta: (meta: MetaKeyPair, isMac: boolean) => void;
   applyTreeState: (payload: TreeUpdatedInput) => void;
   setTrees: (snapshot: TreesSnapshot) => void;
   setCommandState: (state: CommandState) => void;
-  setTagDefs: (defs: TagDefinition[]) => void;
-  upsertTagDef: (def: TagDefinition) => void;
-  removeTagDef: (id: string) => void;
   toggleTagFilterTag: (tagId: Tag) => void;
   setTagFilterSelected: (selected: Set<Tag>) => void;
   clearTagFilter: () => void;
@@ -177,15 +183,9 @@ type StoreActions = {
   setPinnedOpen: (open: boolean) => void;
   setTreesOpen: (open: boolean) => void;
   setTagFilterOpen: (open: boolean) => void;
-  setTooltipsOpen: (open: boolean) => void;
   closeAllPopups: () => void;
-  openDeleteTreeConfirm: (rootId: NodeId) => void;
-  closeDeleteTreeConfirm: () => void;
   registerOverlay: (id: string, effects: OverlayEffects) => void;
   unregisterOverlay: (id: string) => void;
-  setAccount: (patch: Partial<AccountState>) => void;
-  setAccountSnapshot: (snapshot: AccountSnapshot) => void;
-  resetAccount: () => void;
   setGraphTool: (tool: GraphTool) => void;
   setSelectedNodeIds: (ids: Set<NodeId>) => void;
   clearSelection: () => void;
@@ -194,13 +194,99 @@ type StoreActions = {
   requestGraphReset: () => void;
   collapseNodes: (nodeIds: NodeId[]) => void;
   expandNodes: (nodeIds: NodeId[]) => void;
+  toggleChainUnfolded: (nodeId: NodeId) => void;
+  toggleBadgeCollapse: (nodeId: NodeId) => void;
   openContextMenu: (menu: ContextMenuState) => void;
   closeContextMenu: () => void;
   clearViewIntent: () => void;
-  setEditorMode: (state: EditorModeState) => void;
   setPickTarget: (target: StoreState["pickTarget"]) => void;
   clearPickTarget: () => void;
   setSyncStatus: (status: SyncStatus) => void;
+  setCommandPaletteOpen: (open: boolean) => void;
+  startInlineRename: (nodeId: NodeId) => void;
+  cancelInlineRename: () => void;
+  setAuthState: (state: AuthUiState) => void;
+  /**
+   * Accept a conflict event (from the runtime-messaging ingest) OR a
+   * fully-shaped slice (for test/restore). Null clears.
+   */
+  setSyncConflict: (conflict: SyncConflictEventIngest | SyncConflictUiState | null) => void;
+  setConflictDialogOpen: (open: boolean, expectedActiveTreeId?: string | null) => void;
+  setConflictPreview: (preview: ConflictPreview) => void;
+  setConflictStale: (stale: boolean) => void;
+  setConflictNodePick: (nodeId: NodeId, pick: NodePick) => void;
+  setConflictStructuralPick: (nodeId: NodeId, pick: StructuralPick) => void;
+  setConflictLabelPick: (pick: LabelPick | null) => void;
+  setConflictReorderPick: (parentId: NodeId, order: "mine-order" | "theirs-order") => void;
+  resetConflictPicks: () => void;
+  setConflictApplyError: (error: ApplyError | null) => void;
+  clearConflict: () => void;
+  setOnboarding: (patch: Partial<StoreState["onboarding"]>) => void;
+  setSpotlight: (nodeId: NodeId | null, kind: "pulse" | "target" | null) => void;
+  /**
+   * Reset per-user Zustand slices on auth transition (sign-out, account
+   * switch). Device-scoped fields (settings, flags, ui, onboarding,
+   * authState) are deliberately preserved.
+   */
+  resetForAuth: () => void;
+};
+
+export type AuthUiState =
+  | { status: "unknown" }
+  | { status: "unconfigured" }
+  | { status: "signed-out" }
+  | {
+      status: "signed-in";
+      identity: {
+        userId: string;
+        email: string | null;
+        displayName: string | null;
+        avatarUrl: string | null;
+      };
+    };
+
+/**
+ * Wire shape emitted by the background sync engine's SYNC_CONFLICT
+ * event — these are the only fields we track now that the dialog is
+ * gone (see SyncConflictToast).
+ */
+export type SyncConflictEventIngest = {
+  treeId: string;
+  serverUpdatedAt: string;
+  serverDeviceId: string;
+};
+
+export type SyncConflictUiState = {
+  treeId: string;
+  serverUpdatedAt: string;
+  serverDeviceId: string;
+  /** Open flag — banner opens the dialog; dialog closes it. */
+  dialogOpen: boolean;
+  /**
+   * Populated after the first successful `fetchConflictPreview`.
+   * Null while loading / before first open.
+   */
+  preview: ConflictPreview | null;
+  /**
+   * Set when a newer SYNC_CONFLICT fires for the same tree while the
+   * dialog is open. Surfaces a non-dismissible banner inside the dialog
+   * with a refresh button; picks are preserved. Applies belt-and-braces
+   * with the TOCTOU re-check in `applyConflictMergeInternal`.
+   */
+  stale: boolean;
+  /**
+   * User's per-node cherry-picks for `(treeId, serverUpdatedAt)`. Also
+   * persisted to `conflictPicksItem` (session storage) so sidepanel
+   * unmount/remount preserves picks.
+   */
+  picks: ConflictPickState;
+  /**
+   * Captured at dialog open — used to detect active-tree switches
+   * mid-resolution. null when the dialog was opened against a stored tree.
+   */
+  expectedActiveTreeId: string | null;
+  /** Last apply failure for inline error rendering. Cleared on retry. */
+  applyError: ApplyError | null;
 };
 
 type PopupKey = keyof StoreState["ui"];
@@ -212,7 +298,6 @@ const closeUiPopups = (ui: StoreState["ui"]): StoreState["ui"] => ({
   pinnedOpen: false,
   treesOpen: false,
   tagFilterOpen: false,
-  tooltipsOpen: ui.tooltipsOpen,
 });
 
 const openUiPopup = (ui: StoreState["ui"], key: PopupKey): StoreState["ui"] => ({
@@ -232,31 +317,26 @@ const pruneCollapsedNodes = (tree: NavigationTree | null, collapsed: Set<NodeId>
   return next;
 };
 
+/** Drop IDs no longer present in the tree — for sets that don't care about child count. */
+const prunePresentIds = (tree: NavigationTree | null, ids: Set<NodeId>): Set<NodeId> => {
+  if (!tree || ids.size === 0) return new Set<NodeId>();
+  const next = new Set<NodeId>();
+  ids.forEach((id) => {
+    if (tree.findNodeById(id)) next.add(id);
+  });
+  return next;
+};
+
 export const useStore = create<StoreState & StoreActions>((set, _get) => ({
   settings: null,
   flags: null,
-  account: {
-    status: "idle",
-    network: "online",
-    session: { status: "guest" },
-    config: {},
-    user: null,
-    subscription: null,
-    billing: { state: "none" },
-    plans: [],
-    onboarding: { flowId: "activation-v1", status: "pending", seenAt: null },
-    error: null,
-    lastSyncedAt: null,
-    sessionExpired: false,
-    authRequired: false,
-    guestWelcomeDismissed: false,
-    authPolicyLoaded: false,
-  },
   tree: null,
+  treeJSON: null,
+  precomputedPositions: null,
   treeUpdate: null,
   trees: {
     active: null,
-    archived: [],
+    others: [],
   },
   pins: null,
   tabStates: {},
@@ -266,8 +346,6 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
   currentNodeId: null,
   nodeCount: 0,
   commandState: null,
-  tagDefs: {},
-  tagDefsList: [],
   tagFilter: {
     selected: new Set<Tag>(),
   },
@@ -284,17 +362,12 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
     lodCount: 0,
     blurCount: 0,
   },
-  deleteTreeConfirm: {
-    open: false,
-    rootId: null,
-  },
   ui: {
     settingsOpen: false,
     themePickerOpen: false,
     pinnedOpen: false,
     treesOpen: false,
     tagFilterOpen: false,
-    tooltipsOpen: false,
   },
   graph: {
     tool: "select",
@@ -307,13 +380,29 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
     collapsedByTree: new Map<NodeId, Set<NodeId>>(),
     collapseVersion: 0,
     collapseAction: null,
+    unfoldedChainIds: new Set<NodeId>(),
+    unfoldedChainsByTree: new Map<NodeId, Set<NodeId>>(),
+    badgeExpandedIds: new Set<NodeId>(),
+    badgeExpandedByTree: new Map<NodeId, Set<NodeId>>(),
   },
-  editorMode: { active: false, treeId: null },
   syncStatus: "idle" as SyncStatus,
+  commandPalette: { open: false },
+  renameTarget: null,
+  authState: { status: "unknown" as const },
+  syncConflict: null,
   contextMenu: null,
   pickTarget: null,
-  metaKey: null,
-  isMac: false,
+  onboarding: {
+    phase: null,
+    wizardStep: 0,
+    tourStep: 0,
+    persona: null,
+    tourTreeId: null,
+    startedAt: null,
+    completedAt: null,
+    softCtaDismissed: {},
+    spotlight: { nodeId: null, kind: null },
+  },
 
   bootstrapGraph: (settings, payload) => {
     const tree = NavigationTreeMapper.fromJSON(payload.tree);
@@ -323,6 +412,8 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
     set({
       settings,
       tree,
+      treeJSON: payload.tree,
+      precomputedPositions: payload.positions ?? null,
       treeUpdate: { reason: payload.reason, at: Date.now() },
       pins,
       tabStates: payload.tabStates,
@@ -334,38 +425,57 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
     });
   },
 
-  setPlatformMeta: (meta, isMac) => set({ metaKey: meta, isMac }),
-
   applyTreeState: (payload) => {
     const tree = NavigationTreeMapper.fromJSON(payload.tree);
     const pins = new PinnedManager(tree);
     const currentId = tree.getCurrentId();
     const nodeCount = tree.size();
     set((state) => {
-      const nextViewIntent = payload.view ?? state.graph.viewIntent;
+      // viewIntent is a one-shot signal from the background: "focus
+      // this node now". Do NOT carry the previous view forward when
+      // the new payload omits one — that leak caused unrelated tree
+      // updates (a background tab refreshing) to re-focus/zoom the
+      // graph to a stale target (#87). If the new payload has a
+      // view, use it; otherwise clear.
+      const resolvedViewIntent = payload.view ?? null;
       const shouldResetTransient =
         payload.reason === "tree-switch" || payload.reason === "tree-reset";
-      const resolvedViewIntent = shouldResetTransient
-        ? (nextViewIntent ?? null)
-        : (nextViewIntent ?? state.graph.viewIntent);
       // Save/restore per-tree collapse state on tree-switch
       let nextCollapsedByTree = state.graph.collapsedByTree;
       let nextCollapsedNodeIds: Set<NodeId>;
+      let nextUnfoldedChainsByTree = state.graph.unfoldedChainsByTree;
+      let nextUnfoldedChainIds: Set<NodeId>;
+      let nextBadgeExpandedByTree = state.graph.badgeExpandedByTree;
+      let nextBadgeExpandedIds: Set<NodeId>;
       if (shouldResetTransient) {
         const oldRootId = state.tree?.getRoot()?.id;
         if (oldRootId && state.graph.collapsedNodeIds.size > 0) {
           nextCollapsedByTree = new Map(nextCollapsedByTree);
           nextCollapsedByTree.set(oldRootId, state.graph.collapsedNodeIds);
         }
+        if (oldRootId && state.graph.unfoldedChainIds.size > 0) {
+          nextUnfoldedChainsByTree = new Map(nextUnfoldedChainsByTree);
+          nextUnfoldedChainsByTree.set(oldRootId, state.graph.unfoldedChainIds);
+        }
+        if (oldRootId && state.graph.badgeExpandedIds.size > 0) {
+          nextBadgeExpandedByTree = new Map(nextBadgeExpandedByTree);
+          nextBadgeExpandedByTree.set(oldRootId, state.graph.badgeExpandedIds);
+        }
         const newRootId = tree.getRoot()?.id;
         const saved = newRootId ? nextCollapsedByTree.get(newRootId) : undefined;
         nextCollapsedNodeIds = saved ? pruneCollapsedNodes(tree, saved) : new Set<NodeId>();
+        const savedUnfolded = newRootId ? nextUnfoldedChainsByTree.get(newRootId) : undefined;
+        nextUnfoldedChainIds = savedUnfolded
+          ? prunePresentIds(tree, savedUnfolded)
+          : new Set<NodeId>();
+        const savedBadge = newRootId ? nextBadgeExpandedByTree.get(newRootId) : undefined;
+        nextBadgeExpandedIds = savedBadge ? prunePresentIds(tree, savedBadge) : new Set<NodeId>();
       } else {
         nextCollapsedNodeIds = pruneCollapsedNodes(tree, state.graph.collapsedNodeIds);
+        nextUnfoldedChainIds = prunePresentIds(tree, state.graph.unfoldedChainIds);
+        nextBadgeExpandedIds = prunePresentIds(tree, state.graph.badgeExpandedIds);
       }
-      const autoExpandIds = shouldResetTransient
-        ? []
-        : getCollapsedAncestorIds(tree, currentId, nextCollapsedNodeIds);
+      const autoExpandIds: NodeId[] = shouldResetTransient ? [] : [];
       const collapseVersion =
         autoExpandIds.length > 0 ? state.graph.collapseVersion + 1 : state.graph.collapseVersion;
       const collapseAction =
@@ -375,16 +485,38 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
       if (autoExpandIds.length > 0) {
         autoExpandIds.forEach((id) => nextCollapsedNodeIds.delete(id));
       }
+      // Prune transient single-target state (rename / pick) when the
+      // target node disappears from the new tree — covers cases where
+      // another device deleted the node mid-rename, or the local user
+      // undoes back through it. Without this the rename input renders
+      // for a no-longer-existing node.
+      const treeContains = (id: NodeId | null) => Boolean(id && tree.findNodeById(id));
+      const nextRenameTarget = treeContains(state.renameTarget) ? state.renameTarget : null;
+      const nextPickTarget =
+        state.pickTarget && treeContains(state.pickTarget.sourceNodeId) ? state.pickTarget : null;
+
+      // Selection: prune ids that vanished from the tree on EVERY apply
+      // (not just tree-switch). A remote delete or local node-delete
+      // shrinks the tree underneath us; stale ids in the Set would
+      // confuse downstream consumers (BulkContextMenu, SelectionActionBar).
+      const prunedSelection = shouldResetTransient
+        ? new Set<NodeId>()
+        : prunePresentIds(tree, state.graph.selectedNodeIds);
+
       const nextGraph = {
         ...state.graph,
         viewIntent: resolvedViewIntent,
         collapsedNodeIds: nextCollapsedNodeIds,
         collapsedByTree: nextCollapsedByTree,
+        unfoldedChainIds: nextUnfoldedChainIds,
+        unfoldedChainsByTree: nextUnfoldedChainsByTree,
+        badgeExpandedIds: nextBadgeExpandedIds,
+        badgeExpandedByTree: nextBadgeExpandedByTree,
         collapseVersion,
         collapseAction,
+        selectedNodeIds: prunedSelection,
         ...(shouldResetTransient
           ? {
-              selectedNodeIds: new Set<NodeId>(),
               hoverNodeId: null,
               collapseAction: null,
             }
@@ -392,6 +524,8 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
       };
       return {
         tree,
+        treeJSON: payload.tree,
+        precomputedPositions: payload.positions ?? null,
         treeUpdate: { reason: payload.reason, at: Date.now() },
         pins,
         tabStates: payload.tabStates,
@@ -400,6 +534,8 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
         openNodeIds: new Set(payload.openNodeIds),
         currentNodeId: currentId,
         nodeCount,
+        renameTarget: nextRenameTarget,
+        pickTarget: nextPickTarget,
         graph: nextGraph,
         ...(shouldResetTransient
           ? {
@@ -422,44 +558,10 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
     set({
       trees: {
         active: snapshot.active,
-        archived: snapshot.archived,
+        others: snapshot.others,
       },
     }),
   setCommandState: (state) => set({ commandState: state }),
-  setTagDefs: (defs) =>
-    set((state) => {
-      const tagDefs = Object.fromEntries(defs.map((def) => [def.id, def]));
-      const nextSelected = new Set<Tag>();
-      state.tagFilter.selected.forEach((id) => {
-        if (tagDefs[id]) nextSelected.add(id);
-      });
-      const selectedChanged = nextSelected.size !== state.tagFilter.selected.size;
-      return {
-        tagDefs,
-        tagDefsList: defs,
-        tagFilter: selectedChanged
-          ? { ...state.tagFilter, selected: nextSelected }
-          : state.tagFilter,
-      };
-    }),
-  upsertTagDef: (def) =>
-    set((state) => {
-      const nextMap = { ...state.tagDefs, [def.id]: def };
-      const nextList = state.tagDefsList.some((item) => item.id === def.id)
-        ? state.tagDefsList.map((item) => (item.id === def.id ? def : item))
-        : [...state.tagDefsList, def];
-      return { tagDefs: nextMap, tagDefsList: nextList };
-    }),
-  removeTagDef: (id) =>
-    set((state) => {
-      if (!state.tagDefs[id]) return state;
-      const nextMap = { ...state.tagDefs };
-      delete nextMap[id];
-      return {
-        tagDefs: nextMap,
-        tagDefsList: state.tagDefsList.filter((item) => item.id !== id),
-      };
-    }),
   toggleTagFilterTag: (tagId) =>
     set((state) => {
       const next = new Set(state.tagFilter.selected);
@@ -535,7 +637,17 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
       },
     }),
 
-  setSettings: (settings) => set({ settings }),
+  setSettings: (settings) =>
+    set((state) => {
+      const positionsInvalid =
+        state.settings &&
+        (state.settings.layout.mode !== settings.layout.mode ||
+          state.settings.graphDensity !== settings.graphDensity);
+      return {
+        settings,
+        ...(positionsInvalid ? { precomputedPositions: null } : {}),
+      };
+    }),
   setFlags: (flags) => set({ flags }),
   setSettingsOpen: (open) =>
     set((state) =>
@@ -567,18 +679,7 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
         ? { ui: openUiPopup(state.ui, "tagFilterOpen"), contextMenu: null }
         : { ui: { ...state.ui, tagFilterOpen: false } },
     ),
-  setTooltipsOpen: (open) => set((state) => ({ ui: { ...state.ui, tooltipsOpen: open } })),
   closeAllPopups: () => set((state) => ({ ui: closeUiPopups(state.ui), contextMenu: null })),
-  openDeleteTreeConfirm: (rootId) =>
-    set((state) => ({
-      deleteTreeConfirm: { open: true, rootId },
-      contextMenu: null,
-      ui: closeUiPopups(state.ui),
-    })),
-  closeDeleteTreeConfirm: () =>
-    set({
-      deleteTreeConfirm: { open: false, rootId: null },
-    }),
   registerOverlay: (id, effects) =>
     set((state) => {
       const prev = state.overlayEffects.entries[id];
@@ -623,46 +724,6 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
         },
       };
     }),
-  setAccount: (patch) => set((state) => ({ account: { ...state.account, ...patch } })),
-  setAccountSnapshot: (snapshot) =>
-    set((state) => ({
-      account: {
-        ...state.account,
-        ...snapshot,
-        config: snapshot.config ?? state.account.config,
-        onboarding: snapshot.onboarding ?? state.account.onboarding,
-        status: "ready",
-        network: "online",
-        error: null,
-        lastSyncedAt: new Date().toISOString(),
-        sessionExpired: false,
-        authRequired:
-          typeof snapshot.config?.["auth.extension.required"] === "boolean"
-            ? (snapshot.config["auth.extension.required"] as boolean)
-            : state.account.authRequired,
-      },
-    })),
-  resetAccount: () =>
-    set((state) => ({
-      account: {
-        status: "idle",
-        network: "online",
-        session: { status: "guest" },
-        config: {},
-        user: null,
-        subscription: null,
-        billing: { state: "none" },
-        plans: [],
-        onboarding: { flowId: "activation-v1", status: "pending", seenAt: null },
-        error: null,
-        lastSyncedAt: null,
-        sessionExpired: false,
-        authRequired: state.account.authRequired,
-        guestWelcomeDismissed: state.account.guestWelcomeDismissed,
-        authPolicyLoaded: state.account.authPolicyLoaded,
-      },
-    })),
-
   setGraphTool: (tool) => set((state) => ({ graph: { ...state.graph, tool } })),
   setSelectedNodeIds: (ids) =>
     set((state) => ({ graph: { ...state.graph, selectedNodeIds: new Set(ids) } })),
@@ -684,19 +745,29 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
     set((state) => {
       if (nodeIds.length === 0) return state;
       const next = new Set(state.graph.collapsedNodeIds);
+      const nextBadge = new Set(state.graph.badgeExpandedIds);
       const changed: NodeId[] = [];
+      let badgeChanged = false;
       nodeIds.forEach((id) => {
+        // Any collapse path clears the badge-expand affordance.
+        if (nextBadge.delete(id)) badgeChanged = true;
         if (next.has(id)) return;
         next.add(id);
         changed.push(id);
       });
-      if (changed.length === 0) return state;
+      if (changed.length === 0 && !badgeChanged) return state;
       return {
+        precomputedPositions: null,
         graph: {
           ...state.graph,
           collapsedNodeIds: next,
-          collapseVersion: state.graph.collapseVersion + 1,
-          collapseAction: { kind: "collapse", nodeIds: new Set(changed) },
+          badgeExpandedIds: nextBadge,
+          collapseVersion:
+            changed.length > 0 ? state.graph.collapseVersion + 1 : state.graph.collapseVersion,
+          collapseAction:
+            changed.length > 0
+              ? { kind: "collapse", nodeIds: new Set(changed) }
+              : state.graph.collapseAction,
         },
       };
     }),
@@ -704,19 +775,72 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
     set((state) => {
       if (nodeIds.length === 0) return state;
       const next = new Set(state.graph.collapsedNodeIds);
+      const nextBadge = new Set(state.graph.badgeExpandedIds);
       const changed: NodeId[] = [];
+      let badgeChanged = false;
       nodeIds.forEach((id) => {
+        // Regular expand (not via badge) wipes any prior badge state —
+        // user shouldn't see the down-arrow after a context-menu Expand.
+        if (nextBadge.delete(id)) badgeChanged = true;
         if (!next.has(id)) return;
         next.delete(id);
         changed.push(id);
       });
-      if (changed.length === 0) return state;
+      if (changed.length === 0 && !badgeChanged) return state;
       return {
+        precomputedPositions: null,
         graph: {
           ...state.graph,
           collapsedNodeIds: next,
+          badgeExpandedIds: nextBadge,
+          collapseVersion:
+            changed.length > 0 ? state.graph.collapseVersion + 1 : state.graph.collapseVersion,
+          collapseAction:
+            changed.length > 0
+              ? { kind: "expand", nodeIds: new Set(changed) }
+              : state.graph.collapseAction,
+        },
+      };
+    }),
+  toggleChainUnfolded: (nodeId) =>
+    set((state) => {
+      const next = new Set(state.graph.unfoldedChainIds);
+      if (next.has(nodeId)) next.delete(nodeId);
+      else next.add(nodeId);
+      return {
+        // Positions depend on fold info, which depends on this set —
+        // drop the cached snapshot so d3 recomputes with the new shape.
+        precomputedPositions: null,
+        graph: { ...state.graph, unfoldedChainIds: next },
+      };
+    }),
+  toggleBadgeCollapse: (nodeId) =>
+    set((state) => {
+      const collapsed = new Set(state.graph.collapsedNodeIds);
+      const badge = new Set(state.graph.badgeExpandedIds);
+      let kind: "collapse" | "expand";
+      if (collapsed.has(nodeId)) {
+        // Currently collapsed — expand and remember it was via badge so
+        // the TrailNode can render the re-collapse arrow.
+        collapsed.delete(nodeId);
+        badge.add(nodeId);
+        kind = "expand";
+      } else if (badge.has(nodeId)) {
+        // Currently expanded via badge — re-collapse and clear the flag.
+        collapsed.add(nodeId);
+        badge.delete(nodeId);
+        kind = "collapse";
+      } else {
+        return state;
+      }
+      return {
+        precomputedPositions: null,
+        graph: {
+          ...state.graph,
+          collapsedNodeIds: collapsed,
+          badgeExpandedIds: badge,
           collapseVersion: state.graph.collapseVersion + 1,
-          collapseAction: { kind: "expand", nodeIds: new Set(changed) },
+          collapseAction: { kind, nodeIds: new Set([nodeId]) },
         },
       };
     }),
@@ -731,8 +855,257 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
     set((state) => ({
       graph: { ...state.graph, viewIntent: null },
     })),
-  setEditorMode: (editorMode) => set({ editorMode }),
   setPickTarget: (pickTarget) => set({ pickTarget }),
   clearPickTarget: () => set({ pickTarget: null }),
   setSyncStatus: (syncStatus) => set({ syncStatus }),
+  setCommandPaletteOpen: (open) => set({ commandPalette: { open } }),
+  startInlineRename: (nodeId) => set({ renameTarget: nodeId }),
+  cancelInlineRename: () => set({ renameTarget: null }),
+  setAuthState: (authState) => set({ authState }),
+
+  /**
+   * Accept a SYNC_CONFLICT event (null clears). Re-entrancy semantics:
+   *
+   * - null → clear everything.
+   * - same `treeId` + same `serverUpdatedAt` as current → duplicate event,
+   *   no-op (preserves in-flight dialog state).
+   * - same `treeId`, DIFFERENT `serverUpdatedAt`, dialog is open → mark
+   *   `stale: true`, preserve `preview` + `picks` so the user doesn't
+   *   lose their cherry-picks. The dialog surfaces a refresh CTA.
+   * - same `treeId`, DIFFERENT `serverUpdatedAt`, dialog is closed → swap
+   *   in fresh conflict, reset picks + preview.
+   * - different `treeId` (or no current conflict) → fresh slice.
+   */
+  setSyncConflict: (next) =>
+    set((state) => {
+      if (next === null) {
+        return { syncConflict: null };
+      }
+      if (isCompleteConflictState(next)) {
+        return { syncConflict: next };
+      }
+      const cur = state.syncConflict;
+      if (cur && cur.treeId === next.treeId) {
+        if (cur.serverUpdatedAt === next.serverUpdatedAt) {
+          return state; // duplicate event
+        }
+        if (cur.dialogOpen) {
+          return {
+            syncConflict: {
+              ...cur,
+              serverDeviceId: next.serverDeviceId,
+              serverUpdatedAt: next.serverUpdatedAt,
+              stale: true,
+            },
+          };
+        }
+      }
+      return {
+        syncConflict: {
+          treeId: next.treeId,
+          serverUpdatedAt: next.serverUpdatedAt,
+          serverDeviceId: next.serverDeviceId,
+          dialogOpen: false,
+          preview: null,
+          stale: false,
+          picks: emptyConflictPicks(next.treeId, next.serverUpdatedAt),
+          expectedActiveTreeId: null,
+          applyError: null,
+        },
+      };
+    }),
+
+  setConflictDialogOpen: (open, expectedActiveTreeId = null) =>
+    set((state) => {
+      if (!state.syncConflict) return state;
+      return {
+        syncConflict: {
+          ...state.syncConflict,
+          dialogOpen: open,
+          expectedActiveTreeId: open
+            ? expectedActiveTreeId
+            : state.syncConflict.expectedActiveTreeId,
+          applyError: open ? state.syncConflict.applyError : null,
+        },
+      };
+    }),
+
+  setConflictPreview: (preview) =>
+    set((state) => {
+      if (!state.syncConflict) return state;
+      return {
+        syncConflict: {
+          ...state.syncConflict,
+          preview,
+          stale: false,
+        },
+      };
+    }),
+
+  setConflictStale: (stale) =>
+    set((state) => {
+      if (!state.syncConflict) return state;
+      return { syncConflict: { ...state.syncConflict, stale } };
+    }),
+
+  setConflictNodePick: (nodeId, pick) =>
+    set((state) => {
+      if (!state.syncConflict) return state;
+      return {
+        syncConflict: {
+          ...state.syncConflict,
+          picks: {
+            ...state.syncConflict.picks,
+            nodePicks: {
+              ...state.syncConflict.picks.nodePicks,
+              [nodeId]: pick,
+            },
+          },
+        },
+      };
+    }),
+
+  setConflictStructuralPick: (nodeId, pick) =>
+    set((state) => {
+      if (!state.syncConflict) return state;
+      return {
+        syncConflict: {
+          ...state.syncConflict,
+          picks: {
+            ...state.syncConflict.picks,
+            structuralPicks: {
+              ...state.syncConflict.picks.structuralPicks,
+              [nodeId]: pick,
+            },
+          },
+        },
+      };
+    }),
+
+  setConflictLabelPick: (labelPick) =>
+    set((state) => {
+      if (!state.syncConflict) return state;
+      return {
+        syncConflict: {
+          ...state.syncConflict,
+          picks: { ...state.syncConflict.picks, labelPick },
+        },
+      };
+    }),
+
+  setConflictReorderPick: (parentId, order) =>
+    set((state) => {
+      if (!state.syncConflict) return state;
+      return {
+        syncConflict: {
+          ...state.syncConflict,
+          picks: {
+            ...state.syncConflict.picks,
+            reorderPicks: {
+              ...state.syncConflict.picks.reorderPicks,
+              [parentId]: order,
+            },
+          },
+        },
+      };
+    }),
+
+  resetConflictPicks: () =>
+    set((state) => {
+      if (!state.syncConflict) return state;
+      return {
+        syncConflict: {
+          ...state.syncConflict,
+          picks: emptyConflictPicks(state.syncConflict.treeId, state.syncConflict.serverUpdatedAt),
+        },
+      };
+    }),
+
+  setConflictApplyError: (applyError) =>
+    set((state) => {
+      if (!state.syncConflict) return state;
+      return { syncConflict: { ...state.syncConflict, applyError } };
+    }),
+
+  clearConflict: () => set({ syncConflict: null }),
+
+  setOnboarding: (patch) =>
+    set((state) => ({
+      onboarding: {
+        ...state.onboarding,
+        ...patch,
+        spotlight: patch.spotlight
+          ? { ...state.onboarding.spotlight, ...patch.spotlight }
+          : state.onboarding.spotlight,
+      },
+    })),
+
+  setSpotlight: (nodeId, kind) =>
+    set((state) => ({
+      onboarding: {
+        ...state.onboarding,
+        spotlight: { nodeId, kind },
+      },
+    })),
+
+  resetForAuth: () =>
+    set({
+      tree: null,
+      treeJSON: null,
+      precomputedPositions: null,
+      treeUpdate: null,
+      trees: { active: null, others: [] },
+      pins: null,
+      tabStates: {},
+      nodeTabCounts: {},
+      nodeRecency: {},
+      openNodeIds: new Set<NodeId>(),
+      currentNodeId: null,
+      nodeCount: 0,
+      commandState: null,
+      tagFilter: { selected: new Set<Tag>() },
+      search: {
+        query: "",
+        results: [],
+        index: 0,
+        navStep: 0,
+        active: false,
+        baseCurrentId: null,
+      },
+      graph: {
+        tool: "select" as GraphTool,
+        selectedNodeIds: new Set<NodeId>(),
+        view: { translateX: 0, translateY: 0, scale: 1 },
+        resetVersion: 0,
+        viewIntent: null,
+        hoverNodeId: null,
+        collapsedNodeIds: new Set<NodeId>(),
+        collapsedByTree: new Map<NodeId, Set<NodeId>>(),
+        collapseVersion: 0,
+        collapseAction: null,
+        unfoldedChainIds: new Set<NodeId>(),
+        unfoldedChainsByTree: new Map<NodeId, Set<NodeId>>(),
+        badgeExpandedIds: new Set<NodeId>(),
+        badgeExpandedByTree: new Map<NodeId, Set<NodeId>>(),
+      },
+      syncConflict: null,
+      renameTarget: null,
+      pickTarget: null,
+      contextMenu: null,
+    }),
 }));
+
+function emptyConflictPicks(treeId: string, serverUpdatedAt: string): ConflictPickState {
+  return {
+    treeId,
+    serverUpdatedAt,
+    nodePicks: {},
+    structuralPicks: {},
+    labelPick: null,
+    reorderPicks: {},
+  };
+}
+
+function isCompleteConflictState(value: unknown): value is SyncConflictUiState {
+  return typeof value === "object" && value !== null && "dialogOpen" in value && "picks" in value;
+}

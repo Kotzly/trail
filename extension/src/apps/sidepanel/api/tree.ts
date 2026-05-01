@@ -1,40 +1,40 @@
 import type { NavigationNode } from "@shared/types/node.js";
-import type { NodeId, TabId } from "@shared/types/ids.js";
+import type { NodeId, TabId, Url } from "@shared/types/ids.js";
 import {
-  rpc,
   type BeginTempSelectionInput,
+  type DeleteTreeResponse,
   type NodeLayoutInput,
+  type RestorableTreeSnapshot,
   type TempSelectionSessionId,
   type TreeUpdatedInput,
   type TreesSnapshot,
 } from "../../../shared/rpc/contracts.js";
+import { treeService } from "@shared/transport/proxy-clients.js";
 import type { TrailExportBundle } from "@shared/types/export.js";
-import { sendMessage } from "./background.js";
 
 export async function navigateTo(node: NavigationNode): Promise<void> {
-  const res = await sendMessage(rpc.navigateTo({ url: node.data.url, nodeId: node.id }));
-  if (!res.success) throw new Error(res.error);
-  return res.data;
+  await treeService.navigateTo({
+    nodeId: node.id,
+    ...(node.data.url ? { url: node.data.url } : {}),
+  });
+}
+
+export async function navigateToNodeId(nodeId: NodeId, url?: Url): Promise<void> {
+  await treeService.navigateTo({ nodeId, ...(url ? { url } : {}) });
 }
 
 export async function previewNode(nodeId: NodeId): Promise<void> {
-  const res = await sendMessage(rpc.previewNode({ nodeId }));
-  if (!res.success) throw new Error(res.error);
-  return res.data;
+  await treeService.previewNode({ nodeId });
 }
 
 export async function setCurrentNode(nodeId: NodeId): Promise<void> {
-  const res = await sendMessage(rpc.setCurrent({ nodeId }));
-  if (!res.success) throw new Error(res.error);
-  return res.data;
+  await treeService.setCurrentNode({ nodeId });
 }
 
 export async function beginTempSelection(
   payload: BeginTempSelectionInput,
 ): Promise<{ sessionId: TempSelectionSessionId }> {
-  const res = await sendMessage(rpc.beginTempSelection(payload));
-  if (!res.success) throw new Error(res.error);
-  return res.data;
+  return treeService.beginTempSelection(payload);
 }
 
 export async function previewTempSelection(
@@ -42,106 +42,74 @@ export async function previewTempSelection(
   nodeId: NodeId,
   tabId?: TabId,
 ): Promise<{ previewedTabId: TabId | null }> {
-  const res = await sendMessage(
-    rpc.previewTempSelection({ sessionId, nodeId, tabId } as {
-      sessionId: TempSelectionSessionId;
-      nodeId: NodeId;
-      tabId?: TabId;
-    }),
-  );
-  if (!res.success) throw new Error(res.error);
-  return res.data;
+  return treeService.previewTempSelection({
+    sessionId,
+    nodeId,
+    ...(tabId !== undefined ? { tabId } : {}),
+  });
 }
 
 export async function acceptTempSelection(
   sessionId: TempSelectionSessionId,
   nodeId?: NodeId,
 ): Promise<void> {
-  const res = await sendMessage(
-    rpc.acceptTempSelection({ sessionId, nodeId } as {
-      sessionId: TempSelectionSessionId;
-      nodeId?: NodeId;
-    }),
-  );
-  if (!res.success) throw new Error(res.error);
-  return res.data;
+  await treeService.acceptTempSelection({
+    sessionId,
+    ...(nodeId !== undefined ? { nodeId } : {}),
+  });
 }
 
 export async function cancelTempSelection(
   sessionId: TempSelectionSessionId,
   options?: { keepSession?: boolean },
 ): Promise<void> {
-  const res = await sendMessage(rpc.cancelTempSelection({ sessionId, ...options }));
-  if (!res.success) throw new Error(res.error);
-  return res.data;
+  await treeService.cancelTempSelection({ sessionId, ...options });
 }
 
 export async function endTempSelection(sessionId: TempSelectionSessionId): Promise<void> {
-  const res = await sendMessage(rpc.endTempSelection({ sessionId }));
-  if (!res.success) throw new Error(res.error);
-  return res.data;
+  await treeService.endTempSelection({ sessionId });
 }
 
 export async function getTreeState(): Promise<TreeUpdatedInput> {
-  const res = await sendMessage(rpc.getTree());
-  if (!res.success) throw new Error(res.error);
-  return res.data;
+  return treeService.getTreeState();
 }
 
 export async function getTrees(): Promise<TreesSnapshot> {
-  const res = await sendMessage(rpc.getTrees());
-  if (!res.success) throw new Error(res.error);
-  return res.data;
+  return treeService.getTrees();
 }
 
 export async function clearTree(): Promise<void> {
-  const res = await sendMessage(rpc.clearTree());
-  if (!res.success) throw new Error(res.error);
-  return res.data;
+  await treeService.clearTree();
 }
 
 export async function createNewTree(label: string): Promise<void> {
-  const res = await sendMessage(rpc.newTree({ label }));
-  if (!res.success) throw new Error(res.error);
-  return res.data;
+  await treeService.createNewTree({ label });
 }
 
 export async function openTree(treeId: string): Promise<void> {
-  const res = await sendMessage(rpc.openTree({ treeId }));
-  if (!res.success) throw new Error(res.error);
-  return res.data;
+  await treeService.openTree({ treeId });
 }
 
 export async function ensureTreeLoaded(treeId: string): Promise<boolean> {
-  const res = await sendMessage(rpc.ensureTreeLoaded({ treeId }));
-  if (!res.success) throw new Error(res.error);
-  return res.data;
-}
-
-export async function syncTrees(): Promise<void> {
-  const res = await sendMessage(rpc.syncTrees());
-  if (!res.success) throw new Error(res.error);
-  return res.data;
+  return treeService.ensureTreeLoaded({ treeId });
 }
 
 export async function renameTree(treeId: string, label: string): Promise<void> {
-  const res = await sendMessage(rpc.renameTree({ treeId, label }));
-  if (!res.success) throw new Error(res.error);
-  return res.data;
+  await treeService.renameTree({ treeId, label });
 }
 
-export async function deleteArchivedTree(treeId: string): Promise<void> {
-  const res = await sendMessage(rpc.deleteArchivedTree({ treeId }));
-  if (!res.success) throw new Error(res.error);
-  return res.data;
+export async function deleteTree(treeId: string): Promise<DeleteTreeResponse> {
+  return treeService.deleteTree({ treeId });
+}
+
+export async function restoreTree(snapshot: RestorableTreeSnapshot): Promise<void> {
+  await treeService.restoreTree({ snapshot });
 }
 
 export async function exportTree(treeId?: string): Promise<TrailExportBundle> {
   const payload: { treeId?: string } = {};
   if (treeId !== undefined) payload.treeId = treeId;
-  const res = await sendMessage(rpc.exportTree(payload));
-  if (!res.success) throw new Error(res.error);
-  return res.data;
+  return treeService.exportTree(payload);
 }
 
 export async function setNodeLayout(
@@ -149,28 +117,104 @@ export async function setNodeLayout(
   layout: {
     offsetX?: number;
     offsetY?: number;
-    radial?: { angleDelta: number; radiusDelta: number };
   },
 ): Promise<void> {
-  const res = await sendMessage(rpc.setNodeLayout({ nodeId, ...layout }));
-  if (!res.success) throw new Error(res.error);
-  return res.data;
+  await treeService.setNodeLayout({ nodeId, ...layout });
 }
 
 export async function setNodeLayoutBatch(layouts: NodeLayoutInput[]): Promise<void> {
-  const res = await sendMessage(rpc.setNodeLayoutBatch({ layouts }));
-  if (!res.success) throw new Error(res.error);
-  return res.data;
+  await treeService.setNodeLayoutBatch({ layouts });
 }
 
 export async function resetNodeLayouts(): Promise<void> {
-  const res = await sendMessage(rpc.resetNodeLayouts());
-  if (!res.success) throw new Error(res.error);
-  return res.data;
+  await treeService.resetNodeLayouts();
+}
+
+export async function importTrail(bundle: TrailExportBundle): Promise<{ treeId: string }> {
+  return treeService.importTrail({ bundle });
 }
 
 export async function reparentNode(nodeId: NodeId, newParentId: NodeId): Promise<void> {
-  const res = await sendMessage(rpc.reparentNode({ nodeId, newParentId }));
-  if (!res.success) throw new Error(res.error);
-  return res.data;
+  await treeService.reparentNode({ nodeId, newParentId });
+}
+
+export async function renameNode(nodeId: NodeId, title: string): Promise<void> {
+  await treeService.renameNode({ nodeId, title });
+}
+
+// Sync-conflict RPCs ---------------------------------------------------
+
+// Guard every call so a transient RPC miss (e.g. background SW warming
+// up, stale bundle) surfaces as a typed error instead of a runtime
+// TypeError inside the caller.
+
+export async function fetchConflictPreview(treeId: string) {
+  try {
+    const res = await treeService.fetchConflictPreview({ treeId });
+    if (!res || typeof res !== "object" || !("ok" in res)) {
+      console.error("[conflict] fetchConflictPreview returned invalid response", res);
+      return { ok: false as const, error: { reason: "network" as const } };
+    }
+    return res;
+  } catch (err) {
+    console.error("[conflict] fetchConflictPreview threw", err);
+    return { ok: false as const, error: { reason: "network" as const } };
+  }
+}
+
+export async function getStoredTreeForConflict(treeId: string) {
+  try {
+    const res = await treeService.getStoredTreeForConflict({ treeId });
+    if (!res || typeof res !== "object") {
+      console.error("[conflict] getStoredTreeForConflict returned invalid response", res);
+      return { compact: null };
+    }
+    return res;
+  } catch (err) {
+    console.error("[conflict] getStoredTreeForConflict threw", err);
+    return { compact: null };
+  }
+}
+
+export async function applyConflictMerge(
+  input: Parameters<typeof treeService.applyConflictMerge>[0],
+) {
+  try {
+    const res = await treeService.applyConflictMerge(input);
+    if (!res || typeof res !== "object" || !("ok" in res)) {
+      console.error("[conflict] applyConflictMerge returned invalid response", res);
+      return { ok: false as const, error: { reason: "network" as const } };
+    }
+    return res;
+  } catch (err) {
+    console.error("[conflict] applyConflictMerge threw", err);
+    return { ok: false as const, error: { reason: "network" as const } };
+  }
+}
+
+export async function forkTreeFromConflict(treeId: string) {
+  try {
+    const res = await treeService.forkTreeFromConflict({ treeId });
+    if (!res || typeof res !== "object" || !("ok" in res)) {
+      console.error("[conflict] forkTreeFromConflict returned invalid response", res);
+      return { ok: false as const, reason: "network" };
+    }
+    return res;
+  } catch (err) {
+    console.error("[conflict] forkTreeFromConflict threw", err);
+    return { ok: false as const, reason: "network" };
+  }
+}
+
+export async function getPendingConflicts() {
+  try {
+    const res = await treeService.getPendingConflicts();
+    if (!res || typeof res !== "object" || !Array.isArray(res.conflicts)) {
+      return { conflicts: [] };
+    }
+    return res;
+  } catch (err) {
+    console.error("[conflict] getPendingConflicts threw", err);
+    return { conflicts: [] };
+  }
 }

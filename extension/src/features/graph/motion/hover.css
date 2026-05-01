@@ -1,0 +1,39 @@
+/*
+ * Hover glow on graph nodes.
+ *
+ * Container class `graph--hover-glow` is toggled by TrailGraph based on
+ * the `hover_node_highlight` flag + reduced-motion + FPS tier. Gating
+ * happens once at the container level — TrailNode itself never reads
+ * the flag, so hover state doesn't trip a React re-render.
+ *
+ * Gated to pointer:fine + hover:hover so touch devices don't fire the
+ * glow on tap (Emil rule #Touch device hover states).
+ *
+ * Only the hovered node glows — no neighbor dim on hover. Dimming on
+ * hover is aggressive visual noise for a state the user is just passing
+ * through with the cursor (see plan §1 pushback).
+ */
+
+@media (hover: hover) and (pointer: fine) {
+  /*
+   * Resting filter is a no-op `drop-shadow(0 0 0 transparent)` rather than
+   * `none` on purpose: Chrome interpolates `filter: none → drop-shadow(...)`
+   * via the lacuna value, but the first paint of a real drop-shadow forces
+   * layer promotion + mask rasterization on a complex node (favicon, badges,
+   * ring shadows under `contain: layout style`). That first-frame compositing
+   * cost makes the glow appear delayed by several frames. Pre-establishing
+   * a transparent drop-shadow keeps the filter list (and compositing layer)
+   * live, so the hover transition has nothing to set up.
+   */
+  .graph--hover-glow .react-flow__node {
+    filter: drop-shadow(0 0 0 transparent);
+    transition:
+      filter 140ms var(--ease-out),
+      z-index 0s;
+  }
+
+  .graph--hover-glow .react-flow__node:hover {
+    filter: drop-shadow(0 0 10px color-mix(in srgb, var(--primary) 35%, transparent));
+    z-index: 1;
+  }
+}

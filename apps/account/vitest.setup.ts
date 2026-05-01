@@ -3,12 +3,12 @@ import * as matchers from "@testing-library/jest-dom/matchers";
 
 expect.extend(matchers);
 
-process.env.BETTER_AUTH_SECRET =
-  process.env.BETTER_AUTH_SECRET ?? "0123456789abcdef0123456789abcdef";
-process.env.GOOGLE_CLIENT_ID =
-  process.env.GOOGLE_CLIENT_ID ?? "test-google-client-id";
-process.env.GOOGLE_CLIENT_SECRET =
-  process.env.GOOGLE_CLIENT_SECRET ?? "test-google-client-secret";
+process.env.NEXT_PUBLIC_SUPABASE_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_URL ?? "https://placeholder.supabase.co";
+process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY =
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "test-anon-key";
+process.env.SUPABASE_SERVICE_ROLE_KEY =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ?? "test-service-role-key";
 process.env.TRAIL_EXTENSION_JWT_SECRET =
   process.env.TRAIL_EXTENSION_JWT_SECRET ?? "test-extension-secret";
 process.env.DATABASE_URL =

@@ -1,7 +1,9 @@
 import { randomUUID } from "crypto";
 import { env } from "@/src/env";
 import { db } from "@trail/db";
-import type { Prisma } from "@trail/db";
+import type { Json } from "@trail/db/types";
+import type { PostgrestSingleResponse } from "@supabase/supabase-js";
+import { maybeRow, assertOk } from "@trail/db/helpers";
 import {
   BillingProviderError,
   type BillingProvider,
@@ -12,7 +14,11 @@ import {
 import { listPlans } from "@/src/server/backend/account-snapshot";
 import { getBillingStatusFromSubscription } from "@/src/server/backend/billing/subscription-status";
 import { addInterval } from "@/src/server/backend/subscription/period";
-import { isUpgrade, proratedUpgradeChargeCents, type PlanId } from "@/src/server/backend/subscription/proration";
+import {
+  isUpgrade,
+  proratedUpgradeChargeCents,
+  type PlanId,
+} from "@/src/server/backend/subscription/proration";
 import { validateRedirectUrl } from "@/src/server/backend/billing/validate-redirect-url";
 
 type NowPaymentsInvoiceResponse = {
@@ -20,6 +26,15 @@ type NowPaymentsInvoiceResponse = {
   pay_url?: string;
   error?: string;
   message?: string;
+};
+
+type UserSubscriptionRow = {
+  plan: "FREE" | "PRO" | "TEAMS";
+  interval: "MONTH" | "YEAR";
+  created_at: string | null;
+  current_period_start: string | null;
+  current_period_end: string | null;
+  cancel_at_period_end: boolean;
 };
 
 function assertNowPaymentsConfig(): void {
@@ -47,7 +62,9 @@ function billingUrl(): string {
   return `${env.appBaseUrl.replace(/\/$/, "")}/billing`;
 }
 
-function assertPaidPlanId(planId: string): asserts planId is Exclude<PlanId, "free"> {
+function assertPaidPlanId(
+  planId: string,
+): asserts planId is Exclude<PlanId, "free"> {
   if (planId !== "pro" && planId !== "teams") {
     throw new BillingProviderError("invalid_plan", "Plan is not available.", {
       status: 400,
@@ -68,7 +85,9 @@ function mapDbPlanToPlanId(plan: "FREE" | "PRO" | "TEAMS"): PlanId {
   }
 }
 
-function mapDbIntervalToCheckoutInterval(value: "MONTH" | "YEAR"): "month" | "year" {
+function mapDbIntervalToCheckoutInterval(
+  value: "MONTH" | "YEAR",
+): "month" | "year" {
   return value === "YEAR" ? "year" : "month";
 }
 
@@ -101,38 +120,58 @@ async function resolveCheckoutAmount(input: CheckoutSessionInput): Promise<{
   const requestedInterval = input.interval;
   const now = new Date();
 
-  const existing = await db.userSubscription.findUnique({
-    where: { userId: input.userId },
-    select: {
-      plan: true,
-      interval: true,
-      createdAt: true,
-      currentPeriodStart: true,
-      currentPeriodEnd: true,
-      cancelAtPeriodEnd: true,
-    },
-  });
+  const existing = maybeRow(
+    (await db
+      .from("user_subscriptions")
+      .select(
+        "plan, interval, created_at, current_period_start, current_period_end, cancel_at_period_end",
+      )
+      .eq("user_id", input.userId)
+      .maybeSingle()) as unknown as PostgrestSingleResponse<UserSubscriptionRow | null>,
+  );
 
   // Treat missing/expired subscriptions as a new purchase.
   const existingPlanId = existing ? mapDbPlanToPlanId(existing.plan) : "free";
-  const existingInterval = existing ? mapDbIntervalToCheckoutInterval(existing.interval) : null;
-  const existingPeriodStart = existing?.currentPeriodStart ?? existing?.createdAt ?? null;
+  const existingInterval = existing
+    ? mapDbIntervalToCheckoutInterval(existing.interval)
+    : null;
+  const existingPeriodStart = existing?.current_period_start
+    ? new Date(existing.current_period_start)
+    : existing?.created_at
+      ? new Date(existing.created_at)
+      : null;
   const existingPeriodEnd =
-    existing?.currentPeriodEnd && existingPeriodStart
-      ? existing.currentPeriodEnd
+    existing?.current_period_end && existingPeriodStart
+      ? new Date(existing.current_period_end)
       : existingPeriodStart && existingInterval
         ? addInterval(existingPeriodStart, existingInterval)
         : null;
 
-  const isExpired = existingPeriodEnd ? existingPeriodEnd.getTime() <= now.getTime() : true;
+  const isExpired = existingPeriodEnd
+    ? existingPeriodEnd.getTime() <= now.getTime()
+    : true;
 
-  if (!existing || existingPlanId === "free" || isExpired || !existingInterval || !existingPeriodStart || !existingPeriodEnd) {
-    const { amount, currency, planName } = priceFor(input.planId, requestedInterval);
+  if (
+    !existing ||
+    existingPlanId === "free" ||
+    isExpired ||
+    !existingInterval ||
+    !existingPeriodStart ||
+    !existingPeriodEnd
+  ) {
+    const { amount, currency, planName } = priceFor(
+      input.planId,
+      requestedInterval,
+    );
     if (amount <= 0) {
-      throw new BillingProviderError("invalid_checkout_plan", "Selected plan cannot be purchased.", {
-        status: 400,
-        retryable: false,
-      });
+      throw new BillingProviderError(
+        "invalid_checkout_plan",
+        "Selected plan cannot be purchased.",
+        {
+          status: 400,
+          retryable: false,
+        },
+      );
     }
     return {
       mode: "new",
@@ -145,13 +184,24 @@ async function resolveCheckoutAmount(input: CheckoutSessionInput): Promise<{
   }
 
   // Allow explicit renewals (not used by current UI, but keeps model robust).
-  if (input.planId === existingPlanId && input.interval === existingInterval && !existing.cancelAtPeriodEnd) {
-    const { amount, currency, planName } = priceFor(input.planId, existingInterval);
+  if (
+    input.planId === existingPlanId &&
+    input.interval === existingInterval &&
+    !existing.cancel_at_period_end
+  ) {
+    const { amount, currency, planName } = priceFor(
+      input.planId,
+      existingInterval,
+    );
     if (amount <= 0) {
-      throw new BillingProviderError("invalid_checkout_plan", "Selected plan cannot be purchased.", {
-        status: 400,
-        retryable: false,
-      });
+      throw new BillingProviderError(
+        "invalid_checkout_plan",
+        "Selected plan cannot be purchased.",
+        {
+          status: 400,
+          retryable: false,
+        },
+      );
     }
     return {
       mode: "renewal",
@@ -164,10 +214,14 @@ async function resolveCheckoutAmount(input: CheckoutSessionInput): Promise<{
   }
 
   if (!isUpgrade(existingPlanId, input.planId as PlanId)) {
-    throw new BillingProviderError("invalid_plan_change", "Downgrades are not supported.", {
-      status: 400,
-      retryable: false,
-    });
+    throw new BillingProviderError(
+      "invalid_plan_change",
+      "Downgrades are not supported.",
+      {
+        status: 400,
+        retryable: false,
+      },
+    );
   }
 
   const fromPlan = listPlans().find((p) => p.id === existingPlanId);
@@ -200,7 +254,9 @@ async function resolveCheckoutAmount(input: CheckoutSessionInput): Promise<{
   };
 }
 
-function resolveNowPaymentsUrl(payload: NowPaymentsInvoiceResponse | null): string | null {
+function resolveNowPaymentsUrl(
+  payload: NowPaymentsInvoiceResponse | null,
+): string | null {
   if (!payload || typeof payload !== "object") {
     return null;
   }
@@ -213,7 +269,9 @@ function resolveNowPaymentsUrl(payload: NowPaymentsInvoiceResponse | null): stri
   return null;
 }
 
-function resolveProviderErrorDetails(payload: NowPaymentsInvoiceResponse | null): string | undefined {
+function resolveProviderErrorDetails(
+  payload: NowPaymentsInvoiceResponse | null,
+): string | undefined {
   if (!payload || typeof payload !== "object") {
     return undefined;
   }
@@ -241,51 +299,56 @@ async function createNowPaymentsInvoice(
 
   // Some upgrades may be free (credit >= prorated charge). Apply immediately.
   if (pricing.mode === "no_charge_upgrade") {
-    await db.billingCheckoutSession.create({
-      data: {
+    assertOk(
+      await db.from("billing_checkout_sessions").insert({
         provider: "NOWPAYMENTS",
-        orderId,
-        userId: input.userId,
-        planId: input.planId,
+        order_id: orderId,
+        user_id: input.userId,
+        plan_id: input.planId,
         interval: pricing.chargeInterval,
-        requestedInterval: pricing.requestedInterval,
+        requested_interval: pricing.requestedInterval,
         currency: currency.toUpperCase(),
-        amountCents,
+        amount_cents: amountCents,
         status: "SUCCEEDED",
-      },
-    });
+      }),
+    );
 
     // Apply upgrade immediately: keep the current period, clear cancellation and record pending interval (if any)
     // on the subscription itself.
-    await db.userSubscription.updateMany({
-      where: { userId: input.userId },
-      data: {
-        plan: input.planId === "teams" ? "TEAMS" : "PRO",
-        status: "ACTIVE",
-        cancelAtPeriodEnd: false,
-        canceledAt: null,
-        ...(pricing.requestedInterval !== pricing.chargeInterval
-          ? { pendingInterval: pricing.requestedInterval === "year" ? "YEAR" : "MONTH" }
-          : { pendingInterval: null }),
-      },
-    });
+    assertOk(
+      await db
+        .from("user_subscriptions")
+        .update({
+          plan: input.planId === "teams" ? "TEAMS" : "PRO",
+          status: "ACTIVE",
+          cancel_at_period_end: false,
+          canceled_at: null,
+          ...(pricing.requestedInterval !== pricing.chargeInterval
+            ? {
+                pending_interval:
+                  pricing.requestedInterval === "year" ? "YEAR" : "MONTH",
+              }
+            : { pending_interval: null }),
+        })
+        .eq("user_id", input.userId),
+    );
 
     return { url: successUrl, expiresAt: null };
   }
 
-  await db.billingCheckoutSession.create({
-    data: {
+  assertOk(
+    await db.from("billing_checkout_sessions").insert({
       provider: "NOWPAYMENTS",
-      orderId,
-      userId: input.userId,
-      planId: input.planId,
+      order_id: orderId,
+      user_id: input.userId,
+      plan_id: input.planId,
       interval: pricing.chargeInterval,
-      requestedInterval: pricing.requestedInterval,
+      requested_interval: pricing.requestedInterval,
       currency: currency.toUpperCase(),
-      amountCents,
+      amount_cents: amountCents,
       status: "CREATED",
-    },
-  });
+    }),
+  );
 
   const body = {
     price_amount: amount,
@@ -319,21 +382,23 @@ async function createNowPaymentsInvoice(
     );
   }
 
-  const payload = (await response.json().catch(() => null)) as
-    | NowPaymentsInvoiceResponse
-    | null;
+  const payload = (await response
+    .json()
+    .catch(() => null)) as NowPaymentsInvoiceResponse | null;
 
   if (!response.ok) {
-    await db.billingCheckoutSession
+    await db
+      .from("billing_checkout_sessions")
       .update({
-        where: { orderId },
-        data: {
-          status: "FAILED",
-          paymentStatus: null,
-          lastPayload: payload ? (payload as Prisma.InputJsonValue) : undefined,
-        },
+        status: "FAILED",
+        payment_status: null,
+        last_payload: payload as Json | null,
       })
-      .catch(() => null);
+      .eq("order_id", orderId)
+      .then(
+        () => null,
+        () => null,
+      );
     throw new BillingProviderError(
       "checkout_failed",
       "Failed to create checkout session.",
@@ -347,16 +412,18 @@ async function createNowPaymentsInvoice(
 
   const url = resolveNowPaymentsUrl(payload);
   if (!url) {
-    await db.billingCheckoutSession
+    await db
+      .from("billing_checkout_sessions")
       .update({
-        where: { orderId },
-        data: {
-          status: "FAILED",
-          paymentStatus: null,
-          lastPayload: payload ? (payload as Prisma.InputJsonValue) : undefined,
-        },
+        status: "FAILED",
+        payment_status: null,
+        last_payload: payload as Json | null,
       })
-      .catch(() => null);
+      .eq("order_id", orderId)
+      .then(
+        () => null,
+        () => null,
+      );
     throw new BillingProviderError(
       "checkout_failed",
       "Billing provider did not return a checkout url.",
@@ -367,16 +434,18 @@ async function createNowPaymentsInvoice(
     );
   }
 
-  await db.billingCheckoutSession
+  await db
+    .from("billing_checkout_sessions")
     .update({
-      where: { orderId },
-      data: {
-        status: "REDIRECTED",
-        nowpaymentsInvoiceUrl: url,
-        lastPayload: payload ? (payload as Prisma.InputJsonValue) : undefined,
-      },
+      status: "REDIRECTED",
+      nowpayments_invoice_url: url,
+      last_payload: payload as Json | null,
     })
-    .catch(() => null);
+    .eq("order_id", orderId)
+    .then(
+      () => null,
+      () => null,
+    );
 
   return { url, expiresAt: null };
 }
@@ -395,7 +464,9 @@ export function createNowPaymentsBillingProvider(): BillingProvider {
     async getBillingStatus(input: BillingUserContext) {
       return getBillingStatusFromSubscription(input.userId);
     },
-    async createCheckoutSession(input: CheckoutSessionInput): Promise<BillingPortalLink> {
+    async createCheckoutSession(
+      input: CheckoutSessionInput,
+    ): Promise<BillingPortalLink> {
       return createNowPaymentsInvoice(input);
     },
     async createBillingPortalSession(

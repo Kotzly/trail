@@ -1,0 +1,30 @@
+/*
+ * Graph re-layout transitions.
+ *
+ * When a tree structure change moves nodes to new positions, ReactFlow
+ * updates the inline `transform` on each `.react-flow__node`. A CSS
+ * transition on that property lets the browser interpolate from the
+ * old to the new transform smoothly — no JS tween, no extra paints.
+ *
+ * The container class `graph--relayout-animated` is set by TrailGraph
+ * when `useRelayoutEnabled` returns true (see hook for the gate).
+ *
+ * Easing: strong ease-in-out (Paul Irish / Emil Kowalski) — the motion
+ * is on-screen (not entering/exiting), so start and end should both
+ * decelerate.
+ *
+ * `prefers-reduced-motion` is already respected at the hook level, but
+ * we also clear the transition here as defense-in-depth: if the class
+ * ever gets applied without the hook gating (dev harness, override),
+ * the user's system preference still wins.
+ */
+
+.graph--relayout-animated .react-flow__node {
+  transition: transform 350ms var(--ease-in-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .graph--relayout-animated .react-flow__node {
+    transition: none;
+  }
+}

@@ -76,13 +76,16 @@ export const CF = {
  * [id, timestamp, url, title, favicon|null, flags, tags, layout|null, lastVisitedAt|null, visitCount|null, children[]]
  *
  * - flags: bitmask (bit 0 = pinned)
- * - layout: null | [offsetX, offsetY] | [offsetX, offsetY, angleDelta, radiusDelta]
+ * - layout: null | [offsetX, offsetY]
  * - tags: string[] (tag IDs)
  * - lastVisitedAt: unix ms timestamp or null
  * - visitCount: number of visits or null
  */
+// NodeIds are uuidv7 strings. Schema v2 migration re-mints every
+// persisted numeric id to a fresh uuidv7, so by the time any runtime
+// code reads a tuple the id is always string.
 export type CompactNodeTupleV1 = [
-  id: number,
+  id: string,
   ts: number,
   url: string,
   title: string,
@@ -94,7 +97,7 @@ export type CompactNodeTupleV1 = [
 ];
 
 export type CompactNodeTupleV2 = [
-  id: number,
+  id: string,
   ts: number,
   url: string,
   title: string,
@@ -107,7 +110,7 @@ export type CompactNodeTupleV2 = [
 ];
 
 export type CompactNodeTupleV3 = [
-  id: number,
+  id: string,
   ts: number,
   url: string,
   title: string,
@@ -133,21 +136,21 @@ export type CompactNodeTuple = CompactNodeTupleV1 | CompactNodeTupleV2 | Compact
 export type CompactTreeJSONV1 = {
   v: 1;
   r: CompactNodeTupleV1 | null;
-  c: number | null;
+  c: string | null;
   n: number;
 };
 
 export type CompactTreeJSONV2 = {
   v: 2;
   r: CompactNodeTupleV2 | null;
-  c: number | null;
+  c: string | null;
   n: number;
 };
 
 export type CompactTreeJSONV3 = {
   v: 3;
   r: CompactNodeTupleV3 | null;
-  c: number | null;
+  c: string | null;
   n: number;
 };
 

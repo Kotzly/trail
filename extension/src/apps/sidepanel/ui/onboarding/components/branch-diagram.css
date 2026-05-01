@@ -1,0 +1,114 @@
+/* Branch-diagram choreography. Pure CSS so animations don't depend on
+   the JS animation loop — Motion was freezing mid-animation in this
+   environment. Uses forwards fill so the final state is sticky. */
+
+.branch-diagram__edge {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  opacity: 0;
+  animation: branch-edge-draw 520ms var(--ease-out) forwards;
+}
+
+.branch-diagram__node {
+  opacity: 0;
+  transform: scale(0.7);
+  animation: branch-node-pop 360ms var(--ease-out) forwards;
+}
+
+.branch-diagram__glow {
+  opacity: 0;
+  transform: scale(0.6);
+  animation: branch-glow-pulse 900ms var(--ease-out) forwards;
+}
+
+.branch-diagram__label {
+  fill: var(--foreground);
+  font-size: 9px;
+  font-weight: 500;
+  opacity: 0;
+  animation: branch-label-fade 240ms var(--ease-out) forwards;
+}
+
+.branch-diagram__label--muted {
+  fill: var(--muted-foreground);
+  font-weight: 400;
+}
+
+.branch-diagram__fork {
+  opacity: 0;
+  transform: translateY(-3px);
+  animation: branch-fork-fade 320ms var(--ease-out) forwards;
+}
+
+@keyframes branch-edge-draw {
+  0% {
+    opacity: 0.2;
+    stroke-dashoffset: 1;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes branch-node-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes branch-glow-pulse {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+}
+
+@keyframes branch-label-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes branch-fork-fade {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .branch-diagram__edge,
+  .branch-diagram__node,
+  .branch-diagram__glow,
+  .branch-diagram__label,
+  .branch-diagram__fork {
+    animation-duration: 0ms !important;
+    animation-delay: 0ms !important;
+    opacity: 1;
+    stroke-dashoffset: 0;
+    transform: none;
+  }
+  .branch-diagram__glow {
+    opacity: 0.3;
+  }
+}

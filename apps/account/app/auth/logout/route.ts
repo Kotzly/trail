@@ -1,104 +1,16 @@
 import { NextResponse } from "next/server";
-import { AUTH_COOKIE_NAME } from "@/src/lib/auth";
-import { getCookieValue } from "@/src/lib/cookies";
+import { createSupabaseServerClient } from "@/src/lib/supabase/server";
 import { getBearerToken } from "@/src/server/backend/auth/headers";
-import { verifyUserToken } from "@/src/server/backend/auth/user-auth";
 import { verifyExtensionToken } from "@/src/server/backend/auth/extension-auth";
 import { revokeAllExtensionSessionsForUser } from "@/src/server/backend/oauth";
-import { db } from "@trail/db";
 
 export const runtime = "nodejs";
 
-const BETTER_AUTH_SESSION_COOKIE = "better-auth.session_token";
-const BETTER_AUTH_SESSION_COOKIE_SECURE = "__Secure-better-auth.session_token";
-
-function getAuthTokenFromCookie(headers: Headers): string | null {
-  return getCookieValue(headers, AUTH_COOKIE_NAME);
-}
-
-function getSessionTokenFromCookie(headers: Headers): string | null {
-  return (
-    getCookieValue(headers, BETTER_AUTH_SESSION_COOKIE_SECURE) ??
-    getCookieValue(headers, BETTER_AUTH_SESSION_COOKIE)
-  );
-}
-
-async function resolveUserIdForLogout(request: Request): Promise<string | null> {
-  const token =
-    getBearerToken(request.headers) ?? getAuthTokenFromCookie(request.headers);
-  if (token) {
-    const user = await verifyUserToken(token);
-    if (user?.sub) {
-      return user.sub;
-    }
-
-    const extensionUser = await verifyExtensionToken(token);
-    if (extensionUser?.sub) {
-      return extensionUser.sub;
-    }
-  }
-
-  // Fall back to Better Auth session cookie to resolve the user
-  const sessionToken = getSessionTokenFromCookie(request.headers);
-  if (sessionToken) {
-    const session = await db.session
-      .findUnique({ where: { token: sessionToken }, select: { userId: true } })
-      .catch(() => null);
-    if (session?.userId) {
-      return session.userId;
-    }
-  }
-
-  return null;
-}
-
-function buildLogoutResponse(response: NextResponse) {
-  const secure = process.env.NODE_ENV === "production";
-  response.cookies.set(AUTH_COOKIE_NAME, "", {
-    httpOnly: true,
-    path: "/",
-    sameSite: "lax",
-    secure,
-    maxAge: 0,
-  });
-  response.cookies.set("better-auth.session_token", "", {
-    httpOnly: true,
-    path: "/",
-    sameSite: "lax",
-    secure,
-    maxAge: 0,
-  });
-  response.cookies.set("__Secure-better-auth.session_token", "", {
-    httpOnly: true,
-    path: "/",
-    sameSite: "lax",
-    secure: true,
-    maxAge: 0,
-  });
-  return response;
-}
-
-async function revokeCurrentSession(request: Request): Promise<void> {
-  const userId = await resolveUserIdForLogout(request).catch(() => null);
-  const sessionToken = getSessionTokenFromCookie(request.headers);
-
-  const promises: Promise<unknown>[] = [];
-
-  if (userId) {
-    promises.push(revokeAllExtensionSessionsForUser(userId).catch(() => undefined));
-  }
-
-  if (sessionToken) {
-    // Only delete the current session, not all sessions for the user
-    promises.push(db.session.delete({ where: { token: sessionToken } }).catch(() => undefined));
-  }
-
-  await Promise.all(promises);
-}
+const ALLOWED_LOGOUT_ORIGINS = [process.env.NEXT_PUBLIC_APP_URL].filter(
+  Boolean,
+) as string[];
 
 export async function GET() {
-  // GET must NOT clear cookies or mutate state — doing so enables CSRF logout
-  // attacks (e.g. <img src="/auth/logout">). All logout must go through POST.
   return new NextResponse("Method Not Allowed. Use POST to log out.", {
     status: 405,
     headers: { Allow: "POST" },
@@ -106,6 +18,62 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  await revokeCurrentSession(request);
-  return buildLogoutResponse(new NextResponse(null, { status: 204 }));
+  const bearer = getBearerToken(request.headers);
+
+  // Route 1 — extension bearer path. Cryptographically authenticated
+  // via HMAC-signed JWT; no CSRF concern (extension origin attaches
+  // Authorization header that a foreign site can't forge).
+  if (bearer) {
+    const ext = await verifyExtensionToken(bearer);
+    if (!ext?.sub) {
+      return NextResponse.json({ error: "invalid_bearer" }, { status: 401 });
+    }
+    await revokeAllExtensionSessionsForUser(ext.sub).catch(() => undefined);
+    // Don't call supabase.auth.signOut() here — we don't have a cookie
+    // session for this path.
+    return new NextResponse(null, { status: 204 });
+  }
+
+  // Route 2 — browser cookie-session path. Requires origin/referer
+  // match to prevent a cross-site form-post from signing the user
+  // out. @supabase/ssr cookies are SameSite=Lax by default (we also
+  // pin it explicitly in middleware), so a bare form POST from
+  // evil.com can't send the session cookie — but belt-and-suspenders
+  // matters here because the cost of mis-logout is low but annoying
+  // (closes P1.4).
+  const origin = request.headers.get("origin");
+  const referer = request.headers.get("referer");
+  const originOk = origin ? ALLOWED_LOGOUT_ORIGINS.includes(origin) : false;
+  let refererOk = false;
+  if (referer) {
+    try {
+      refererOk = ALLOWED_LOGOUT_ORIGINS.includes(new URL(referer).origin);
+    } catch {
+      refererOk = false;
+    }
+  }
+  if (!originOk && !refererOk) {
+    return NextResponse.json(
+      { error: "csrf_origin_mismatch" },
+      { status: 403 },
+    );
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (user) {
+    await revokeAllExtensionSessionsForUser(user.id).catch(() => undefined);
+  }
+  await supabase.auth.signOut();
+
+  const accept = request.headers.get("accept") ?? "";
+  if (accept.includes("application/json")) {
+    return new NextResponse(null, { status: 204 });
+  }
+
+  const baseUrl = new URL(request.url).origin;
+  return NextResponse.redirect(new URL("/login", baseUrl), 303);
 }

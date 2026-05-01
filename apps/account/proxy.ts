@@ -1,32 +1,40 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
+import { updateSession } from "@/src/lib/supabase/middleware";
 
-const protectedPrefixes = ["/trails", "/dashboard", "/settings", "/billing"];
-const AUTH_COOKIE_NAME = "trail_auth_session";
+const PUBLIC_PATHS = ["/login", "/auth/", "/api/"];
 
 export async function proxy(request: NextRequest) {
-  const { pathname, search } = request.nextUrl;
-  const needsAuth = protectedPrefixes.some((prefix) =>
-    pathname.startsWith(prefix),
-  );
-  if (!needsAuth) {
-    return NextResponse.next();
-  }
+  const { pathname, search, searchParams } = request.nextUrl;
 
-  const token = request.cookies.get(AUTH_COOKIE_NAME)?.value;
-  if (!token) {
-    // Redirect to /auth/callback instead of /auth/login so the callback
-    // can silently re-mint a JWT from the still-valid Better Auth session.
-    // If the session is also expired, the callback itself redirects to login.
-    const callbackUrl = new URL("/auth/callback", request.nextUrl.origin);
-    callbackUrl.searchParams.set("next", `${pathname}${search}`);
+  // Supabase OAuth may redirect the auth code to the Site URL root instead of
+  // /auth/callback when the redirectTo origin isn't in the allow-list (e.g.
+  // Tailscale IP). Catch it here and forward to the callback handler.
+  if (
+    pathname === "/" &&
+    searchParams.has("code") &&
+    !searchParams.has("next")
+  ) {
+    const origin = `${request.nextUrl.protocol}//${request.headers.get("host")}`;
+    const callbackUrl = new URL("/auth/callback", origin);
+    callbackUrl.searchParams.set("code", searchParams.get("code")!);
     return NextResponse.redirect(callbackUrl);
   }
 
-  return NextResponse.next();
+  const { supabaseResponse, user } = await updateSession(request);
+
+  const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
+
+  if (!user && !isPublic) {
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("returnTo", `${pathname}${search}`);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  return supabaseResponse;
 }
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|api/).*)",
+    "/((?!_next/static|_next/image|favicon.ico|brand/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

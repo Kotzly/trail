@@ -1,12 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const authMocks = vi.hoisted(() => ({
-  auth: {
-    api: {
-      getSession: vi.fn(),
-    },
-  },
-}));
+// ---------------------------------------------------------------------------
+// Mocks (hoisted)
+// ---------------------------------------------------------------------------
+
+const supabaseMock = vi.hoisted(() => {
+  const getUser = vi.fn<
+    () => Promise<{ data: { user: { id: string } | null } }>
+  >(async () => ({ data: { user: null } }));
+  return {
+    getUser,
+    createSupabaseServerClient: vi.fn(async () => ({
+      auth: { getUser },
+    })),
+  };
+});
 
 const oauthMocks = vi.hoisted(() => ({
   createOAuthAuthorizationCode: vi.fn(),
@@ -27,38 +35,89 @@ const userAuthMocks = vi.hoisted(() => ({
   verifyUserToken: vi.fn(),
 }));
 
-const dbMocks = vi.hoisted(() => ({
-  db: {
-    user: {
-      findUnique: vi.fn(),
-    },
-  },
+const fluentDb = vi.hoisted(() => {
+  type QR = { data: unknown; error: null | { message: string; code?: string } };
+  const tableMocks: Record<string, () => QR> = {};
+  const passthrough = [
+    "select",
+    "eq",
+    "neq",
+    "is",
+    "not",
+    "in",
+    "or",
+    "order",
+    "limit",
+    "maybeSingle",
+    "single",
+    "upsert",
+    "insert",
+    "update",
+    "delete",
+    "ignoreDuplicates",
+  ] as const;
+
+  function makeChain(result: QR) {
+    const chain: Record<string, unknown> = {};
+    for (const m of passthrough) {
+      chain[m] = (..._args: unknown[]) => {
+        if (m === "maybeSingle" || m === "single")
+          return Promise.resolve(result);
+        return chain;
+      };
+    }
+    chain.then = (
+      resolve: (v: QR) => unknown,
+      reject: (e: unknown) => unknown,
+    ) => Promise.resolve(result).then(resolve, reject);
+    return chain;
+  }
+
+  const db = {
+    from: vi.fn((table: string) => {
+      const factory = tableMocks[table];
+      const result = factory ? factory() : { data: null, error: null };
+      return makeChain(result);
+    }),
+  };
+
+  function setTable(table: string, result: QR) {
+    tableMocks[table] = () => result;
+  }
+
+  function reset() {
+    db.from.mockClear();
+    for (const k of Object.keys(tableMocks)) delete tableMocks[k];
+  }
+
+  return { db, setTable, reset };
+});
+
+vi.mock("@/src/lib/supabase/server", () => ({
+  createSupabaseServerClient: supabaseMock.createSupabaseServerClient,
 }));
 
-vi.mock("@/src/auth", () => ({
-  ...authMocks,
+vi.mock("next/headers", () => ({
+  cookies: async () => ({
+    getAll: () => [],
+    set: () => {},
+  }),
 }));
 
-vi.mock("@/src/server/backend/oauth", () => ({
-  ...oauthMocks,
-}));
-
+vi.mock("@/src/server/backend/oauth", () => ({ ...oauthMocks }));
 vi.mock("@/src/server/backend/auth/extension-auth", () => ({
   ...extensionAuthMocks,
 }));
-
 vi.mock("@/src/server/backend/extension-config", () => ({
   ...extensionConfigMocks,
 }));
-
-vi.mock("@/src/server/backend/auth/user-auth", () => ({
-  ...userAuthMocks,
+vi.mock("@/src/server/backend/auth/user-auth", () => ({ ...userAuthMocks }));
+vi.mock("@trail/db", () => ({ db: fluentDb.db }));
+vi.mock("@trail/db/helpers", () => ({
+  maybeRow: <T>(res: { data: unknown }) => (res.data as T) ?? null,
 }));
 
-vi.mock("@trail/db", () => ({
-  ...dbMocks,
-}));
-
+// Imports MUST come after vi.mock so the mocks bind first.
 import { GET as oauthAuthorize } from "../oauth/authorize/route";
 import { POST as oauthToken } from "../oauth/token/route";
 import { POST as oauthRevoke } from "../oauth/revoke/route";
@@ -69,20 +128,25 @@ const BASE_AUTHORIZE_QUERY = `response_type=code&client_id=trail-extension&redir
   REDIRECT_URI,
 )}&code_challenge=${"a".repeat(43)}&code_challenge_method=S256`;
 
+function setSupabaseUser(user: { id: string } | null) {
+  supabaseMock.getUser.mockResolvedValue({ data: { user } });
+}
+
 describe("v1 oauth auth flow", () => {
   beforeEach(() => {
-    authMocks.auth.api.getSession.mockReset();
+    supabaseMock.getUser.mockReset();
+    setSupabaseUser(null);
     oauthMocks.createOAuthAuthorizationCode.mockReset();
     oauthMocks.exchangeOAuthAuthorizationCode.mockReset();
     oauthMocks.refreshOAuthToken.mockReset();
     oauthMocks.revokeOAuthRefreshToken.mockReset();
     extensionAuthMocks.verifyExtensionToken.mockReset();
     userAuthMocks.verifyUserToken.mockReset();
-    dbMocks.db.user.findUnique.mockReset();
+    fluentDb.reset();
   });
 
   it("redirects prompt=none to login_required when web session is missing", async () => {
-    authMocks.auth.api.getSession.mockResolvedValue(null);
+    setSupabaseUser(null);
 
     const response = await oauthAuthorize(
       new Request(
@@ -91,18 +155,14 @@ describe("v1 oauth auth flow", () => {
     );
 
     expect(response.status).toBe(307);
-    const location = response.headers.get("location");
-    expect(location).toBeTruthy();
-    const target = new URL(location as string);
+    const target = new URL(response.headers.get("location") as string);
     expect(target.origin + target.pathname).toBe(REDIRECT_URI);
     expect(target.searchParams.get("error")).toBe("login_required");
     expect(target.searchParams.get("state")).toBe("req-1");
   });
 
   it("forces interactive chooser for prompt=select_account", async () => {
-    authMocks.auth.api.getSession.mockResolvedValue({
-      user: { id: "user-1" },
-    });
+    setSupabaseUser({ id: "user-1" });
 
     const response = await oauthAuthorize(
       new Request(
@@ -111,19 +171,17 @@ describe("v1 oauth auth flow", () => {
     );
 
     expect(response.status).toBe(307);
-    const location = response.headers.get("location");
-    expect(location).toBeTruthy();
-    const target = new URL(location as string);
+    const target = new URL(response.headers.get("location") as string);
     expect(target.pathname).toBe("/login");
     expect(target.searchParams.get("prompt")).toBe("select_account");
     expect(target.searchParams.get("maxAge")).toBe("0");
-    expect(target.searchParams.get("returnTo")).toContain("/api/v1/oauth/authorize");
+    expect(target.searchParams.get("returnTo")).toContain(
+      "/api/v1/oauth/authorize",
+    );
   });
 
   it("issues code and redirects to callback when session exists", async () => {
-    authMocks.auth.api.getSession.mockResolvedValue({
-      user: { id: "user-1" },
-    });
+    setSupabaseUser({ id: "user-1" });
     oauthMocks.createOAuthAuthorizationCode.mockResolvedValue({
       code: "auth-code-1",
       expiresAt: new Date("2026-02-14T12:00:00.000Z"),
@@ -225,14 +283,12 @@ describe("v1 oauth auth flow", () => {
     });
   });
 
-  it("returns 400 for unsupported grant type", async () => {
+  it("returns 400 with unsupported_grant_type for unknown grant types (RFC 6749 §5.2)", async () => {
     const response = await oauthToken(
       new Request("http://localhost/api/v1/oauth/token", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          grant_type: "client_credentials",
-        }),
+        body: JSON.stringify({ grant_type: "client_credentials" }),
       }),
     );
 
@@ -249,14 +305,14 @@ describe("v1 oauth auth flow", () => {
       new Request("http://localhost/api/v1/oauth/revoke", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          refresh_token: "refresh-1",
-        }),
+        body: JSON.stringify({ refresh_token: "refresh-1" }),
       }),
     );
 
     expect(response.status).toBe(204);
-    expect(oauthMocks.revokeOAuthRefreshToken).toHaveBeenCalledWith("refresh-1");
+    expect(oauthMocks.revokeOAuthRefreshToken).toHaveBeenCalledWith(
+      "refresh-1",
+    );
   });
 
   it("returns extension session-state from bearer token", async () => {
@@ -285,14 +341,17 @@ describe("v1 oauth auth flow", () => {
     });
   });
 
-  it("returns web session-state from cookie token", async () => {
+  it("returns web session-state from Supabase cookie session", async () => {
     extensionAuthMocks.verifyExtensionToken.mockResolvedValue(null);
-    userAuthMocks.verifyUserToken.mockResolvedValue({ sub: "user-2" });
-    dbMocks.db.user.findUnique.mockResolvedValue({ authSessionVersion: 3 });
+    setSupabaseUser({ id: "user-2" });
+    fluentDb.setTable("users", {
+      data: { auth_session_version: 3 },
+      error: null,
+    });
 
     const response = await authSessionState(
       new Request("http://localhost/api/v1/auth/session-state", {
-        headers: { cookie: "trail_auth_session=user-token-1" },
+        headers: { cookie: "sb-access-token=value" },
       }),
     );
 
@@ -308,7 +367,7 @@ describe("v1 oauth auth flow", () => {
 
   it("returns guest session-state when no credentials are present", async () => {
     extensionAuthMocks.verifyExtensionToken.mockResolvedValue(null);
-    userAuthMocks.verifyUserToken.mockResolvedValue(null);
+    setSupabaseUser(null);
 
     const response = await authSessionState(
       new Request("http://localhost/api/v1/auth/session-state"),

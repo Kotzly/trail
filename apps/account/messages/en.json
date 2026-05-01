@@ -1,0 +1,139 @@
+{
+  "common": {
+    "loading": "Loading..."
+  },
+  "nav": {
+    "navigation": "Navigation",
+    "account": "Account",
+    "trails": "Trails",
+    "activity": "Activity",
+    "settings": "Settings",
+    "billing": "Billing",
+    "signOut": "Sign out"
+  },
+  "login": {
+    "title": "Sign in to Trail",
+    "tagline": "Your hiking history, everywhere.",
+    "continueWithGoogle": "Continue with Google",
+    "or": "or",
+    "emailLabel": "Email",
+    "emailPlaceholder": "you@example.com",
+    "sendMagicLink": "Send magic link",
+    "checkEmail": "Check your email",
+    "magicLinkSentBody": "We sent a sign-in link to",
+    "useDifferentEmail": "Use a different email",
+    "googleFailed": "Could not sign in with Google. Please try again.",
+    "emailRequired": "Please enter your email address.",
+    "magicLinkFailed": "Could not send magic link. Please try again."
+  },
+  "onboarding": {
+    "stepIndicator": "Step {current} of {total}",
+    "stepAriaLabel": "Step {index}",
+    "next": "Next",
+    "goToDashboard": "Go to Dashboard",
+    "skip": "Skip for now",
+    "welcome": {
+      "title": "Welcome to Trail!",
+      "description": "Trail captures your browsing as living tree structures — every tab, every navigation, every detour. Instead of a flat history list, you get a map of how you actually explored the web."
+    },
+    "install": {
+      "title": "Install the Extension",
+      "description": "The Trail browser extension runs quietly in the background and records your navigation trees in real time. It takes about 30 seconds to install.",
+      "ctaLabel": "Open Chrome Web Store"
+    },
+    "firstTrail": {
+      "title": "Your First Trail",
+      "description": "Once the extension is installed, just browse normally. Every time you open a new tab or follow a link, Trail grows a new branch. Come back here to see your trails take shape."
+    },
+    "done": {
+      "title": "You're all set!",
+      "description": "Your account is ready. Head to the dashboard to see your trails, manage settings, and explore your browsing history like never before."
+    }
+  },
+  "settings": {
+    "metadataTitle": "Settings",
+    "pageTitle": "Settings",
+    "pageSubtitle": "Manage your account preferences.",
+    "profile": {
+      "title": "Profile",
+      "description": "Your account information.",
+      "memberSince": "Member since {date}"
+    },
+    "subscription": {
+      "title": "Subscription",
+      "description": "Your current plan and status.",
+      "freePlan": "Free plan",
+      "trialBadge": "Trial",
+      "cancelsOn": "Cancels {date}",
+      "manageHint": "Manage your subscription on the",
+      "billingPage": "Billing page"
+    },
+    "plans": {
+      "pro": "Pro",
+      "teams": "Teams",
+      "free": "Free"
+    },
+    "danger": {
+      "title": "Danger Zone",
+      "resetOnboarding": {
+        "title": "Reset onboarding",
+        "description": "Clear the onboarding completion flag so it shows again on next login. Useful for testing."
+      }
+    }
+  },
+  "billing": {
+    "metadataTitle": "Billing",
+    "pageTitle": "Billing",
+    "pageSubtitle": "Upgrade, downgrade, or manage your subscription.",
+    "interval": {
+      "monthly": "Monthly",
+      "yearly": "Yearly",
+      "saveBadge": "Save 25%"
+    },
+    "mostPopular": "Most Popular",
+    "currentPlan": "Current Plan",
+    "current": "Current",
+    "canceling": "Canceling",
+    "upgrade": "Upgrade",
+    "downgrade": "Downgrade",
+    "resumeSubscription": "Resume Subscription",
+    "cancelPlan": "Cancel Plan",
+    "free": "Free",
+    "pricePerMonth": "/mo",
+    "billedYearlyWithSave": "Billed ${total}/year · Save ${savings}/yr",
+    "upToTrees": "Up to {count} trees",
+    "upToTreesUnlimited": "Up to unlimited trees",
+    "devicesOne": "1 device",
+    "devicesMany": "{count} devices",
+    "historyDays": "{days}d history",
+    "accessUntil": "Access until {date}",
+    "managePortal": "Manage billing & invoices",
+    "cancelAtPeriodEnd": "Subscription will cancel at period end",
+    "toast": {
+      "cancelSuccess": "Subscription canceled",
+      "resumeSuccess": "Subscription resumed"
+    }
+  },
+  "errors": {
+    "auth": {
+      "unauthorized": "You need to be signed in.",
+      "userNotFound": "User not found."
+    },
+    "trail": {
+      "notFound": "Trail not found.",
+      "invalidInput": "The input looks wrong — try again.",
+      "renameFailed": "Failed to rename trail.",
+      "archiveFailed": "Failed to archive trail.",
+      "restoreFailed": "Failed to restore trail."
+    },
+    "billing": {
+      "missingPlan": "Missing plan.",
+      "cancelFailed": "Failed to cancel subscription.",
+      "resumeFailed": "Failed to resume subscription."
+    },
+    "onboarding": {
+      "resetFailed": "Failed to reset onboarding."
+    },
+    "unknown": "Something went wrong. Please try again."
+  }
+}

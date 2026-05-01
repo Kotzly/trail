@@ -4,36 +4,149 @@ import { TabIndex } from "./tab-index.js";
 import { LruManager } from "./tab-lru.js";
 import { browser } from "@shared/platform/webext.js";
 import { createLogger } from "@shared/lib/logger.js";
+import { storage } from "wxt/utils/storage";
+import pDebounce from "p-debounce";
+
+const PERSIST_DEBOUNCE_MS = 100;
 
 const log = createLogger("tab-manager");
+
+/**
+ * Persisted in chrome.storage.session so the map survives MV3
+ * service-worker suspend (session storage lives for the browser
+ * session, not just the SW lifetime). Key: `${TabId}`. Value: NodeId.
+ */
+const lastNodeByTabItem = storage.defineItem<Record<string, string>>(
+  "session:trail_last_node_by_tab",
+  { fallback: {} },
+);
 
 export class TabManager {
   private index: TabIndex;
   private lru: LruManager;
   private cycleOrderByNode = new Map<NodeId, TabId[]>();
   private cycleIndexByNode = new Map<NodeId, number>();
-  private suppressTouchForTabId: TabId | null = null;
+  private suppressTouchForTabId = new Map<TabId, boolean>();
   private suppressActivateForTabId = new Map<TabId, string | undefined>();
   private ignoredTabs = new Set<TabId>();
+  /**
+   * Optional tree accessor injected at service-worker init. When set,
+   * register() validates that the nodeId exists in the current tree
+   * before recording the mapping, preventing "phantom" node entries
+   * from stale RPC handlers (#70).
+   */
+  private treeAccessor: (() => NavigationTree | null) | null = null;
+
+  /**
+   * Per-tab "last known node" used as a fallback parent signal for
+   * opener-based navigation attribution (Phase 2). When a new tab is
+   * spawned from tab A, we want the new tab's first navigation to
+   * attach under A's node — even if A has already been re-registered
+   * elsewhere since the click.
+   *
+   * Persisted to chrome.storage.session so SW suspend + resume doesn't
+   * regress parent inference (critic C3).
+   */
+  private lastNodeByTab = new Map<TabId, NodeId>();
+  private hydrated = false;
 
   constructor() {
     this.index = new TabIndex();
     this.lru = new LruManager();
+    // Let the LRU derive latestNodeId on demand from the index.
+    this.lru.setNodeResolver((tabId) => this.index.nodeByTab(tabId));
   }
+
+  /**
+   * Inject the tree accessor. Called from service-worker bootstrap
+   * so register() can validate nodeIds against the live tree.
+   */
+  setTreeAccessor(accessor: () => NavigationTree | null): void {
+    this.treeAccessor = accessor;
+  }
+
+  /**
+   * Drop all tab mappings that reference any of the given node ids.
+   * Called from NavigationTree delete paths so tabs pinned to a
+   * deleted node are released instead of silently pointing at a
+   * zombie id (#22, #29).
+   */
+  onNodesDeleted(nodeIds: Iterable<NodeId>): void {
+    for (const nodeId of nodeIds) {
+      const tabs = this.index.tabsByNode(nodeId);
+      if (!tabs || tabs.size === 0) continue;
+      for (const tabId of [...tabs]) this.unregister(tabId);
+    }
+  }
+
+  /** Load persisted `lastNodeByTab` mapping from session storage. */
+  async hydrate(): Promise<void> {
+    if (this.hydrated) return;
+    try {
+      const raw = await lastNodeByTabItem.getValue();
+      for (const [tabKey, nodeId] of Object.entries(raw)) {
+        const tabId = Number(tabKey);
+        if (!Number.isFinite(tabId) || typeof nodeId !== "string") continue;
+        this.lastNodeByTab.set(tabId as TabId, nodeId as NodeId);
+      }
+    } catch (error) {
+      log.warn("Failed to hydrate lastNodeByTab", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+    this.hydrated = true;
+  }
+
+  /** Synchronous read; returns undefined if the tab has no known last node. */
+  lastNodeByTabId(tabId: TabId): NodeId | undefined {
+    return this.lastNodeByTab.get(tabId);
+  }
+
+  /**
+   * Debounced session-storage write. `chrome.storage.session.set` has
+   * per-call overhead + quota limits and register()/unregister() fire
+   * on every tab navigation — coalescing into one write per ~100ms
+   * collapses bursts during rapid tab opening (closes P2.44).
+   */
+  private persistLastNodeByTab = pDebounce(() => {
+    const snapshot: Record<string, string> = {};
+    for (const [tabId, nodeId] of this.lastNodeByTab.entries()) {
+      snapshot[String(tabId)] = nodeId as string;
+    }
+    return lastNodeByTabItem.setValue(snapshot).catch((error) => {
+      log.warn("Failed to persist lastNodeByTab", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    });
+  }, PERSIST_DEBOUNCE_MS);
 
   reset() {
     this.index = new TabIndex();
     this.lru = new LruManager();
+    this.lru.setNodeResolver((tabId) => this.index.nodeByTab(tabId));
     this.cycleOrderByNode.clear();
     this.cycleIndexByNode.clear();
-    this.suppressTouchForTabId = null;
+    this.suppressTouchForTabId.clear();
     this.suppressActivateForTabId.clear();
     this.ignoredTabs.clear();
+    this.lastNodeByTab.clear();
+    this.persistLastNodeByTab();
   }
 
-  touch(tabId: TabId, _nodeId: NodeId, lastUsed?: number) {
+  touch(tabId: TabId, nodeId: NodeId, lastUsed?: number) {
     const actualNodeId = this.index.nodeByTab(tabId);
     if (!actualNodeId) return;
+    if (actualNodeId !== nodeId) {
+      // Caller's nodeId doesn't match the current mapping. Don't
+      // silently redirect — log so the divergence shows up in
+      // observability (#71). Still touch the real mapping so LRU
+      // reflects reality.
+      log.warn("touch nodeId mismatch — using index value", {
+        tabId: String(tabId),
+        requested: String(nodeId),
+        actual: String(actualNodeId),
+      });
+    }
     this.lru.touch(tabId, actualNodeId, lastUsed);
     this.invalidateCycle(actualNodeId);
   }
@@ -41,6 +154,20 @@ export class TabManager {
   // Register a tab for a node (global across windows).
   // Reassigns the tab if it previously belonged to another node.
   register(nodeId: NodeId, tabId: TabId, options?: { touch?: boolean; lastUsed?: number }) {
+    // Validate the nodeId exists in the tree (#70). Without this,
+    // stale RPC handlers or in-flight navigations can pin tabs to
+    // deleted nodes, polluting openNodes() and tabsByNode().
+    if (this.treeAccessor) {
+      const tree = this.treeAccessor();
+      if (tree && !tree.findNodeById(nodeId)) {
+        log.warn("register rejected — nodeId not in tree", {
+          nodeId: String(nodeId),
+          tabId: String(tabId),
+        });
+        return;
+      }
+    }
+
     const previousNodeId = this.index.nodeByTab(tabId);
 
     if (previousNodeId) {
@@ -55,6 +182,9 @@ export class TabManager {
       this.lru.touch(tabId, nodeId, options?.lastUsed);
     }
     this.invalidateCycle(nodeId);
+    // Remember the last known node for this tab (opener fallback).
+    this.lastNodeByTab.set(tabId, nodeId);
+    this.persistLastNodeByTab();
   }
 
   getNextTabForNode(nodeId: NodeId, currentTabId: TabId | null = null): TabId | null {
@@ -110,15 +240,20 @@ export class TabManager {
 
     this.lru.remove(tabId);
     this.ignoredTabs.delete(tabId);
+    if (this.lastNodeByTab.delete(tabId)) {
+      this.persistLastNodeByTab();
+    }
   }
 
   suppressNextTouch(tabId: TabId): void {
-    this.suppressTouchForTabId = tabId;
+    // Per-tab Map so two rapid suppressions on different tabs don't
+    // overwrite each other (#51).
+    this.suppressTouchForTabId.set(tabId, true);
   }
 
   shouldSuppressTouch(tabId: TabId): boolean {
-    if (this.suppressTouchForTabId !== tabId) return false;
-    this.suppressTouchForTabId = null;
+    if (!this.suppressTouchForTabId.has(tabId)) return false;
+    this.suppressTouchForTabId.delete(tabId);
     return true;
   }
 
@@ -167,7 +302,11 @@ export class TabManager {
   getTabsByRecency(nodeId: NodeId): TabId[] {
     const tabsSet = this.index.tabsByNode(nodeId);
     if (!tabsSet) return [];
-    return [...tabsSet].sort((a, b) => this.lru.getLastUsed(b) - this.lru.getLastUsed(a));
+    return [...tabsSet].sort((a, b) => {
+      const ta = this.lru.getLastUsed(b) ?? -Infinity;
+      const tb = this.lru.getLastUsed(a) ?? -Infinity;
+      return ta - tb;
+    });
   }
 
   getNodeRecency(nodeId: NodeId): number {
@@ -175,7 +314,8 @@ export class TabManager {
     if (!tabsSet || tabsSet.size === 0) return 0;
     let max = 0;
     for (const tabId of tabsSet) {
-      max = Math.max(max, this.lru.getLastUsed(tabId));
+      const ts = this.lru.getLastUsed(tabId);
+      if (ts !== undefined && ts > max) max = ts;
     }
     return max;
   }
@@ -204,9 +344,15 @@ export class TabManager {
     const count = this.index.tabCount();
     if (count <= limit) return null;
     let tabIdToClose = null;
-    const candidates = [...this.lru.iter()].sort(
-      (a, b) => this.lru.getLastUsed(a) - this.lru.getLastUsed(b),
-    );
+    // Deterministic tie-break: (lastUsed ?? -1, tabId). Fresh-profile
+    // cases where many tabs report lastAccessed=0 used to be arbitrary;
+    // now tied tabs sort by tabId so close-order is stable.
+    const candidates = [...this.lru.iter()].sort((a, b) => {
+      const ta = this.lru.getLastUsed(a) ?? -1;
+      const tb = this.lru.getLastUsed(b) ?? -1;
+      if (ta !== tb) return ta - tb;
+      return (a as number) - (b as number);
+    });
     for (const tabId of candidates) {
       const nodeId = this.index.nodeByTab(tabId);
       if (!nodeId) {
@@ -238,7 +384,24 @@ export class TabManager {
       await browser.tabs.remove(tabIdToClose);
       this.unregister(tabIdToClose);
       return tabIdToClose;
-    } catch {
+    } catch (error) {
+      // Chrome may throw AFTER actually closing the tab (race with
+      // window-close cascades). Check with tabs.get: if it reports
+      // "No tab with id", we know Chrome closed it and we should
+      // unregister. Otherwise leave state intact. Fixes #75
+      // (over-closing in closeOldestUntil).
+      try {
+        await browser.tabs.get(tabIdToClose);
+        // Tab still exists — caller should get null so the outer
+        // loop knows it didn't close anything.
+        log.warn("tabs.remove threw but tab still exists", {
+          tabId: String(tabIdToClose),
+          error: error instanceof Error ? error.message : String(error),
+        });
+      } catch {
+        // tabs.get also threw — tab is gone, unregister.
+        this.unregister(tabIdToClose);
+      }
       return null;
     }
   }

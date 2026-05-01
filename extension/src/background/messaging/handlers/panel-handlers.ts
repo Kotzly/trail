@@ -1,4 +1,4 @@
-import { RPC_METHOD, defineRpcHandlers, err, ok } from "@shared/rpc/contracts.js";
+import { RPC_METHOD, defineRpcHandlers } from "@shared/rpc/contracts.js";
 import { browser, openSidebarForTab, type RuntimePort } from "@shared/platform/webext.js";
 import { createLogger } from "@shared/lib/logger.js";
 
@@ -28,19 +28,21 @@ export function isSidepanelAlive(): boolean {
 export const panelHandlers = defineRpcHandlers({
   async [RPC_METHOD.OPEN_PANEL](_message, sender) {
     const tabId = sender.tab?.id;
-    if (!tabId) return err("No tab ID");
+    if (!tabId) throw new Error("No tab ID");
 
     try {
       const result = await openSidebarForTab(tabId);
       if (result.mode === "unavailable") {
-        return err("Sidebar API unavailable");
+        throw new Error("Sidebar API unavailable");
       }
-      return ok();
     } catch (error) {
-      log.warn("OPEN_PANEL failed", { tabId: String(tabId), error: error instanceof Error ? error.message : String(error) });
+      log.warn("OPEN_PANEL failed", {
+        tabId: String(tabId),
+        error: error instanceof Error ? error.message : String(error),
+      });
       const message = error instanceof Error ? error.message : "Failed to open side panel";
-      if (message.toLowerCase().includes("already open")) return ok();
-      return err(message);
+      if (message.toLowerCase().includes("already open")) return;
+      throw new Error(message);
     }
   },
 });

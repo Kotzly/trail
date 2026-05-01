@@ -5,29 +5,17 @@
 This extension uses the **Manifest V3 default strict Content Security Policy**.
 No `unsafe-eval` or `unsafe-inline` directives are declared in the manifest.
 
-## PixiJS Usage
+## Rendering Stack
 
-Trail uses **PixiJS 8.x** for 2D WebGL tree visualization (browsing history
-rendered as an interactive node graph in the sidepanel and fullview).
+Trail renders its navigation tree with:
 
-By default, PixiJS compiles GPU shaders at runtime using dynamic code generation
-(`eval` / `Function` constructor). This is incompatible with MV3's strict CSP.
+- **React 19** (JSX compiled ahead of time by esbuild)
+- **@xyflow/react** (React Flow) for the graph canvas
+- **d3-hierarchy** for layout (pure JS, no runtime code generation)
 
-## How We Resolve It
-
-PixiJS ships an official polyfill at `pixi.js/unsafe-eval` that **replaces**
-dynamic shader compilation with pre-built static code paths. Despite the
-confusing path name, this import *removes* the need for `unsafe-eval` rather
-than adding it.
-
-The import lives in a single file:
-
-```
-src/features/graph/graph/pixi-no-eval-bootstrap.ts
-```
-
-This file is loaded before any PixiJS rendering occurs, ensuring all shader
-compilation uses static paths from the start.
+No WebGL, WASM, shader compilation, or dynamic function evaluation is used at
+runtime. No third-party script tags. All application code ships as static JS
+bundles produced by WXT/Vite.
 
 ## Conclusion
 

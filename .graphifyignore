@@ -1,0 +1,10 @@
+# Mirror relevant .gitignore patterns not covered by graphify defaults
+logs/
+ignored/
+pens/
+*.tsbuildinfo
+*.zip
+*.pid
+backend-preset.json
+runtime-debug.json
+graphify-out/

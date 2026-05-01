@@ -1,56 +1,18 @@
-import type { NavigationNode, NavigationNodeJSON, NodeData } from "../types/node.js";
+import type { NavigationNode, NavigationNodeJSON } from "../types/node.js";
 import { TreeNode } from "@background/state/tree-node.js";
 import { type NavigationTreeJSON } from "../types/tree.js";
 import { NavigationTree } from "@background/state/nav-tree.js";
+import { normalizeNodeData } from "../schemas/node.js";
+import { buildNewTabRootData, isNewTabUrl } from "./root.js";
+import { asNodeId, now, type NodeId, type Timestamp } from "../types/ids.js";
+import { uuidv7 } from "./uuid.js";
+import { createLogger } from "./logger.js";
+
+const log = createLogger("tree-mapper");
 
 export class TreeNodeMapper {
-  private static normalizeNodeData(json: NavigationNodeJSON): NodeData {
-    const raw =
-      (json as Partial<NavigationNodeJSON> & { data?: Partial<NodeData> }).data ??
-      (json as Partial<NodeData>);
-
-    const url = typeof raw?.url === "string" ? raw.url : "";
-    const title = typeof raw?.title === "string" ? raw.title : "";
-    const favicon = typeof raw?.favicon === "string" ? raw.favicon : undefined;
-    const pinned = Boolean(raw?.pinned);
-    const tags = Array.isArray(raw?.tags) ? raw.tags.filter((tag) => typeof tag === "string") : [];
-    const lastVisitedAt =
-      typeof raw?.lastVisitedAt === "number" && Number.isFinite(raw.lastVisitedAt)
-        ? raw.lastVisitedAt
-        : undefined;
-    const visitCount =
-      typeof raw?.visitCount === "number" && Number.isFinite(raw.visitCount) && raw.visitCount > 0
-        ? raw.visitCount
-        : undefined;
-    const rawLayout = (raw as Partial<NodeData>).layout as NodeData["layout"] | undefined;
-    const offsetX = typeof rawLayout?.offsetX === "number" ? rawLayout.offsetX : 0;
-    const offsetY = typeof rawLayout?.offsetY === "number" ? rawLayout.offsetY : 0;
-    const rawRadial = rawLayout?.radial;
-    const angleDelta = typeof rawRadial?.angleDelta === "number" ? rawRadial.angleDelta : 0;
-    const radiusDelta = typeof rawRadial?.radiusDelta === "number" ? rawRadial.radiusDelta : 0;
-    const radial =
-      typeof rawRadial?.angleDelta === "number" || typeof rawRadial?.radiusDelta === "number"
-        ? { angleDelta, radiusDelta }
-        : undefined;
-    const layout =
-      typeof rawLayout?.offsetX === "number" || typeof rawLayout?.offsetY === "number" || radial
-        ? { offsetX, offsetY, radial }
-        : undefined;
-
-    return {
-      url: url as NodeData["url"],
-      title: title as NodeData["title"],
-      favicon: favicon as NodeData["favicon"],
-      pinned,
-      tags: tags as NodeData["tags"],
-      lastVisitedAt: lastVisitedAt as NodeData["lastVisitedAt"],
-      visitCount,
-      layout,
-    } as NodeData;
-  }
-
   static fromJSON(json: NavigationNodeJSON, parent?: NavigationNode): NavigationNode {
-    const data = TreeNodeMapper.normalizeNodeData(json);
+    const data = normalizeNodeData(json);
     const node = new TreeNode(data, parent, json.id);
 
     node.appendChildren((json.children ?? []).map((child) => TreeNodeMapper.fromJSON(child, node)));
@@ -67,6 +29,36 @@ export class TreeNodeMapper {
       children: node.getChildren().map(TreeNodeMapper.toJSON),
     };
   }
+}
+
+/**
+ * Wrap a non-NTP root under a synthesised NTP root. Idempotent: if the
+ * incoming root is already an NTP, returns it unchanged. Called from
+ * `fromJSON` so every deserialisation path — persisted-storage load,
+ * import-bundle, sync-pull payload, undo restore, tree duplicate —
+ * auto-repairs legacy or untrusted trees to match the root invariant
+ * defined in `shared/lib/root.ts`.
+ *
+ * ID preservation: the original root keeps its NodeId (so pinned
+ * state, saved layout positions, and any external reference to the
+ * node — including `currentNodeId` — remain valid). The synthesised
+ * wrapper gets a fresh uuidv7. Subtrees are reparented en masse.
+ */
+function ensureNtpRoot(rootJson: NavigationNodeJSON): NavigationNodeJSON {
+  if (isNewTabUrl(rootJson.data.url)) return rootJson;
+
+  log.info("wrapping non-NTP root under synthetic New Tab root", {
+    originalUrl: rootJson.data.url,
+    originalTitle: rootJson.data.title,
+    originalId: rootJson.id,
+  });
+
+  return {
+    id: asNodeId(uuidv7()),
+    timestamp: now() as Timestamp,
+    data: buildNewTabRootData(),
+    children: [rootJson],
+  };
 }
 
 export class NavigationTreeMapper {
@@ -87,12 +79,37 @@ export class NavigationTreeMapper {
       return new NavigationTree();
     }
 
-    const root = TreeNodeMapper.fromJSON(json.root);
+    const rootJson = ensureNtpRoot(json.root);
+    const root = TreeNodeMapper.fromJSON(rootJson);
     const tree = new NavigationTree(root);
 
-    if (json.currentNodeId) tree.setCurrentById(json.currentNodeId);
-    if (!tree.getCurrent() && tree.getRoot()) {
-      tree.setCurrent(tree.getRoot()!);
+    // `currentNodeId` references a persisted NodeId that still exists
+    // in the tree whether or not we wrapped the root (the pre-existing
+    // root kept its id; new wrapper root got a fresh one the persisted
+    // state can't name). So the lookup logic is identical for wrapped
+    // and unwrapped trees.
+    //
+    // `currentNodeId === null` is a VALID, intentional state: the user
+    // is viewing an untrackable surface (Settings, chrome://, our own
+    // sidepanel host, etc.) and the sidepanel should show no node as
+    // "current". Do NOT auto-fall back to root in that case — that
+    // bug masqueraded as "current jumps to New Tab when I open
+    // Settings", because every deserialise round-trip kept lifting
+    // null back to the root id.
+    const persistedCurrent: NodeId | null = json.currentNodeId;
+    if (persistedCurrent) {
+      const ok = tree.setCurrentById(persistedCurrent);
+      if (!ok) {
+        // Persisted current references a node that was removed in a
+        // prior session (e.g., merged away by deleteNode cleanup
+        // before save). Fall back to root so the tree isn't headless.
+        log.warn("persisted currentNodeId not found — falling back to root", {
+          currentNodeId: persistedCurrent,
+        });
+        if (tree.getRoot()) {
+          tree.setCurrent(tree.getRoot()!);
+        }
+      }
     }
 
     return tree;

@@ -4,6 +4,8 @@ export const runtime = "nodejs";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
+  const host = request.headers.get("host");
+  if (host) url.host = host;
   const next = url.searchParams.get("next") ?? url.searchParams.get("returnTo");
   const prompt = url.searchParams.get("prompt");
   const maxAge = url.searchParams.get("maxAge");

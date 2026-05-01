@@ -1,10 +1,11 @@
 import type { FaviconUrl, TabId, Title, Url } from "@shared/types/ids.js";
 import { tabManager } from "../state/tab-manager.js";
-import { treeStorage } from "../services/tree-storage.js";
+import { treeStorage, withTreeLock } from "../services/tree-storage.js";
 import { notifyTreeUpdate } from "../messaging/notifications.js";
 import { normalizeFaviconUrl, shouldTrackUrl } from "../utils/url-utils.js";
 import { resolveTabUrl } from "../utils/tab-utils.js";
 import { createUrlKey } from "@shared/lib/url-key.js";
+import type { NodeData } from "@shared/types/node.js";
 import { type Browser, type Tab } from "@shared/platform/webext.js";
 
 /**
@@ -20,32 +21,37 @@ export async function syncTabTitleFavicon(
   const nodeId = tabManager.nodeByTab(tabId);
   if (!nodeId) return;
 
-  const tree = await treeStorage.getOrCreateTree();
-
-  const node = tree.findNodeById(nodeId);
-  if (!node) return;
-
   const tabUrl = resolveTabUrl(tab);
   if (!tabUrl || !shouldTrackUrl(tabUrl as Url)) return;
-  if (createUrlKey(node.data.url) !== createUrlKey(tabUrl)) return;
+  const targetKey = createUrlKey(tabUrl);
 
-  if (changeInfo.title) {
-    node.data.title = changeInfo.title as Title;
-    tree.refreshSearchEntry(nodeId);
-  }
+  let didUpdate = false;
+  await withTreeLock(async () => {
+    const tree = await treeStorage.getOrCreateTree();
+    const node = tree.findNodeById(nodeId);
+    if (!node) return;
+    if (createUrlKey(node.data.url) !== targetKey) return;
 
-  if (changeInfo.favIconUrl) {
-    const normalized = normalizeFaviconUrl(
-      tabUrl as Url,
-      changeInfo.favIconUrl as FaviconUrl | undefined,
-    );
-    if (normalized !== undefined) {
-      node.data.favicon = normalized;
+    const patch: Partial<NodeData> = {};
+    if (changeInfo.title) patch.title = changeInfo.title as Title;
+    if (changeInfo.favIconUrl) {
+      const normalized = normalizeFaviconUrl(
+        tabUrl as Url,
+        changeInfo.favIconUrl as FaviconUrl | undefined,
+      );
+      if (normalized !== undefined) patch.favicon = normalized;
     }
-  }
+    if (Object.keys(patch).length === 0) return;
 
-  treeStorage.cacheTree(tree);
-  await notifyTreeUpdate(tree, "tabs");
+    tree.updateNodeData(nodeId, patch);
+    treeStorage.cacheTree(tree);
+    didUpdate = true;
+  });
+
+  if (didUpdate) {
+    const tree = await treeStorage.getOrCreateTree();
+    await notifyTreeUpdate(tree, "tabs");
+  }
 }
 
 /**

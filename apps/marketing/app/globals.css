@@ -5,7 +5,7 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --font-serif: var(--font-instrument-serif);
+  --font-serif: var(--font-spectral);
 
   --color-surface: var(--surface);
   --color-elevated: var(--elevated);
@@ -15,19 +15,16 @@
   --color-border-subtle: var(--border-subtle);
   --color-border-strong: var(--border-strong);
 
-  --color-magenta: var(--magenta);
-  --color-magenta-hover: var(--magenta-hover);
-  --color-magenta-glow: var(--magenta-glow);
-  --color-magenta-focus: var(--magenta-focus);
-  --color-magenta-subtle: var(--magenta-subtle);
+  --color-ember: var(--ember);
+  --color-ember-hover: var(--ember-hover);
+  --color-ember-warm: var(--ember-warm);
+  --color-ember-deep: var(--ember-deep);
+  --color-ember-glow: var(--ember-glow);
+  --color-ember-subtle: var(--ember-subtle);
+  --color-ember-focus: var(--ember-focus);
 
-  --color-gold: var(--gold);
-  --color-gold-hover: var(--gold-hover);
-  --color-gold-glow: var(--gold-glow);
-  --color-gold-subtle: var(--gold-subtle);
-
-  --color-primary: #ffffff;
-  --color-primary-foreground: #000000;
+  --color-primary: var(--text-primary);
+  --color-primary-foreground: var(--background);
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -39,29 +36,42 @@
 :root {
   --radius: 0.625rem;
 
-  --background: #000000;
-  --foreground: #ededed;
+  /* Warm-dark editorial palette — derived from the landing brand.
+     Pure black/white never appear; neutrals tint toward ember. */
+  --background: #0a0908;
+  --background-2: #15110c;
+  --foreground: #f6efe1;
 
-  --surface: #0a0a0a;
-  --elevated: #111111;
+  --surface: #15110c;
+  --elevated: #1a1612;
 
-  --text-primary: #ededed;
-  --text-secondary: #a1a1a1;
-  --text-tertiary: #666666;
+  --text-primary: #f6efe1;
+  --text-secondary: #c5b89c;
+  --text-tertiary: #8e8270;
 
-  --border-subtle: #1a1a1a;
-  --border-strong: #333333;
+  --border-subtle: rgba(246, 239, 225, 0.1);
+  --border-strong: rgba(246, 239, 225, 0.22);
 
-  --magenta: #D4166C;
-  --magenta-hover: #B8125D;
-  --magenta-glow: rgba(212, 22, 108, 0.15);
-  --magenta-focus: rgba(212, 22, 108, 0.4);
-  --magenta-subtle: rgba(212, 22, 108, 0.08);
+  /* Single ember accent family — never magenta. */
+  --ember: #f8d364;
+  --ember-hover: #efbb38;
+  --ember-warm: #d1734e;
+  --ember-deep: #d2345c;
+  --ember-glow: rgba(248, 211, 100, 0.18);
+  --ember-subtle: rgba(248, 211, 100, 0.08);
+  --ember-focus: rgba(248, 211, 100, 0.5);
 
-  --gold: #E8B831;
-  --gold-hover: #D4A52A;
-  --gold-glow: rgba(232, 184, 49, 0.15);
-  --gold-subtle: rgba(232, 184, 49, 0.08);
+  /* Aliases so existing landing/* code paths keep working unchanged. */
+  --landing-bg: var(--background);
+  --landing-bg-2: var(--background-2);
+  --landing-ink: var(--text-primary);
+  --landing-ink-2: var(--text-secondary);
+  --landing-ink-3: var(--text-tertiary);
+  --landing-ember: var(--ember);
+  --landing-ember-2: var(--ember-warm);
+  --landing-ember-3: var(--ember-deep);
+  --landing-line: var(--border-subtle);
+  --landing-line-strong: var(--border-strong);
 }
 
 @layer base {
@@ -89,23 +99,67 @@
   background-size: 256px 256px;
 }
 
-.tracking-display  { letter-spacing: -0.075em; }
-.tracking-heading  { letter-spacing: -0.05em; }
-.tracking-body     { letter-spacing: -0.02em; }
-.tracking-label    { letter-spacing: 0.05em; }
+/* Tuned to match the landing's actual usage so tokens and inline styles
+   agree. Tighter than this reads as marketing-cliché on Spectral; looser
+   than tracking-label loses the editorial mono-eyebrow voice. */
+.tracking-display {
+  letter-spacing: -0.025em;
+}
+.tracking-heading {
+  letter-spacing: -0.015em;
+}
+.tracking-body {
+  letter-spacing: -0.005em;
+}
+.tracking-label {
+  letter-spacing: 0.18em;
+}
+
+/* Editorial mono eyebrow — landing uses this exact recipe in five
+   places (Hero acts, Features, Demo, Cta, Footer columns). Token-ize it
+   so secondary surfaces inherit the voice instead of redeclaring it. */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ember);
+}
+.eyebrow-muted {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
 
 ::selection {
-  background: rgba(212, 22, 108, 0.25);
-  color: #ededed;
+  background: var(--ember-glow);
+  color: var(--text-primary);
 }
 
 :focus-visible {
-  outline: 2px solid var(--magenta-focus);
+  outline: 2px solid var(--ember-focus);
   outline-offset: 2px;
 }
 
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
+  }
+}
+
+/* Cross-fade poster→video on hero. Both desktop cinematic and mobile
+   autoplay-loop hero use this — keep it global so styled-jsx scoping
+   doesn't isolate it to a single component. */
+.hero-fade-in {
+  animation: heroFadeIn 600ms ease-out both;
+}
+@keyframes heroFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }

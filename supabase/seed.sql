@@ -1,0 +1,3 @@
+-- intentionally empty for CI; hosted prod seed lives in the Supabase Dashboard
+-- supabase/config.toml has [db.seed].sql_paths = ["./seed.sql"], so the file
+-- must exist for `supabase start` / `supabase test db` to succeed.

@@ -1,7 +1,7 @@
 /**
  * Tree codec: compact tuple format + gzip compression.
  *
- * Used for persisting archived trees in browser.storage.local.
+ * Used for persisting stashed trees in browser.storage.local.
  * Active tree stays as plain NavigationTreeJSON for fast read/write.
  */
 

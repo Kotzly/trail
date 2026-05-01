@@ -7,31 +7,25 @@ export type NodeData = {
   title: Title;
   favicon?: FaviconUrl;
   pinned: boolean;
+  /** Timestamp of the most recent pinned-state change. Used for LWW merges. */
+  pinnedUpdatedAt?: Timestamp;
   tags: Tag[];
   lastVisitedAt?: Timestamp;
   visitCount?: number;
   layout?: {
     offsetX: number;
     offsetY: number;
-    radial?: {
-      angleDelta: number;
-      radiusDelta: number;
-    };
   };
+  /** Timestamp of the most recent layout change. Used for LWW merges. */
+  layoutUpdatedAt?: Timestamp;
 };
 
 export type NodeDataPatch = Partial<Omit<NodeData, "url">>;
 export type NodeMetaPatch = Pick<NodeData, "title" | "favicon">;
 
 export function updateNodeData(old: NodeData, patch: NodeDataPatch): NodeData {
-  const radial = patch.layout?.radial
-    ? {
-        ...(old.layout?.radial ?? { angleDelta: 0, radiusDelta: 0 }),
-        ...patch.layout.radial,
-      }
-    : old.layout?.radial;
   const layout = patch.layout
-    ? { ...(old.layout ?? { offsetX: 0, offsetY: 0 }), ...patch.layout, radial }
+    ? { ...(old.layout ?? { offsetX: 0, offsetY: 0 }), ...patch.layout }
     : old.layout;
 
   return {

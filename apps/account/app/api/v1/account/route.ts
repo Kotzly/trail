@@ -1,23 +1,35 @@
 import { getBearerToken } from "@/src/server/backend/auth/headers";
 import { verifyExtensionToken } from "@/src/server/backend/auth/extension-auth";
-import { jsonError } from "@/src/server/backend/error-response";
-import { jsonNoStore } from "@/src/server/backend/response";
+import { jsonFail, jsonOk } from "@/src/server/backend/error-response";
 import { buildAccountSnapshot } from "@/src/server/backend/account-snapshot";
 import { getUserById } from "@/src/server/backend/user";
+import { db } from "@trail/db";
 import { getSubscriptionSnapshotForUser } from "@/src/server/backend/subscription-access";
+import { rateLimit } from "@/src/server/api/rate-limit";
+import { optionsResponse } from "@/src/server/api/cors";
 
 export const runtime = "nodejs";
 
+export function OPTIONS(request: Request) {
+  return optionsResponse(request);
+}
+
 export async function GET(request: Request) {
+  const ip = request.headers.get("x-forwarded-for") ?? "unknown";
+  const rl = rateLimit(ip, "default");
+  if (!rl.ok) {
+    return jsonFail("RATE_LIMITED", "Too many requests", { status: 429 });
+  }
+
   const token = getBearerToken(request.headers);
   const extension = token ? await verifyExtensionToken(token) : null;
   if (!extension?.sub) {
-    return jsonError("unauthorized", "Unauthorized.", { status: 401 });
+    return jsonFail("unauthorized", "Unauthorized.", { status: 401 });
   }
 
-  const user = await getUserById(extension.sub);
+  const user = await getUserById(extension.sub, db);
   if (!user) {
-    return jsonError("unauthorized", "Unauthorized.", { status: 401 });
+    return jsonFail("unauthorized", "Unauthorized.", { status: 401 });
   }
 
   const subscription = await getSubscriptionSnapshotForUser({
@@ -32,5 +44,5 @@ export async function GET(request: Request) {
     onboardingSeenAt: user.onboardingSeenAt,
   });
 
-  return jsonNoStore(snapshot);
+  return jsonOk(snapshot);
 }

@@ -1,0 +1,97 @@
+import { i18n } from "#i18n";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@ui/components/ui/card";
+import { Button } from "@ui/components/ui/button";
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@ui/components/ui/field";
+import { Input } from "@ui/components/ui/input";
+import { Spinner } from "@ui/components/ui/spinner";
+
+type SetPasswordFormProps = {
+  email: string;
+  password: string;
+  confirmPassword: string;
+  pending?: boolean;
+  confirmError?: string;
+  onPasswordChange: (value: string) => void;
+  onConfirmChange: (value: string) => void;
+  onSubmit: () => void;
+};
+
+export function SetPasswordForm({
+  email,
+  password,
+  confirmPassword,
+  pending,
+  confirmError,
+  onPasswordChange,
+  onConfirmChange,
+  onSubmit,
+}: SetPasswordFormProps) {
+  return (
+    <Card>
+      <CardHeader className="text-center">
+        <CardTitle className="text-xl">{i18n.t("login.setPassword.title")}</CardTitle>
+        <CardDescription>
+          {i18n.t("login.setPassword.signedInAs")}{" "}
+          <strong className="text-foreground">{email}</strong>
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            onSubmit();
+          }}
+        >
+          <FieldGroup>
+            <Field>
+              <FieldLabel htmlFor="new-password">
+                {i18n.t("login.setPassword.newPasswordLabel")}
+              </FieldLabel>
+              <Input
+                id="new-password"
+                type="password"
+                autoComplete="new-password"
+                required
+                value={password}
+                onChange={(e) => onPasswordChange(e.target.value)}
+                disabled={pending}
+                autoFocus
+              />
+              <FieldDescription>{i18n.t("login.setPassword.passwordHelp")}</FieldDescription>
+            </Field>
+            <Field data-invalid={confirmError ? true : undefined}>
+              <FieldLabel htmlFor="confirm-password">
+                {i18n.t("login.setPassword.confirmPasswordLabel")}
+              </FieldLabel>
+              <Input
+                id="confirm-password"
+                type="password"
+                autoComplete="new-password"
+                required
+                value={confirmPassword}
+                onChange={(e) => onConfirmChange(e.target.value)}
+                aria-invalid={confirmError ? true : undefined}
+                disabled={pending}
+              />
+              {confirmError ? <FieldError>{confirmError}</FieldError> : null}
+            </Field>
+            <Field>
+              <Button type="submit" disabled={pending} className="press-feedback">
+                {pending ? <Spinner data-icon="inline-start" /> : null}
+                {pending
+                  ? i18n.t("login.setPassword.updating")
+                  : i18n.t("login.setPassword.updatePassword")}
+              </Button>
+            </Field>
+          </FieldGroup>
+        </form>
+      </CardContent>
+    </Card>
+  );
+}

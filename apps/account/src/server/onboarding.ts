@@ -2,6 +2,7 @@ import "server-only";
 
 import { getAuthSession } from "@/src/lib/auth";
 import { getUserById } from "@/src/server/backend/user";
+import { createSupabaseServerClient } from "@/src/lib/supabase/server";
 
 export type OnboardingState = {
   flowId: "activation-v1";
@@ -28,7 +29,8 @@ export async function getOnboardingState(): Promise<OnboardingState> {
     return buildOnboardingState(null);
   }
 
-  const user = await getUserById(session.user.id).catch(() => null);
+  const supabase = await createSupabaseServerClient();
+  const user = await getUserById(session.user.id, supabase).catch(() => null);
   if (!user?.onboardingSeenAt) {
     return buildOnboardingState(null);
   }

@@ -1,51 +1,61 @@
-import { RPC_METHOD, defineRpcHandlers, ok } from "@shared/rpc/contracts.js";
-import { treeStorage } from "../../services/tree-storage.js";
+import { RPC_METHOD, defineRpcHandlers } from "@shared/rpc/contracts.js";
+import { treeStorage, withTreeLock } from "../../services/tree-storage.js";
 import { notifyTreeUpdate } from "../notifications.js";
 import { CommandManager } from "@shared/lib/commands.js";
 import { NavigationTreeMapper } from "@shared/lib/mapper.js";
-import { syncOpenTabs } from "../../tabs/sync-open-tabs.js";
-import { getEditorState } from "./editor-handlers.js";
-import { editorSyncMarkDirty } from "../../services/editor-sync.js";
-
+import { tabManager } from "../../state/tab-manager.js";
 async function applyTree(json: ReturnType<typeof NavigationTreeMapper.toJSON>): Promise<void> {
   const tree = NavigationTreeMapper.fromJSON(json);
-  await syncOpenTabs();
-  treeStorage.cacheTree(tree);
+
+  // Cache the restored tree FIRST so any reader under the lock sees
+  // the new shape. Previously syncOpenTabs ran before cacheTree,
+  // meaning syncOpenTabs saw the OLD (pre-undo) tree and registered
+  // tabs against nodes that were about to disappear (#19).
+  await withTreeLock(async () => {
+    treeStorage.cacheTree(tree);
+    // Reconcile tabManager against the new tree: drop mappings whose
+    // node no longer exists, keep the rest. Beats the previous
+    // tabManager.reset() in syncOpenTabs which blew away every
+    // mapping and rebuilt only those whose URL happened to match.
+    const openNodes = [...tabManager.openNodes()];
+    for (const nodeId of openNodes) {
+      if (!tree.findNodeById(nodeId)) {
+        const tabs = tabManager.tabsByNode(nodeId);
+        for (const tabId of [...tabs]) tabManager.unregister(tabId);
+      }
+    }
+    // Re-wire the onNodesDeleted subscription to the new tree
+    // instance (the hydrator creates a fresh tree with no listeners).
+    tree.onNodesDeleted((ids) => tabManager.onNodesDeleted(ids));
+  });
   await notifyTreeUpdate(tree, "undo");
-
-  // In editor mode, mark cloud sync dirty so the change is PATCHed.
-  // flushSaveNow() still runs but is a no-op for non-active trees (guard).
-  if (getEditorState().active) {
-    editorSyncMarkDirty();
-  }
-
   await treeStorage.flushSaveNow();
 }
 
 export const commandHandlers = defineRpcHandlers({
   async [RPC_METHOD.COMMAND_STATE]() {
-    return ok(CommandManager.getState());
+    return CommandManager.getState();
   },
 
   async [RPC_METHOD.UNDO]() {
-    if (!CommandManager.canUndo()) return ok(CommandManager.getState());
+    if (!CommandManager.canUndo()) return CommandManager.getState();
     const tree = await treeStorage.getOrCreateTree();
     const current = NavigationTreeMapper.toJSON(tree);
     const previous = CommandManager.undo(current);
-    if (!previous) return ok(CommandManager.getState());
+    if (!previous) return CommandManager.getState();
 
     await applyTree(previous);
-    return ok(CommandManager.getState());
+    return CommandManager.getState();
   },
 
   async [RPC_METHOD.REDO]() {
-    if (!CommandManager.canRedo()) return ok(CommandManager.getState());
+    if (!CommandManager.canRedo()) return CommandManager.getState();
     const tree = await treeStorage.getOrCreateTree();
     const current = NavigationTreeMapper.toJSON(tree);
     const next = CommandManager.redo(current);
-    if (!next) return ok(CommandManager.getState());
+    if (!next) return CommandManager.getState();
 
     await applyTree(next);
-    return ok(CommandManager.getState());
+    return CommandManager.getState();
   },
 });

@@ -9,6 +9,7 @@ import { BillingProviderError } from "@/src/server/backend/billing/provider";
 import { getBillingStatusFromSubscription } from "@/src/server/backend/billing/subscription-status";
 import { validateRedirectUrl } from "@/src/server/backend/billing/validate-redirect-url";
 import { db } from "@trail/db";
+import { assertOk } from "@trail/db/helpers";
 import { addInterval } from "@/src/server/backend/subscription/period";
 
 function billingUrl(): string {
@@ -33,30 +34,22 @@ async function activateTestSubscription(input: CheckoutSessionInput): Promise<vo
   const currentPeriodEnd = addInterval(now, interval);
   const plan = input.planId === "teams" ? "TEAMS" : "PRO";
 
-  await db.userSubscription.upsert({
-    where: { userId: input.userId },
-    create: {
-      userId: input.userId,
-      plan,
-      status: "ACTIVE",
-      interval: interval === "year" ? "YEAR" : "MONTH",
-      currentPeriodStart,
-      currentPeriodEnd,
-      cancelAtPeriodEnd: false,
-      canceledAt: null,
-      pendingInterval: null,
-    },
-    update: {
-      plan,
-      status: "ACTIVE",
-      interval: interval === "year" ? "YEAR" : "MONTH",
-      currentPeriodStart,
-      currentPeriodEnd,
-      cancelAtPeriodEnd: false,
-      canceledAt: null,
-      pendingInterval: null,
-    },
-  });
+  assertOk(
+    await db.from("user_subscriptions").upsert(
+      {
+        user_id: input.userId,
+        plan,
+        status: "ACTIVE",
+        interval: interval === "year" ? "YEAR" : "MONTH",
+        current_period_start: currentPeriodStart.toISOString(),
+        current_period_end: currentPeriodEnd.toISOString(),
+        cancel_at_period_end: false,
+        canceled_at: null,
+        pending_interval: null,
+      },
+      { onConflict: "user_id" },
+    ),
+  );
 }
 
 export function createManualBillingProvider(): BillingProvider {

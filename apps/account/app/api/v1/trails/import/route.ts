@@ -1,10 +1,15 @@
 import { getBearerToken } from "@/src/server/backend/auth/headers";
-import { resolveUserId } from "@/src/server/backend/auth/resolve-user";
-import { jsonError } from "@/src/server/backend/error-response";
-import { jsonNoStore } from "@/src/server/backend/response";
-import { getAuthTokenFromCookies } from "@/src/lib/auth";
+import { getAuthenticatedUserId } from "@/src/server/auth/get-authenticated-user";
+import { jsonFail, jsonOk } from "@/src/server/backend/error-response";
+import { getAuthSession } from "@/src/lib/auth";
 import { db } from "@trail/db";
+import type { Json } from "@trail/db/types";
+import { assertOk } from "@trail/db/helpers";
 import { randomUUID } from "crypto";
+import { rateLimit } from "@/src/server/api/rate-limit";
+import { optionsResponse } from "@/src/server/api/cors";
+import { trailsImportBodySchema } from "@/src/server/api/schemas";
+import { parseBody } from "@/src/server/api/validate";
 
 export const runtime = "nodejs";
 
@@ -21,56 +26,65 @@ type TrailLabelSource = "USER" | "AUTO" | "SYSTEM";
  * Accepts a TrailExportBundle JSON body and creates a new Trail record.
  * Auth: Bearer token or cookie-based session.
  */
+export function OPTIONS(request: Request) {
+  return optionsResponse(request);
+}
+
 export async function POST(request: Request) {
-  // Resolve authenticated user
-  const bearerToken = getBearerToken(request.headers);
-  const cookieToken = await getAuthTokenFromCookies();
-  const userId = await resolveUserId(bearerToken ?? cookieToken);
-  if (!userId) {
-    return jsonError("unauthorized", "Unauthorized.", { status: 401 });
+  const ip = request.headers.get("x-forwarded-for") ?? "unknown";
+  const rl = rateLimit(ip, "default");
+  if (!rl.ok) {
+    return jsonFail("RATE_LIMITED", "Too many requests", { status: 429 });
   }
 
-  // Parse body
+  // Resolve authenticated user — Bearer token for extension, Supabase session for web UI
+  const bearerToken = getBearerToken(request.headers);
+  let userId = await getAuthenticatedUserId(bearerToken);
+  if (!userId) {
+    const session = await getAuthSession();
+    userId = session?.user.id ?? null;
+  }
+  if (!userId) {
+    return jsonFail("unauthorized", "Unauthorized.", { status: 401 });
+  }
+
+  // Parse body with a hard byte cap before we hand it to JSON.parse /
+  // zod — trailsImportBodySchema is recursively .lazy/.passthrough and
+  // a 50 MB payload would stall the handler (closes P1.6).
+  const MAX_IMPORT_BYTES = 2 * 1024 * 1024; // 2 MB
   let body: unknown;
   try {
-    body = await request.json();
+    const raw = await request.text();
+    if (Buffer.byteLength(raw, "utf8") > MAX_IMPORT_BYTES) {
+      return jsonFail("PAYLOAD_TOO_LARGE", "Import payload too large.", {
+        status: 413,
+      });
+    }
+    body = JSON.parse(raw);
   } catch {
-    return jsonError("invalid_body", "Invalid JSON body.", { status: 400 });
+    return jsonFail("invalid_body", "Invalid JSON body.", { status: 400 });
   }
 
-  if (!body || typeof body !== "object") {
-    return jsonError("invalid_body", "Body must be a JSON object.", { status: 400 });
-  }
-
-  const bundle = body as Record<string, unknown>;
-
-  // Validate schema version
-  if (bundle.schema !== EXPORT_SCHEMA) {
-    return jsonError(
-      "invalid_schema",
-      `Expected schema "${EXPORT_SCHEMA}", got "${String(bundle.schema)}".`,
+  const parsed = parseBody(trailsImportBodySchema, body);
+  if (!parsed.ok) {
+    return jsonFail(
+      "VALIDATION_ERROR",
+      parsed.error.issues[0]?.message ?? "Invalid input",
       { status: 400 },
     );
   }
 
-  // Validate tree payload
+  const bundle = parsed.data;
   const tree = bundle.tree;
-  if (!tree || typeof tree !== "object") {
-    return jsonError("invalid_tree", "Missing or invalid tree payload.", { status: 400 });
-  }
-
   const treeObj = tree as Record<string, unknown>;
-  if (!("root" in treeObj) || !("nodeCount" in treeObj)) {
-    return jsonError("invalid_tree", "Tree must have root and nodeCount fields.", { status: 400 });
-  }
-
-  const nodeCount = typeof treeObj.nodeCount === "number" ? treeObj.nodeCount : 0;
+  const nodeCount = tree.nodeCount;
 
   // Extract source metadata
   const source = (bundle.source ?? {}) as Record<string, unknown>;
-  const label = typeof source.treeLabel === "string" && source.treeLabel
-    ? source.treeLabel
-    : extractLabelFromTree(treeObj) || "Imported Trail";
+  const label =
+    typeof source.treeLabel === "string" && source.treeLabel
+      ? source.treeLabel
+      : extractLabelFromTree(treeObj) || "Imported Trail";
 
   const labelSource: TrailLabelSource =
     typeof source.treeLabel === "string" && source.treeLabel ? "USER" : "AUTO";
@@ -80,39 +94,50 @@ export async function POST(request: Request) {
   const rootData = rootNode?.data as Record<string, unknown> | null | undefined;
   const rootUrl = typeof rootData?.url === "string" ? rootData.url : null;
   const rootTitle = typeof rootData?.title === "string" ? rootData.title : null;
-  const rootFavicon = typeof rootData?.favicon === "string" ? rootData.favicon : null;
+  const rootFavicon =
+    typeof rootData?.favicon === "string" ? rootData.favicon : null;
 
   const now = new Date();
   const trailId = randomUUID();
-
-  // Ensure device + create trail atomically to prevent race conditions
   const deviceId = importDeviceId(userId);
-  const trail = await db.$transaction(async (tx) => {
-    await tx.device.upsert({
-      where: { id: deviceId },
-      create: { id: deviceId, userId },
-      update: {},
-    });
 
-    return tx.trail.create({
-      data: {
-        id: trailId,
-        userId,
-        deviceId,
-        label,
-        labelSource,
-        labelUpdatedAt: now,
-        savedAt: now,
-        nodeCount,
-        rootUrl,
-        rootTitle,
-        rootFavicon,
-        payload: tree as object,
-      },
-    });
-  });
+  // Upsert the import device (no-op if it already exists)
+  assertOk(
+    await db
+      .from("devices")
+      .upsert(
+        { id: deviceId, user_id: userId },
+        { onConflict: "id", ignoreDuplicates: true },
+      ),
+  );
 
-  return jsonNoStore({ id: trail.id }, { status: 201 });
+  // Create the trail
+  const trailResult = await db
+    .from("trails")
+    .insert({
+      id: trailId,
+      user_id: userId,
+      device_id: deviceId,
+      label,
+      label_source: labelSource,
+      label_updated_at: now.toISOString(),
+      saved_at: now.toISOString(),
+      node_count: nodeCount,
+      root_url: rootUrl,
+      root_title: rootTitle,
+      root_favicon: rootFavicon,
+      payload: tree as Json,
+    })
+    .select("id")
+    .single();
+
+  if (trailResult.error) {
+    return jsonFail("internal_error", "Failed to create trail.", {
+      status: 500,
+    });
+  }
+
+  return jsonOk({ id: trailResult.data.id }, { status: 201 });
 }
 
 function extractLabelFromTree(tree: Record<string, unknown>): string | null {

@@ -1,8 +1,0 @@
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  pointer-events: auto;
-  z-index: var(--modal-overlay-z, 200);
-}
