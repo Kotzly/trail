@@ -12,10 +12,10 @@ export const THEME_PRESETS: ThemePresetMeta[] = [
     id: "default",
     name: "Default",
     swatch: [
-      "oklch(0.8348 0.1302 160.9080)",
-      "oklch(0.6231 0.1880 259.8145)",
-      "oklch(0.6056 0.2189 292.7172)",
-      "oklch(0.7686 0.1647 70.0804)",
+      "oklch(0.8624 0.1284 75)",
+      "oklch(0.6234 0.1670 25)",
+      "oklch(0.5917 0.1996 11)",
+      "oklch(0.4127 0.1481 13)",
     ],
   },
   {

@@ -273,38 +273,44 @@
 /* ─── END TRAIL-TYPOGRAPHY-TOKENS ──────────────────────────────── */
 
 :root {
-  --background: oklch(0.9911 0 0);
-  --foreground: oklch(0.2046 0 0);
-  --card: oklch(0.9911 0 0);
-  --card-foreground: oklch(0.2046 0 0);
-  --popover: oklch(0.9911 0 0);
-  --popover-foreground: oklch(0.4386 0 0);
-  --primary: oklch(0.8348 0.1302 160.908);
-  --primary-foreground: oklch(0.2626 0.0147 166.4589);
-  --secondary: oklch(0.994 0 0);
-  --secondary-foreground: oklch(0.2046 0 0);
-  --muted: oklch(0.9461 0 0);
-  --muted-foreground: oklch(0.2435 0 0);
-  --accent: oklch(0.9461 0 0);
-  --accent-foreground: oklch(0.2435 0 0);
+  /* Default theme — "Trail at Golden Hour".
+   * Palette derived from the brand logo: warm paper background, deep wine-black
+   * text, terracotta-coral primary (ember pulled from the gradient mid-stop),
+   * and a chart ramp that walks the full sunrise-to-wine arc.
+   * Primary darkened to oklch(0.55 0.18 25) to clear WCAG AA (~5:1) for body
+   * text on primary buttons/badges/calendar cells. */
+  --background: oklch(0.9851 0.0058 75);
+  --foreground: oklch(0.2103 0.025 25);
+  --card: oklch(0.9911 0.004 75);
+  --card-foreground: oklch(0.2103 0.025 25);
+  --popover: oklch(0.9911 0.004 75);
+  --popover-foreground: oklch(0.4386 0.015 30);
+  --primary: oklch(0.55 0.18 25);
+  --primary-foreground: oklch(0.9851 0.0058 75);
+  --secondary: oklch(0.965 0.008 75);
+  --secondary-foreground: oklch(0.2103 0.025 25);
+  --muted: oklch(0.9461 0.007 70);
+  --muted-foreground: oklch(0.4435 0.015 30);
+  --accent: oklch(0.9461 0.007 70);
+  --accent-foreground: oklch(0.2435 0.025 25);
   --destructive: #df3620;
-  --border: oklch(0.9037 0 0);
-  --input: oklch(0.9731 0 0);
-  --ring: oklch(0.8348 0.1302 160.908);
-  --chart-1: oklch(0.8348 0.1302 160.908);
-  --chart-2: oklch(0.6231 0.188 259.8145);
-  --chart-3: oklch(0.6056 0.2189 292.7172);
-  --chart-4: oklch(0.7686 0.1647 70.0804);
-  --chart-5: oklch(0.6959 0.1491 162.4796);
+  --border: oklch(0.9037 0.008 65);
+  --input: oklch(0.9731 0.005 75);
+  --ring: oklch(0.55 0.18 25);
+  --chart-1: oklch(0.8624 0.1284 75);
+  --chart-2: oklch(0.6234 0.167 25);
+  --chart-3: oklch(0.5917 0.1996 11);
+  --chart-4: oklch(0.4127 0.1481 13);
+  --chart-5: oklch(0.27 0.1 18);
   --radius: 0.5rem;
-  --sidebar: oklch(0.9911 0 0);
-  --sidebar-foreground: oklch(0.5452 0 0);
-  --sidebar-primary: oklch(0.8348 0.1302 160.908);
-  --sidebar-primary-foreground: oklch(0.2626 0.0147 166.4589);
-  --sidebar-accent: oklch(0.9461 0 0);
-  --sidebar-accent-foreground: oklch(0.2435 0 0);
-  --sidebar-border: oklch(0.9037 0 0);
-  --sidebar-ring: oklch(0.8348 0.1302 160.908);
+  --sidebar: oklch(0.975 0.008 75);
+  --sidebar-foreground: oklch(0.5452 0.015 30);
+  --sidebar-primary: oklch(0.55 0.18 25);
+  --sidebar-primary-foreground: oklch(0.9851 0.0058 75);
+  --sidebar-accent: oklch(0.9461 0.007 70);
+  --sidebar-accent-foreground: oklch(0.2435 0.025 25);
+  --sidebar-border: oklch(0.9037 0.008 65);
+  --sidebar-ring: oklch(0.55 0.18 25);
   --destructive-foreground: oklch(0.9934 0.0032 17.2118);
   --font-sans: Geist, ui-sans-serif, sans-serif, system-ui;
   --font-serif: "Source Serif 4 Variable", ui-serif, serif;
@@ -329,37 +335,42 @@
 }
 
 .dark {
-  --background: oklch(0.1822 0 0);
-  --foreground: oklch(0.9288 0.0126 255.5078);
-  --card: oklch(0.2046 0 0);
-  --card-foreground: oklch(0.9288 0.0126 255.5078);
-  --popover: oklch(0.2603 0 0);
-  --popover-foreground: oklch(0.7348 0 0);
-  --primary: oklch(0.4365 0.1044 156.7556);
-  --primary-foreground: oklch(0.9213 0.0135 167.1556);
-  --secondary: oklch(0.2603 0 0);
-  --secondary-foreground: oklch(0.9851 0 0);
-  --muted: oklch(0.2393 0 0);
-  --muted-foreground: oklch(0.7122 0 0);
-  --accent: oklch(0.3132 0 0);
-  --accent-foreground: oklch(0.9851 0 0);
+  /* Default theme dark — background pulled to the logo's near-black (#080802 ≈
+   * oklch(0.07 0.004 105)), with elevation layers (card, popover) lifted just
+   * enough to read as panels. Hue shifted to ~95-105 (the logo's slight
+   * olive-black undertone) and chroma kept ≤0.012 so it reads as pure dark,
+   * not brown. Coral primary unchanged — accents work as-is. */
+  --background: oklch(0.1 0.004 105);
+  --foreground: oklch(0.9288 0.008 90);
+  --card: oklch(0.185 0.008 90);
+  --card-foreground: oklch(0.9288 0.008 90);
+  --popover: oklch(0.21 0.009 85);
+  --popover-foreground: oklch(0.82 0.007 85);
+  --primary: oklch(0.75 0.16 30);
+  --primary-foreground: oklch(0.1 0.004 105);
+  --secondary: oklch(0.195 0.009 85);
+  --secondary-foreground: oklch(0.9851 0.007 85);
+  --muted: oklch(0.17 0.007 90);
+  --muted-foreground: oklch(0.7122 0.008 85);
+  --accent: oklch(0.245 0.013 75);
+  --accent-foreground: oklch(0.9851 0.007 85);
   --destructive: #df3620;
-  --border: oklch(0.2809 0 0);
-  --input: oklch(0.2603 0 0);
-  --ring: oklch(0.8003 0.1821 151.711);
-  --chart-1: oklch(0.8003 0.1821 151.711);
-  --chart-2: oklch(0.7137 0.1434 254.624);
-  --chart-3: oklch(0.709 0.1592 293.5412);
-  --chart-4: oklch(0.8369 0.1644 84.4286);
-  --chart-5: oklch(0.7845 0.1325 181.912);
-  --sidebar: oklch(0.1822 0 0);
-  --sidebar-foreground: oklch(0.6301 0 0);
-  --sidebar-primary: oklch(0.4365 0.1044 156.7556);
-  --sidebar-primary-foreground: oklch(0.9213 0.0135 167.1556);
-  --sidebar-accent: oklch(0.3132 0 0);
-  --sidebar-accent-foreground: oklch(0.9851 0 0);
-  --sidebar-border: oklch(0.2809 0 0);
-  --sidebar-ring: oklch(0.8003 0.1821 151.711);
+  --border: oklch(0.235 0.01 85);
+  --input: oklch(0.195 0.009 85);
+  --ring: oklch(0.75 0.16 30);
+  --chart-1: oklch(0.8624 0.1284 75);
+  --chart-2: oklch(0.7 0.17 26);
+  --chart-3: oklch(0.65 0.205 8);
+  --chart-4: oklch(0.55 0.17 12);
+  --chart-5: oklch(0.4 0.13 16);
+  --sidebar: oklch(0.1 0.004 105);
+  --sidebar-foreground: oklch(0.6301 0.01 85);
+  --sidebar-primary: oklch(0.75 0.16 30);
+  --sidebar-primary-foreground: oklch(0.1 0.004 105);
+  --sidebar-accent: oklch(0.22 0.012 75);
+  --sidebar-accent-foreground: oklch(0.9851 0.007 85);
+  --sidebar-border: oklch(0.21 0.01 90);
+  --sidebar-ring: oklch(0.75 0.16 30);
   --destructive-foreground: oklch(0.9368 0.0045 34.3092);
   --radius: 0.5rem;
   --font-sans: Geist, ui-sans-serif, sans-serif, system-ui;
