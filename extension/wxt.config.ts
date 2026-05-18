@@ -130,11 +130,13 @@ export default defineConfig({
       //   cloud sync and OAuth are opt-in via in-app consent, the local
       //   tree is never transmitted without sign-in.
       // - `optional: ["technicalAndInteraction"]` — Sentry crash reports
-      //   + PostHog product analytics are technical / interaction signals
-      //   the user can toggle from Settings → Privacy. Declaring it here
-      //   keeps the AMO listing honest about what telemetry CAN flow
-      //   when the user opts in. The Firefox telemetry default is OFF
-      //   until that decision is made (see `observability.ts`).
+      //   + PostHog product analytics. The runtime gates Sentry/PostHog
+      //   init on `browser.permissions.contains({ data_collection:
+      //   ["technicalAndInteraction"] })` and requests the permission
+      //   when the user flips the Settings → Privacy switch (see
+      //   `firefox-data-permissions.ts`), so the AMO listing's
+      //   "opt-in" claim is enforced by the browser, not just Trail's
+      //   internal toggle.
       // Honored by Firefox 140+; older versions ignore it harmlessly
       // (a known web-ext warning, no functional impact).
       ...(isFirefox

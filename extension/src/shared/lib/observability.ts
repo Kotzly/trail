@@ -23,6 +23,11 @@ import {
   telemetryConsentItem,
   type TelemetryConsent,
 } from "../config/storage-items.js";
+import {
+  hasTelemetryPermission,
+  onTelemetryPermissionRemoved,
+  requestTelemetryPermission,
+} from "./firefox-data-permissions.js";
 
 export type ObservabilitySurface = "sidepanel" | "settings" | "background" | "content" | "login";
 
@@ -193,14 +198,23 @@ export async function initObservability(surface: ObservabilitySurface): Promise<
   }
 
   // Firefox: the AMO manifest declares `technicalAndInteraction` as
-  // OPTIONAL (the `required` enum doesn't accept it), so the install
-  // prompt promises no data collection until the user opts in. The
-  // stored fallback is `errors: true, analytics: true` to keep Chrome's
-  // behavior — overriding that for Firefox until the user has actually
-  // visited Settings → Privacy (decidedAt != null) keeps the manifest
-  // disclosure honest on a fresh install.
-  if (import.meta.env.FIREFOX && cachedConsent.decidedAt === null) {
-    cachedConsent = { errors: false, analytics: false, decidedAt: null };
+  // OPTIONAL. The install dialog tells the user telemetry is opt-in,
+  // so the permission must actually be granted before Sentry/PostHog
+  // can run — Trail's internal consent toggle is not enough on its
+  // own. When the permission is missing we force consent off for this
+  // session regardless of what's in storage; the user can re-enable
+  // from Settings → Privacy, which re-prompts Firefox for the grant.
+  if (import.meta.env.FIREFOX) {
+    const permitted = await hasTelemetryPermission();
+    if (!permitted) {
+      cachedConsent = { ...cachedConsent, errors: false, analytics: false };
+    }
+    // Mid-session revoke from about:addons → tear down clients so we
+    // stop sending immediately, matching what the user just disabled
+    // at the browser level.
+    onTelemetryPermissionRemoved(() => {
+      void setTelemetryConsent({ errors: false, analytics: false });
+    });
   }
 
   // Sentry ——————————————————————————————
@@ -318,6 +332,24 @@ export function captureBugReport(report: BugReport): string | null {
  * Update consent. If consent is revoked, we tear down and stop sending.
  */
 export async function setTelemetryConsent(next: Partial<TelemetryConsent>): Promise<void> {
+  // Firefox: enabling either signal requires the AMO-declared optional
+  // permission. Request it first (must be called early in the await
+  // chain so Firefox still sees this as a user gesture). If the user
+  // declines, force the corresponding flags back to `false` before
+  // saving — the stored consent must never claim a signal is on while
+  // the browser has denied us the permission to send it.
+  let effective: Partial<TelemetryConsent> = next;
+  if (import.meta.env.FIREFOX && (next.errors === true || next.analytics === true)) {
+    const granted = await requestTelemetryPermission();
+    if (!granted) {
+      effective = {
+        ...next,
+        ...(next.errors === true ? { errors: false } : {}),
+        ...(next.analytics === true ? { analytics: false } : {}),
+      };
+    }
+  }
+
   const current = (await telemetryConsentItem.getValue()) ?? {
     errors: true,
     analytics: true,
@@ -325,7 +357,7 @@ export async function setTelemetryConsent(next: Partial<TelemetryConsent>): Prom
   };
   const merged: TelemetryConsent = {
     ...current,
-    ...next,
+    ...effective,
     decidedAt: Date.now(),
   };
   await telemetryConsentItem.setValue(merged);
