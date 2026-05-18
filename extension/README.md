@@ -1,6 +1,6 @@
 # Trail — Visual Browsing History
 
-Trail is a Chrome extension that turns your browsing into an interactive,
+Trail is a browser extension that turns your browsing into an interactive,
 navigable graph. Every click, back-button, and tab-duplicate becomes a node
 in a tree you can revisit, organize, and pick up where you left off.
 
@@ -13,7 +13,23 @@ in a tree you can revisit, organize, and pick up where you left off.
 ## Install
 
 - **Chrome Web Store:** https://chromewebstore.google.com/ *(link added at v1.0 launch)*
+- **Firefox (AMO):** *(link added at v1.0 launch)*
 - **Unpacked / dev:** see [CONTRIBUTING.md](./CONTRIBUTING.md)
+
+### Firefox
+
+Trail ships as a Manifest V3 Firefox add-on (`trail@gettrail.net`,
+minimum Firefox 115). The sidebar opens from Firefox's built-in sidebar
+toggle or from clicking the Trail toolbar icon. `pnpm build:firefox`
+produces `.output/firefox-mv3/`; `pnpm zip:firefox` packages it for AMO.
+
+Firefox (and forks like Zen, LibreWolf) refuse to install unsigned
+add-ons through `about:addons` — you'll see "This add-on could not be
+installed because it appears to be corrupt". To run a local build, load
+it via `about:debugging#/runtime/this-firefox` → "Load Temporary
+Add-on" → pick `.output/firefox-mv3/manifest.json`. For a persistent
+install, upload the .zip to AMO Developer Hub under "self-distribution"
+so AMO signs it before download.
 
 ## Features
 

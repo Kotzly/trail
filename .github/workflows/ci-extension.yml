@@ -53,6 +53,12 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: Build (firefox)
+        run: pnpm build:firefox
+
+      - name: Lint (firefox manifest, web-ext)
+        run: pnpm dlx web-ext lint --source-dir=.output/firefox-mv3 --self-hosted
+
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
 

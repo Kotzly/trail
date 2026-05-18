@@ -8,6 +8,7 @@ import { tempSelectionManager } from "../../services/temporary-selection.js";
 import { syncOpenTabs } from "../../tabs/sync-open-tabs.js";
 import { browser } from "@shared/platform/webext.js";
 import { markNodeVisited } from "../../state/node-recency.js";
+import { isNewTabUrl } from "@shared/lib/root.js";
 
 async function focusTab(tabId: TabId): Promise<boolean> {
   try {
@@ -20,6 +21,27 @@ async function focusTab(tabId: TabId): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+// The NTP root URL is a normalization device — Chrome native NTP,
+// extension-replaced NTPs (chrome-extension://[id]/newtab.html), and
+// about:newtab all match `isNewTabUrl` and collapse into the same root.
+// But the stored URL is whichever variant first arrived. Passing it back
+// to `tabs.create` only works in the runtime that produced it:
+//   - `chrome://newtab/` errors on Firefox (chrome:// is Chromium-only).
+//   - `chrome-extension://[id]/newtab.html` is profile-specific and
+//     won't resolve if synced to a different browser/profile.
+//   - `about:newtab` is restricted from extension navigation entirely.
+// When the stored URL is an NTP variant that won't reliably resolve,
+// drop it and let the browser open whatever native/overridden NTP it's
+// configured to use — the newly-created tab's reported URL goes back
+// through `isNewTabUrl` and maps to the synthetic root anyway.
+function withMaybeUrl<T extends object>(opts: T, url: string): T & { url?: string } {
+  if (!isNewTabUrl(url)) return { ...opts, url };
+  // Chrome can always navigate to `chrome://newtab/` (and Chrome's own
+  // installed extension NTP IDs). Only Firefox needs the URL dropped.
+  if (import.meta.env.FIREFOX) return opts;
+  return { ...opts, url };
 }
 
 export const navigationHandlers = defineRpcHandlers({
@@ -71,11 +93,9 @@ export const navigationHandlers = defineRpcHandlers({
     }
 
     const targetWindow = await browser.windows.getLastFocused();
-    const created = await browser.tabs.create({
-      windowId: targetWindow?.id,
-      url: node.data.url,
-      active: true,
-    });
+    const created = await browser.tabs.create(
+      withMaybeUrl({ windowId: targetWindow?.id, active: true }, node.data.url),
+    );
 
     if (created.id !== undefined) {
       const lastUsed = Number.isFinite(created.lastAccessed) ? created.lastAccessed : undefined;
@@ -179,11 +199,9 @@ export const navigationHandlers = defineRpcHandlers({
     }
 
     const targetWindow = await browser.windows.getLastFocused();
-    const created = await browser.tabs.create({
-      windowId: targetWindow?.id,
-      url: node.data.url,
-      active: true,
-    });
+    const created = await browser.tabs.create(
+      withMaybeUrl({ windowId: targetWindow?.id, active: true }, node.data.url),
+    );
 
     if (created.id !== undefined) {
       const lastUsed = Number.isFinite(created.lastAccessed) ? created.lastAccessed : undefined;
@@ -202,7 +220,7 @@ export const navigationHandlers = defineRpcHandlers({
     const node = tree.findNodeById(message.nodeId);
     if (!node) throw new Error("Node not found");
 
-    const tab = await browser.tabs.create({ url: node.data.url, active: false });
+    const tab = await browser.tabs.create(withMaybeUrl({ active: false }, node.data.url));
     if (tab.id !== undefined) {
       const lastUsed = Number.isFinite(tab.lastAccessed) ? tab.lastAccessed : undefined;
       const registerOptions =

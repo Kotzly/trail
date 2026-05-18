@@ -3,6 +3,28 @@
 All notable changes to the Trail extension. Follows [Keep a Changelog](https://keepachangelog.com/)
 and semver (via `chrome-v<semver>` git tags).
 
+## [Unreleased]
+
+### Added
+
+- Firefox support. `pnpm build:firefox` / `pnpm zip:firefox` produce an
+  AMO-ready Manifest V3 add-on (`trail@gettrail.net`, min Firefox 115).
+  Toolbar icon toggles the sidebar via `sidebarAction.toggle`; the
+  Chrome-only `sidePanel.setPanelBehavior` branch is tree-shaken out.
+- Browser-aware favicon fallback. Chrome keeps using
+  `chrome-extension://<id>/_favicon/` (gated by the `favicon` permission);
+  Firefox falls back to the origin's `/favicon.ico`.
+
+### Fixed
+
+- Firefox telemetry now honors the AMO disclosure end-to-end. The
+  manifest declares `technicalAndInteraction` as an optional
+  `data_collection_permissions` entry; Sentry and PostHog init are
+  gated on `browser.permissions.contains({ data_collection: [...] })`,
+  and toggling Settings → Privacy on prompts Firefox for the
+  permission via `browser.permissions.request(...)`. Revoking from
+  `about:addons` tears the clients down mid-session.
+
 ## [1.0.0] — 2026-04-16
 
 First public release. Ships the core graph-based browsing experience with
