@@ -747,7 +747,15 @@ function TrailGraphInner(props: TrailGraphProps) {
           // callback, swallowing the event before tinykeys sees it. Disable
           // entirely so our keyboard handler in useShortcuts owns delete.
           deleteKeyCode={null}
-          onlyRenderVisibleElements
+          // `onlyRenderVisibleElements` is intentionally OFF (xyflow default).
+          // On big trees with many nodes in the viewbox, the cull was the
+          // pan-lag culprit: it ran getNodesInside(O(N)) per pan tick and
+          // — worse — mounted/unmounted nodes at the viewport edge. Each
+          // mount fired TrailNode's useUpdateNodeInternals → xyflow's
+          // store set({}) → woke every useStore subscriber, amplifying
+          // a per-pan-tick frame to N × bail-out work. With the cull off,
+          // pan reduces to a single GPU composite on .react-flow__viewport.
+          // Off-screen NodeWrappers stay subscribed but shallow-bail.
           nodesDraggable
           nodeDragThreshold={5}
           nodesConnectable={false}
