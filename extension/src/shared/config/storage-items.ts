@@ -86,9 +86,7 @@ export const hasSeenOnboardingItem = storage.defineItem<boolean>(
 
 export type OnboardingPersona = "research" | "article" | "learning" | "tabs";
 
-export type OnboardingPhase = "wizard" | "tour" | "tourDismissed" | "celebration" | "cta" | "done";
-
-export type OnboardingSoftCtaKey = "signin" | "pin";
+export type OnboardingPhase = "wizard" | "done";
 
 export type OnboardingState = {
   seenWelcome: boolean;
@@ -96,39 +94,15 @@ export type OnboardingState = {
   /** Legacy step counter from the original linear wizard. Preserved so
    * users who saw the old wizard don't retrigger the new one. */
   step: number;
-  /** v2 onboarding phase. `null` before first run; `"done"` after full
-   * completion (success or skip). Intermediate values gate resume UI. */
+  /** Onboarding phase. `null` before first run; `"wizard"` while the
+   * modal is open; `"done"` after the user finishes or skips. There
+   * is no resume / postpone state — skip is terminal. */
   phase?: OnboardingPhase | null;
   /** 0-indexed position inside screens 1-5 of the modal wizard. */
   wizardStep?: number;
-  /** 0-indexed position inside the in-sidepanel tour micro-steps. */
-  tourStep?: number;
-  /** User's self-identified pain. Drives screen-4 solution copy and
-   * screen-8 CTA tagline. */
+  /** User's self-identified pain. Drives the solution-screen copy. */
   persona?: OnboardingPersona | null;
-  /** Tree created specifically for the tour so we can delete it on
-   * completion without touching the user's real data. */
-  tourTreeId?: string | null;
-  /** Captured at tour step 1 (clickResult) — the id of the FIRST
-   * result child under Google. Needed by step 4
-   * (returnToAbandoned), which asks the user to click this specific
-   * node. Persisted so a sidepanel close mid-tour doesn't lose the
-   * anchor and leave the user with an un-matchable predicate. */
-  tourFirstResultChildId?: string | null;
-  /** Captured at tour step 3 (branch) — the Google node id at the
-   * moment branching was detected. Same rationale as above. */
-  tourBranchParentId?: string | null;
-  /** Tree id that was active BEFORE we created the tour tree. On
-   * tour disposal we switch back to this tree, because the
-   * background refuses to delete the active tree. Null for
-   * fresh-install users with no pre-existing tree. */
-  priorActiveTreeId?: string | null;
   startedAt?: number | null;
-  /** Per-surface dismiss flags for the post-onboarding hint strip.
-   * Only explicit user-× writes `true`; `undefined`/missing = show.
-   * Auto-hide on auth signed-in is predicate-level (no write), so
-   * the strip returns on sign-out. */
-  softCtaDismissed?: { signin?: boolean; pin?: boolean };
 };
 
 /**
@@ -143,12 +117,7 @@ export const INITIAL_ONBOARDING_STATE: OnboardingState = {
   step: 0,
   phase: null,
   wizardStep: 0,
-  tourStep: 0,
   persona: null,
-  tourTreeId: null,
-  tourFirstResultChildId: null,
-  tourBranchParentId: null,
-  priorActiveTreeId: null,
   startedAt: null,
 };
 

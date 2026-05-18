@@ -1,13 +1,11 @@
 /**
- * Onboarding wizard (v2). Sequential modal covering the first 5
- * screens of the Cal AI framework: Hook → Problem → Persona →
- * Solution → Features. Screen 5's primary CTA hands off to the
- * interactive tour: creates a dedicated "Trail tour" tree, switches
- * to it, and flips the onboarding phase to "tour".
- *
- * Everything after screen 5 (the tour itself, celebration, CTA) lives
- * outside this modal — the coach is a persistent card in the
- * sidepanel, not a dialog.
+ * Onboarding wizard. Five-screen modal: Hook → Problem → Persona →
+ * Solution → Features. The final screen's primary CTA finalizes
+ * onboarding (no interactive tour, no tree switch — the user's tabs
+ * and existing tree stay exactly where they are). Skip is terminal at
+ * every step: closing the modal or hitting Skip flips phase to
+ * "done" and onboarding never reopens unless the user replays it
+ * from Settings → About.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -25,18 +23,19 @@ import TrailLogo from "@ui/components/trail-logo";
 import { useLockFn } from "@ui/hooks/use-lock-fn";
 import { useMount } from "@ui/hooks/use-mount";
 import {
-  bindTourTreeId,
+  completeOnboarding,
   getOnboardingState,
-  savePriorActiveTreeId,
   setOnboardingPersona,
-  setOnboardingPhase,
   setWizardStep,
   skipOnboarding,
   startOnboarding,
-  startTourTree,
 } from "../../api/onboarding.js";
 import { useStore } from "../state/store.js";
-import type { OnboardingPersona } from "@shared/config/storage-items.js";
+import {
+  INITIAL_ONBOARDING_STATE,
+  onboardingStateItem,
+  type OnboardingPersona,
+} from "@shared/config/storage-items.js";
 import { StepDots } from "./components/StepDots.js";
 import { HookScreen } from "./wizard/HookScreen.js";
 import { ProblemScreen } from "./wizard/ProblemScreen.js";
@@ -73,39 +72,46 @@ export default function OnboardingWizard() {
 
   const persona = useStore((s) => s.onboarding.persona);
 
-  // First-run check. Only opens the wizard when no one has seen the
-  // welcome AND no tour is currently running (resume path: if phase is
-  // "tour"/"celebration"/"cta", the coach / celebration handles it).
+  // First-run check + one-time migration for users mid-flight from the
+  // old phase machine (tour / tourDismissed / celebration / cta). The
+  // tour was removed; anyone caught mid-tour with seenWelcome already
+  // set should just land in `done` so they don't see a stuck UI.
   useMount(() => {
     let cancelled = false;
-    void getOnboardingState().then((state) => {
+    void getOnboardingState().then(async (raw) => {
       if (cancelled) return;
-      // Hydrate local store from storage so the rest of the UI can
-      // react (coach appears, celebration renders, hint strip shows, etc.)
+
+      let state = raw;
+      const deadPhases = ["tour", "tourDismissed", "celebration", "cta"] as const;
+      if (state.phase && (deadPhases as readonly string[]).includes(state.phase)) {
+        // Full overwrite so the now-removed tour fields (tourTreeId,
+        // priorActiveTreeId, etc.) don't linger in storage on every
+        // subsequent merge-style save.
+        const next = state.seenWelcome
+          ? {
+              ...INITIAL_ONBOARDING_STATE,
+              seenWelcome: true,
+              persona: state.persona ?? null,
+              completedAt: state.completedAt ?? Date.now(),
+              phase: "done" as const,
+              startedAt: state.startedAt ?? null,
+            }
+          : INITIAL_ONBOARDING_STATE;
+        await onboardingStateItem.setValue(next);
+        state = next;
+      }
+
+      // Hydrate local store from storage so the rest of the UI can react.
       useStore.getState().setOnboarding({
         phase: state.phase ?? null,
         wizardStep: state.wizardStep ?? 0,
-        tourStep: state.tourStep ?? 0,
         persona: state.persona ?? null,
-        tourTreeId: state.tourTreeId ?? null,
         startedAt: state.startedAt ?? null,
         completedAt: state.completedAt ?? null,
-        softCtaDismissed: state.softCtaDismissed ?? {},
       });
 
       const alreadyDone = state.completedAt || state.phase === "done";
       if (alreadyDone) return;
-
-      // If phase is already past the wizard, do not reopen the modal —
-      // the coach/celebration/cta/hint-strip mount takes over.
-      if (
-        state.phase === "tour" ||
-        state.phase === "tourDismissed" ||
-        state.phase === "celebration" ||
-        state.phase === "cta"
-      ) {
-        return;
-      }
 
       if (!state.seenWelcome) {
         setOpen(true);
@@ -134,6 +140,12 @@ export default function OnboardingWizard() {
     setOpen(false);
   });
 
+  const handleFinish = useLockFn(async () => {
+    await completeOnboarding();
+    useStore.getState().setOnboarding({ phase: "done", completedAt: Date.now() });
+    setOpen(false);
+  });
+
   const handlePickPersona = useCallback(
     async (p: OnboardingPersona) => {
       await setOnboardingPersona(p);
@@ -143,50 +155,6 @@ export default function OnboardingWizard() {
     },
     [advance],
   );
-
-  const handleEnterTour = useLockFn(async () => {
-    // Create an isolated tour tree and switch to it. `createNewTree`
-    // returns void (no treeId), so we wait for the subsequent
-    // tree-updated broadcast to flip `trees.active.id`. A
-    // `setTimeout` would be a guess; subscribing until the id
-    // actually changes is the correct form.
-    const priorActiveId = useStore.getState().trees.active?.id ?? null;
-    // Persist the prior id BEFORE creating the tour tree — the tree
-    // we capture here is the one we'll switch back to on disposal.
-    await savePriorActiveTreeId(priorActiveId);
-    await startTourTree("Trail tour");
-
-    const newActiveId = await new Promise<string | null>((resolve) => {
-      const cap = useStore.getState().trees.active?.id ?? null;
-      if (cap && cap !== priorActiveId) {
-        resolve(cap);
-        return;
-      }
-      const unsub = useStore.subscribe((state) => {
-        const id = state.trees.active?.id ?? null;
-        if (id && id !== priorActiveId) {
-          unsub();
-          resolve(id);
-        }
-      });
-      // Defense-in-depth: resolve null after 3s so a stuck
-      // broadcast doesn't hang the UI forever. `disposeTourTree` is
-      // a no-op when id is null, which means the user may see a
-      // lingering "Trail tour" tree — not ideal but not a crash.
-      window.setTimeout(() => {
-        unsub();
-        resolve(null);
-      }, 3000);
-    });
-
-    if (newActiveId) {
-      await bindTourTreeId(newActiveId);
-      useStore.getState().setOnboarding({ tourTreeId: newActiveId });
-    }
-    await setOnboardingPhase("tour");
-    useStore.getState().setOnboarding({ phase: "tour", tourStep: 0 });
-    setOpen(false);
-  });
 
   const goNext = useCallback(async () => {
     switch (step) {
@@ -203,10 +171,10 @@ export default function OnboardingWizard() {
         await advance(STEP.FEATURES);
         return;
       case STEP.FEATURES:
-        await handleEnterTour();
+        await handleFinish();
         return;
     }
-  }, [advance, handleEnterTour, step]);
+  }, [advance, handleFinish, step]);
 
   const goBack = useCallback(async () => {
     if (step === STEP.HOOK) return;
@@ -239,16 +207,13 @@ export default function OnboardingWizard() {
     return () => window.clearTimeout(id);
   }, [open, step]);
 
-  // External phase escape: if something else (e.g. Settings→About
-  // "replay onboarding") flips phase back to "wizard", reopen this
-  // modal. Subscribe directly to the store (not via a `useStore`
-  // selector + effect) — the transition event is the signal, not
-  // the current value, so we set visibility inside the subscription
-  // callback rather than during render.
+  // External phase escape: if something else (e.g. Settings → About
+  // "replay onboarding") flips phase back to "wizard", reopen the modal.
   useEffect(() => {
     return useStore.subscribe((state, prev) => {
       if (state.onboarding.phase === "wizard" && prev.onboarding.phase !== "wizard") {
         setOpen(true);
+        setStep(STEP.HOOK);
       }
     });
   }, []);
@@ -346,17 +311,6 @@ export default function OnboardingWizard() {
           )}
           {step !== STEP.PERSONA ? (
             <div className="flex items-center gap-2">
-              {step === STEP.FEATURES ? (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  type="button"
-                  onClick={() => void handleSkip()}
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  {i18n.t("onboarding.v2.features.skipCta")}
-                </Button>
-              ) : null}
               <Button
                 ref={primaryButtonRef}
                 variant="default"

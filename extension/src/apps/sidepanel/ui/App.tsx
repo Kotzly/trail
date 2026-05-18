@@ -4,11 +4,6 @@ import FloatingControls from "./components/FloatingControls.js";
 import SelectionActionBar from "./components/SelectionActionBar.js";
 import SyncConflictToastMount from "./components/SyncConflictToast.js";
 import OnboardingWizard from "./onboarding/OnboardingWizard.js";
-import TourFlyingCoach from "./onboarding/tour/TourFlyingCoach.js";
-import ResumeTourPopover from "./onboarding/tour/ResumeTourPopover.js";
-import PinFlyingPopover from "./onboarding/pin/PinFlyingPopover.js";
-import TourCelebration from "./onboarding/celebration/TourCelebration.js";
-import TourCommitments from "./onboarding/cta/TourCommitments.js";
 import WelcomeBackDialog from "./welcome-back/WelcomeBackDialog.js";
 import ContextMenus from "./components/ContextMenus.js";
 import TrailLogo from "@ui/components/trail-logo";
@@ -101,7 +96,6 @@ export default function App() {
   const expandNodes = useStore((s) => s.expandNodes);
   const toggleChainUnfolded = useStore((s) => s.toggleChainUnfolded);
   const toggleBadgeCollapse = useStore((s) => s.toggleBadgeCollapse);
-  const spotlight = useStore((s) => s.onboarding.spotlight);
   const inlineRenameTargetId = useStore((s) => s.renameTarget);
   const startInlineRename = useStore((s) => s.startInlineRename);
   const cancelInlineRename = useStore((s) => s.cancelInlineRename);
@@ -208,7 +202,6 @@ export default function App() {
               nodeTabCounts={nodeTabCounts}
               settings={settings}
               precomputedPositions={precomputedPositions}
-              spotlight={spotlight}
               inlineRenameTargetId={inlineRenameTargetId}
               onInlineRenameStart={startInlineRename}
               onInlineRenameCommit={handleInlineRenameCommit}
@@ -220,16 +213,10 @@ export default function App() {
               onBadgeCollapseToggle={toggleBadgeCollapse}
               onChainUnfoldToggle={toggleChainUnfolded}
               onSelectionChange={handleSelectionChange}
-            >
-              <TourFlyingCoach />
-              <ResumeTourPopover />
-              <PinFlyingPopover />
-            </TrailGraph>
+            />
           </Suspense>
         )}
         <OnboardingWizard />
-        <TourCelebration />
-        <TourCommitments />
         <WelcomeBackDialog />
         <ContextMenus />
       </div>

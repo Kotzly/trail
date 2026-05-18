@@ -146,21 +146,9 @@ type StoreState = {
   onboarding: {
     phase: OnboardingPhase | null;
     wizardStep: number;
-    tourStep: number;
     persona: OnboardingPersona | null;
-    tourTreeId: string | null;
     startedAt: number | null;
     completedAt: number | null;
-    softCtaDismissed: { signin?: boolean; pin?: boolean };
-    /**
-     * Currently spotlighted node for the coach. Lives in state (not
-     * tree data) so it survives tree re-renders, and the layout
-     * transform merges it into `TrailNodeData.spotlight` by id.
-     */
-    spotlight: {
-      nodeId: NodeId | null;
-      kind: "pulse" | "target" | null;
-    };
   };
 };
 
@@ -222,7 +210,6 @@ type StoreActions = {
   setConflictApplyError: (error: ApplyError | null) => void;
   clearConflict: () => void;
   setOnboarding: (patch: Partial<StoreState["onboarding"]>) => void;
-  setSpotlight: (nodeId: NodeId | null, kind: "pulse" | "target" | null) => void;
   /**
    * Reset per-user Zustand slices on auth transition (sign-out, account
    * switch). Device-scoped fields (settings, flags, ui, onboarding,
@@ -395,13 +382,9 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
   onboarding: {
     phase: null,
     wizardStep: 0,
-    tourStep: 0,
     persona: null,
-    tourTreeId: null,
     startedAt: null,
     completedAt: null,
-    softCtaDismissed: {},
-    spotlight: { nodeId: null, kind: null },
   },
 
   bootstrapGraph: (settings, payload) => {
@@ -1034,17 +1017,6 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
       onboarding: {
         ...state.onboarding,
         ...patch,
-        spotlight: patch.spotlight
-          ? { ...state.onboarding.spotlight, ...patch.spotlight }
-          : state.onboarding.spotlight,
-      },
-    })),
-
-  setSpotlight: (nodeId, kind) =>
-    set((state) => ({
-      onboarding: {
-        ...state.onboarding,
-        spotlight: { nodeId, kind },
       },
     })),
 
