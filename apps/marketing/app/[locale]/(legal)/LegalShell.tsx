@@ -1,9 +1,10 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { MarkdownBlocks } from "./MarkdownBlocks";
 
 type RelatedDoc = { label: string; href: string };
 
-export function LegalShell({
+export async function LegalShell({
   eyebrow,
   title,
   lastUpdated,
@@ -18,6 +19,7 @@ export function LegalShell({
   related?: RelatedDoc;
   contactEmail?: string;
 }) {
+  const t = await getTranslations("legal");
   return (
     <section
       className="relative mx-auto max-w-[920px]"
@@ -56,7 +58,7 @@ export function LegalShell({
               color: "rgba(246,239,225,0.45)",
             }}
           >
-            Last updated · {lastUpdated}
+            {t("lastUpdated", { date: lastUpdated })}
           </p>
         ) : null}
       </header>

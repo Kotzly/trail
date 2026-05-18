@@ -1,31 +1,9 @@
 import type { Metadata } from "next";
 import { ArrowUpRight } from "lucide-react";
-import { setRequestLocale } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { fetchSupportPage } from "@/lib/sanity/queries";
 import { buildMetadata } from "@/lib/seo";
 import { LeaveNoteButton } from "./LeaveNoteButton";
-
-type SupportPageData = {
-  title?: string;
-  description?: string;
-  seo?: { title?: string; description?: string; ogImage?: unknown };
-  statusPageUrl?: string;
-  statusLabel?: string;
-  contactEmail?: string;
-};
-
-const fallback = {
-  title: "Help with Trail",
-  description:
-    "Service status, how to reach us, and where to send the bug you just hit.",
-  seo: {
-    title: "Support – Trail",
-    description:
-      "Get help with Trail. Check service status and contact our support team.",
-  },
-  statusLabel: "Trees rooted, paths open",
-  contactEmail: "support@gettrail.net",
-};
 
 type SupportPageParams = Promise<{ locale: string }>;
 
@@ -35,11 +13,14 @@ export async function generateMetadata({
   params: SupportPageParams;
 }): Promise<Metadata> {
   const { locale } = await params;
-  const page: SupportPageData | null = await fetchSupportPage(locale);
+  const [page, tSeo] = await Promise.all([
+    fetchSupportPage(locale),
+    getTranslations({ locale, namespace: "seo" }),
+  ]);
 
   return buildMetadata({
-    title: page?.seo?.title ?? fallback.seo.title,
-    description: page?.seo?.description ?? fallback.seo.description,
+    title: page?.seo?.title ?? tSeo("supportTitle"),
+    description: page?.seo?.description ?? tSeo("supportDescription"),
     path: "/support",
     locale,
   });
@@ -53,13 +34,16 @@ export default async function SupportPage({
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const page: SupportPageData | null = await fetchSupportPage(locale);
+  const [page, t] = await Promise.all([
+    fetchSupportPage(locale),
+    getTranslations({ locale, namespace: "support" }),
+  ]);
 
-  const title = page?.title ?? fallback.title;
-  const description = page?.description ?? fallback.description;
-  const statusLabel = page?.statusLabel ?? fallback.statusLabel;
+  const title = page?.title ?? t("title");
+  const description = page?.description ?? t("description");
+  const statusLabel = page?.statusLabel ?? t("statusLabel");
   const statusPageUrl = page?.statusPageUrl;
-  const contactEmail = page?.contactEmail ?? fallback.contactEmail;
+  const contactEmail = page?.contactEmail ?? t("contactEmail");
 
   return (
     <div className="pt-20">
@@ -78,7 +62,7 @@ export default async function SupportPage({
               color: "var(--landing-ember)",
             }}
           >
-            Support
+            {t("eyebrow")}
           </div>
           <h1
             className="font-serif text-[var(--landing-ink)]"
@@ -105,7 +89,11 @@ export default async function SupportPage({
           ) : null}
         </header>
 
-        <StatusRow label={statusLabel} href={statusPageUrl} />
+        <StatusRow
+          label={statusLabel}
+          href={statusPageUrl}
+          statusBadge={t("statusBadge")}
+        />
 
         <div
           className="mt-12 grid grid-cols-1 sm:grid-cols-2"
@@ -116,8 +104,8 @@ export default async function SupportPage({
           }}
         >
           <ContactCell
-            label="01 — Email"
-            description="A real person reads every one. Usually under a day."
+            label={t("emailLabel")}
+            description={t("emailDescription")}
             href={`mailto:${contactEmail}`}
             cta={contactEmail}
           />
@@ -128,7 +116,15 @@ export default async function SupportPage({
   );
 }
 
-function StatusRow({ label, href }: { label: string; href?: string }) {
+function StatusRow({
+  label,
+  href,
+  statusBadge,
+}: {
+  label: string;
+  href?: string;
+  statusBadge: string;
+}) {
   const content = (
     <div className="flex items-center justify-between gap-4">
       <div className="flex items-center gap-3">
@@ -158,7 +154,7 @@ function StatusRow({ label, href }: { label: string; href?: string }) {
             color: "rgba(246,239,225,0.5)",
           }}
         >
-          Status
+          {statusBadge}
           <ArrowUpRight size={12} aria-hidden />
         </span>
       ) : null}

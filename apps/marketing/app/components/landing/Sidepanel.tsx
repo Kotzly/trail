@@ -12,6 +12,7 @@ import {
   Settings,
   Undo2,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import type { FaviconKind } from "./Favicon";
 import { TrailMark } from "./TrailMark";
 
@@ -116,6 +117,8 @@ function TrailNodeCard({
   onClick,
   onMouseEnter,
   onMouseLeave,
+  openLabel,
+  pinnedLabel,
 }: {
   node: DemoNode;
   isCurrent: boolean;
@@ -124,6 +127,8 @@ function TrailNodeCard({
   onClick: () => void;
   onMouseEnter: () => void;
   onMouseLeave: () => void;
+  openLabel: string;
+  pinnedLabel: string;
 }) {
   const displayUrl = node.domain.replace(/^www\./, "");
   return (
@@ -131,7 +136,7 @@ function TrailNodeCard({
       onClick={onClick}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
-      aria-label={`Open ${node.title}`}
+      aria-label={openLabel}
       className="absolute flex flex-row items-center gap-1.5 rounded-md border px-2 py-1.5 text-left transition-[transform,box-shadow,background-color,border-color] duration-150 ease-out hover:scale-[1.015] active:scale-[0.985]"
       style={{
         left: `${NODE_POS[node.id].x}px`,
@@ -194,7 +199,7 @@ function TrailNodeCard({
         {node.pinned ? (
           <span
             className="grid h-3.5 w-3.5 place-items-center rounded"
-            aria-label="Pinned"
+            aria-label={pinnedLabel}
             style={{ color: "rgba(246, 239, 225, 0.65)" }}
           >
             <Pin size={9} strokeWidth={2} aria-hidden />
@@ -214,6 +219,7 @@ export function Sidepanel({
   activeId: string;
   onPick: (id: string) => void;
 }) {
+  const t = useTranslations("landing.demo.sidepanel");
   const [hovered, setHovered] = useState<string | null>(null);
   const graphRef = useRef<HTMLDivElement>(null);
   // Continuous scale [0..1] driven by ResizeObserver on the graph column.
@@ -272,11 +278,11 @@ export function Sidepanel({
               background: "rgba(20, 17, 12, 0.85)",
               border: "1px solid var(--landing-line-strong)",
             }}
-            aria-label="Switch tree"
+            aria-label={t("switchTree")}
           >
             <TrailMark size={16} />
             <span className="font-serif text-[12.5px] font-medium text-[var(--landing-ink)]">
-              Mycelium
+              {t("treeName")}
             </span>
             <ChevronDown
               size={12}
@@ -292,7 +298,7 @@ export function Sidepanel({
               border: "1px solid var(--landing-line-strong)",
               color: "rgba(246, 239, 225, 0.7)",
             }}
-            aria-label="Pinned"
+            aria-label={t("pinned")}
           >
             <Pin size={12} strokeWidth={1.75} aria-hidden />
           </button>
@@ -305,7 +311,7 @@ export function Sidepanel({
               border: "1px solid var(--landing-line-strong)",
               color: "rgba(246, 239, 225, 0.7)",
             }}
-            aria-label="Search trail"
+            aria-label={t("searchTrail")}
           >
             <Search size={12} strokeWidth={1.75} aria-hidden />
             <span
@@ -322,7 +328,7 @@ export function Sidepanel({
               border: "1px solid var(--landing-line-strong)",
               color: "rgba(246, 239, 225, 0.7)",
             }}
-            aria-label="Settings"
+            aria-label={t("settings")}
           >
             <Settings size={12} strokeWidth={1.75} aria-hidden />
           </button>
@@ -340,13 +346,13 @@ export function Sidepanel({
         >
           <button
             className="grid h-[26px] w-[26px] place-items-center text-[rgba(246,239,225,0.7)] transition-colors duration-200 hover:bg-[rgba(246,239,225,0.06)]"
-            aria-label="Undo"
+            aria-label={t("undo")}
           >
             <Undo2 size={11} strokeWidth={1.75} aria-hidden />
           </button>
           <button
             className="grid h-[26px] w-[26px] place-items-center text-[rgba(246,239,225,0.7)] transition-colors duration-200 hover:bg-[rgba(246,239,225,0.06)]"
-            aria-label="Redo"
+            aria-label={t("redo")}
           >
             <Redo2 size={11} strokeWidth={1.75} aria-hidden />
           </button>
@@ -357,7 +363,7 @@ export function Sidepanel({
             background: "rgba(20, 17, 12, 0.85)",
             border: "1px solid var(--landing-line-strong)",
           }}
-          aria-label="New tab from this node"
+          aria-label={t("newTabFromNode")}
         >
           <Plus size={12} strokeWidth={1.75} aria-hidden />
         </button>
@@ -378,7 +384,7 @@ export function Sidepanel({
             className="font-mono"
             style={{ fontSize: 9.5, letterSpacing: "0.05em" }}
           >
-            {nodes.length} nodes
+            {t("nodes", { count: nodes.length })}
           </span>
         </div>
       </div>
@@ -489,6 +495,8 @@ export function Sidepanel({
               onClick={() => onPick(n.id)}
               onMouseEnter={() => setHovered(n.id)}
               onMouseLeave={() => setHovered(null)}
+              openLabel={t("openNodeAria", { title: n.title })}
+              pinnedLabel={t("pinned")}
             />
           ))}
         </div>

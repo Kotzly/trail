@@ -1,4 +1,5 @@
 import dynamic from "next/dynamic";
+import { getTranslations } from "next-intl/server";
 import { LandingHero } from "./Hero";
 import { LandingFeatures } from "./Features";
 import { LandingCta } from "./Cta";
@@ -18,16 +19,15 @@ const LandingDemo = dynamic(
   },
 );
 
-export function LandingPage() {
+export async function LandingPage() {
+  const t = await getTranslations("landing");
   return (
     <div data-landing className="relative">
       {/* Single canonical H1 for SEO and screen readers — ensures the
           page has a heading even after the hero swaps from static
           (h2-styled headline) to the cinematic version (act h2s) on
           desktop. Visually hidden but present in the accessibility tree. */}
-      <h1 className="sr-only">
-        Trail — a Chrome extension that turns your browsing into a living tree.
-      </h1>
+      <h1 className="sr-only">{t("srHeading")}</h1>
       <LandingHero />
       <LandingFeatures />
       <LandingDemo />

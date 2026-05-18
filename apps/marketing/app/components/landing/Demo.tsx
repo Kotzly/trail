@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { useTranslations } from "next-intl";
 import { Favicon } from "./Favicon";
 import { Sidepanel, type DemoNode } from "./Sidepanel";
 import {
@@ -81,6 +82,7 @@ export function LandingDemo() {
   const [animKey, setAnimKey] = useState(0);
   const [closed, setClosed] = useState(false);
   const reduce = useReducedMotion();
+  const t = useTranslations("landing.demo");
   const active = NODES.find((n) => n.id === activeId)!;
   const PageComp = PAGES[active.page] ?? PageNewtab;
 
@@ -114,7 +116,7 @@ export function LandingDemo() {
             marginBottom: 22,
           }}
         >
-          Try it, no install
+          {t("eyebrow")}
         </div>
         <h2
           className="font-serif text-[var(--landing-ink)] max-w-[920px]"
@@ -126,7 +128,7 @@ export function LandingDemo() {
             textWrap: "balance" as React.CSSProperties["textWrap"],
           }}
         >
-          A tree, in your hands.
+          {t("heading")}
         </h2>
         <p
           className="mt-6 max-w-[580px]"
@@ -136,8 +138,7 @@ export function LandingDemo() {
             color: "rgba(246,239,225,0.65)",
           }}
         >
-          Trail lives in your sidepanel — always there, always one click away.
-          Pick a node on the right; the page on the left follows.
+          {t("subheading")}
         </p>
       </motion.div>
 
@@ -175,7 +176,7 @@ export function LandingDemo() {
                 <div className="flex gap-1.5 pb-2">
                   <button
                     type="button"
-                    aria-label="Close demo window"
+                    aria-label={t("closeWindow")}
                     onClick={() => setClosed(true)}
                     className="h-2.5 w-2.5 cursor-pointer rounded-full bg-[#ff5f57] transition-transform hover:scale-125 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff5f57] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1a1612]"
                   />
@@ -230,7 +231,7 @@ export function LandingDemo() {
                       className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--landing-ember)]"
                       style={{ boxShadow: "0 0 6px rgba(248,211,100,0.7)" }}
                     />
-                    Trail · ON
+                    {t("trailOn")}
                   </span>
                 </div>
               </div>
@@ -279,7 +280,7 @@ export function LandingDemo() {
                 color: "rgba(246,239,225,0.4)",
               }}
             >
-              Window closed
+              {t("windowClosed")}
             </p>
             <button
               type="button"
@@ -297,7 +298,7 @@ export function LandingDemo() {
                   className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--landing-ember)]"
                   style={{ boxShadow: "0 0 6px rgba(248,211,100,0.7)" }}
                 />
-                Open again
+                {t("openAgain")}
               </span>
             </button>
           </motion.div>
@@ -313,7 +314,7 @@ export function LandingDemo() {
             color: "rgba(246,239,225,0.32)",
           }}
         >
-          Click any node on the right — the page follows
+          {t("tip")}
         </div>
       )}
 

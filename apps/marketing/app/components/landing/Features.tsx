@@ -2,51 +2,21 @@
 
 import { useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
+import { useTranslations } from "next-intl";
 
 type FeatureKind = "graph" | "panel" | "lock" | "pin" | "forest" | "keys";
 
 const FEATURES: Array<{
   eyebrow: string;
-  title: string;
-  body: string;
+  key: FeatureKind;
   visual: FeatureKind;
 }> = [
-  {
-    eyebrow: "01",
-    title: "A graph, not a list",
-    body: "Forks when you open from one tab twice. Merges when you revisit. The shape of your research, preserved.",
-    visual: "graph",
-  },
-  {
-    eyebrow: "02",
-    title: "Lives in the sidepanel",
-    body: "Always next to whatever you are reading. ⌘K to search across every node you have ever visited.",
-    visual: "panel",
-  },
-  {
-    eyebrow: "03",
-    title: "Local-first",
-    body: "Nothing leaves your device by default. Cloud sync is opt-in, end-to-end. Your trail is yours.",
-    visual: "lock",
-  },
-  {
-    eyebrow: "04",
-    title: "Pin & prune",
-    body: "Mark what mattered. Delete dead-ends. Reparent and rearrange — undo with ⌘Z, just like text.",
-    visual: "pin",
-  },
-  {
-    eyebrow: "05",
-    title: "Many trees",
-    body: "One for that side project. One for that thesis. Switch contexts without losing the path.",
-    visual: "forest",
-  },
-  {
-    eyebrow: "06",
-    title: "Keyboard-native",
-    body: "⌘K to search, ⌘Z to undo, ⇧L to cycle layouts, P to pin. Built for hands that never leave the home row.",
-    visual: "keys",
-  },
+  { eyebrow: "01", key: "graph", visual: "graph" },
+  { eyebrow: "02", key: "panel", visual: "panel" },
+  { eyebrow: "03", key: "lock", visual: "lock" },
+  { eyebrow: "04", key: "pin", visual: "pin" },
+  { eyebrow: "05", key: "forest", visual: "forest" },
+  { eyebrow: "06", key: "keys", visual: "keys" },
 ];
 
 const stroke = "rgba(248, 211, 100, 0.85)";
@@ -574,6 +544,8 @@ const easeOut = [0.23, 1, 0.32, 1] as const;
 export function LandingFeatures() {
   const [hovered, setHovered] = useState<number | null>(null);
   const reduce = useReducedMotion();
+  const t = useTranslations("landing.features");
+  const tItems = useTranslations("landing.features.items");
 
   return (
     <section
@@ -599,7 +571,7 @@ export function LandingFeatures() {
               color: "var(--landing-ember)",
             }}
           >
-            What is in the box
+            {t("eyebrow")}
           </div>
           <h2
             className="font-serif text-[var(--landing-ink)] max-w-[900px]"
@@ -611,16 +583,16 @@ export function LandingFeatures() {
               textWrap: "balance" as React.CSSProperties["textWrap"],
             }}
           >
-            The browser, but with{" "}
+            {t("headingPrefix")}
             <em
               style={{
                 fontStyle: "italic",
                 color: "var(--landing-ember)",
               }}
             >
-              memory
+              {t("headingEm")}
             </em>
-            .
+            {t("headingSuffix")}
           </h2>
           <p
             className="mt-7 max-w-[540px]"
@@ -630,7 +602,7 @@ export function LandingFeatures() {
               color: "rgba(246,239,225,0.65)",
             }}
           >
-            Six things Trail does that your history page never could.
+            {t("subheading")}
           </p>
         </motion.div>
       </div>
@@ -698,7 +670,7 @@ export function LandingFeatures() {
                   marginBottom: 14,
                 }}
               >
-                {f.title}
+                {tItems(`${f.key}.title`)}
               </h3>
               <p
                 style={{
@@ -708,7 +680,7 @@ export function LandingFeatures() {
                   maxWidth: 380,
                 }}
               >
-                {f.body}
+                {tItems(`${f.key}.body`)}
               </p>
             </motion.div>
           );

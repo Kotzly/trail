@@ -1,4 +1,4 @@
-import { setRequestLocale } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { LegalShell } from "../LegalShell";
 import { getLegalDoc } from "../legal-source";
 import { buildMetadata } from "@/lib/seo";
@@ -13,10 +13,10 @@ export async function generateMetadata({
   params: PrivacyPageParams;
 }) {
   const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "seo" });
   return buildMetadata({
-    title: "Privacy Policy",
-    description:
-      "Learn what data is collected, how it is stored, and the choices you have to control sharing, retention, exports, and deletion requests.",
+    title: t("privacyTitle"),
+    description: t("privacyDescription"),
     path: "/privacy",
     locale,
   });
@@ -29,16 +29,20 @@ export default async function PrivacyPage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const doc = await getLegalDoc("Privacy Policy");
+  const [doc, t, tLegal] = await Promise.all([
+    getLegalDoc("Privacy Policy"),
+    getTranslations({ locale, namespace: "seo" }),
+    getTranslations({ locale, namespace: "legal" }),
+  ]);
 
   return (
     <div className="pt-20">
       <LegalShell
-        eyebrow="Legal"
-        title={doc.title}
+        eyebrow={tLegal("eyebrow")}
+        title={t("privacyTitle")}
         lastUpdated={doc.lastUpdated ?? undefined}
         markdown={doc.markdown}
-        related={{ label: "Terms of Service →", href: "/terms" }}
+        related={{ label: tLegal("privacyToTerms"), href: "/terms" }}
       />
     </div>
   );

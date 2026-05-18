@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 
 // Static hero used on:
 //   - mobile / touchscreen devices (cinematic scroll-scrub is unusable
@@ -37,6 +38,8 @@ function userOptedOutOfVideo(): boolean {
 export function LandingHeroStatic() {
   const sectionRef = useRef<HTMLElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const t = useTranslations("landing");
+  const tStatic = useTranslations("landing.static");
   // null = SSR / undecided, false = poster only (opt-out), true = mount video.
   const [enableVideo, setEnableVideo] = useState<boolean | null>(() => {
     if (typeof window === "undefined") return null;
@@ -91,7 +94,7 @@ export function LandingHeroStatic() {
     <section
       ref={sectionRef}
       className="relative w-full overflow-hidden bg-[var(--landing-bg)]"
-      aria-label="Trail introduction"
+      aria-label={t("heroAriaLabel")}
       style={{
         minHeight: "100svh",
         // svh > vh on iOS Safari — accounts for the dynamic URL bar so
@@ -154,7 +157,7 @@ export function LandingHeroStatic() {
               color: "var(--landing-ember)",
             }}
           >
-            01 — A seed
+            {tStatic("eyebrow")}
           </div>
           <h2
             className="font-serif text-[var(--landing-ink)]"
@@ -164,10 +167,11 @@ export function LandingHeroStatic() {
               lineHeight: 1.02,
               letterSpacing: "-0.025em",
               marginBottom: 22,
+              whiteSpace: "pre-line",
               textWrap: "balance" as React.CSSProperties["textWrap"],
             }}
           >
-            Every browser session{"\n"}starts from one root.
+            {tStatic("title")}
           </h2>
           <p
             style={{
@@ -178,21 +182,20 @@ export function LandingHeroStatic() {
               marginBottom: 32,
             }}
           >
-            Trail turns your browsing into a living tree — every click, every
-            detour, every fork preserved.
+            {tStatic("body")}
           </p>
           <div className="flex flex-wrap items-center gap-3">
             <a
               href="#cta"
               className="inline-flex items-center gap-2 rounded-full bg-[var(--landing-ink)] px-5 py-3 text-[14px] font-semibold text-[#0a0908] shadow-[0_0_0_1px_rgba(246,239,225,0.1)] transition-transform duration-200 ease-out hover:-translate-y-px active:scale-[0.97]"
             >
-              Add to Chrome
+              {tStatic("addToChrome")}
             </a>
             <a
               href="#features"
               className="inline-flex items-center gap-1.5 rounded-full border border-[var(--landing-line-strong)] px-5 py-3 text-[13px] font-medium text-[var(--landing-ink-2)] transition-colors duration-200 hover:text-[var(--landing-ink)] hover:border-[var(--landing-ember)]"
             >
-              See how it works
+              {tStatic("seeHowItWorks")}
               <span aria-hidden="true">↓</span>
             </a>
           </div>

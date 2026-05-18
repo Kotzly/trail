@@ -1,42 +1,47 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { TrailMark } from "./TrailMark";
 import { NewsletterSignup } from "./NewsletterSignup";
 
-const COLUMNS: Array<{
-  label: string;
-  links: Array<{ label: string; href: string; external?: boolean }>;
-}> = [
-  {
-    label: "Product",
-    links: [
-      { label: "Features", href: "/#features" },
-      { label: "Try it", href: "/#try" },
-    ],
-  },
-  {
-    label: "Help",
-    links: [
-      { label: "Support", href: "/support" },
-      { label: "Status", href: "/support" },
-      { label: "Contact", href: "mailto:hello@gettrail.net" },
-    ],
-  },
-  {
-    label: "Legal",
-    links: [
-      { label: "Privacy", href: "/privacy" },
-      { label: "Terms", href: "/terms" },
-    ],
-  },
-];
-
-export function LandingFooter({
+export async function LandingFooter({
   contactEmail = "hello@gettrail.net",
   copyright,
 }: {
   contactEmail?: string;
   copyright?: string;
 } = {}) {
+  const t = await getTranslations("footer");
+  const tLinks = await getTranslations("footer.links");
+  const tCols = await getTranslations("footer.columns");
+
+  const COLUMNS: Array<{
+    label: string;
+    links: Array<{ label: string; href: string; external?: boolean }>;
+  }> = [
+    {
+      label: tCols("product"),
+      links: [
+        { label: tLinks("features"), href: "/#features" },
+        { label: tLinks("tryIt"), href: "/#try" },
+      ],
+    },
+    {
+      label: tCols("help"),
+      links: [
+        { label: tLinks("support"), href: "/support" },
+        { label: tLinks("status"), href: "/support" },
+        { label: tLinks("contact"), href: `mailto:${contactEmail}` },
+      ],
+    },
+    {
+      label: tCols("legal"),
+      links: [
+        { label: tLinks("privacy"), href: "/privacy" },
+        { label: tLinks("terms"), href: "/terms" },
+      ],
+    },
+  ];
+
   return (
     <footer
       className="border-t border-[var(--landing-line)] bg-[var(--landing-bg)]"
@@ -66,7 +71,7 @@ export function LandingFooter({
                   color: "rgba(246,239,225,0.42)",
                 }}
               >
-                Your browsing, mapped
+                {t("tagline")}
               </div>
             </div>
           </div>
@@ -78,8 +83,7 @@ export function LandingFooter({
               color: "rgba(246, 239, 225, 0.55)",
             }}
           >
-            A Chrome extension that turns every tab, click, and detour into a
-            living tree.
+            {t("blurb")}
           </p>
           <a
             href={`mailto:${contactEmail}`}
@@ -146,8 +150,10 @@ export function LandingFooter({
           color: "rgba(246,239,225,0.36)",
         }}
       >
-        <span>{copyright ?? `© ${new Date().getFullYear()} Trail`}</span>
-        <span>Local-first, on purpose</span>
+        <span>
+          {copyright ?? t("copyright", { year: new Date().getFullYear() })}
+        </span>
+        <span>{t("bottomNote")}</span>
       </div>
     </footer>
   );

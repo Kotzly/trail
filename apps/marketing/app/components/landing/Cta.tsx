@@ -1,11 +1,13 @@
 "use client";
 
 import { motion, useReducedMotion } from "motion/react";
+import { useTranslations } from "next-intl";
 
 const easeOut = [0.23, 1, 0.32, 1] as const;
 
 export function LandingCta({ ctaHref = "#" }: { ctaHref?: string }) {
   const reduce = useReducedMotion();
+  const t = useTranslations("landing.cta");
   const isExternal = /^https?:\/\//.test(ctaHref);
   return (
     <section
@@ -46,7 +48,7 @@ export function LandingCta({ ctaHref = "#" }: { ctaHref?: string }) {
             marginBottom: 28,
           }}
         >
-          Free · Local-first · Open
+          {t("eyebrow")}
         </div>
         <h2
           className="font-serif text-[var(--landing-ink)]"
@@ -59,16 +61,16 @@ export function LandingCta({ ctaHref = "#" }: { ctaHref?: string }) {
             textWrap: "balance" as React.CSSProperties["textWrap"],
           }}
         >
-          Plant your{" "}
+          {t("headingPrefix")}
           <em
             style={{
               fontStyle: "italic",
               color: "var(--landing-ember)",
             }}
           >
-            first root
+            {t("headingEm")}
           </em>
-          .
+          {t("headingSuffix")}
         </h2>
         <p
           className="mx-auto"
@@ -80,7 +82,7 @@ export function LandingCta({ ctaHref = "#" }: { ctaHref?: string }) {
             marginBottom: 44,
           }}
         >
-          Add Trail to Chrome. Open a new tab. Watch the tree appear.
+          {t("subheading")}
         </p>
         <div className="inline-flex flex-wrap items-center justify-center gap-3.5">
           <a
@@ -118,7 +120,7 @@ export function LandingCta({ ctaHref = "#" }: { ctaHref?: string }) {
                 strokeLinejoin="round"
               />
             </svg>
-            Add to Chrome — it&rsquo;s free
+            {t("button")}
           </a>
         </div>
         <div
@@ -130,7 +132,7 @@ export function LandingCta({ ctaHref = "#" }: { ctaHref?: string }) {
             color: "rgba(246,239,225,0.32)",
           }}
         >
-          Chrome · Brave · Edge · Coming to Firefox
+          {t("browsers")}
         </div>
       </motion.div>
     </section>

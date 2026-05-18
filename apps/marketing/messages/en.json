@@ -1,6 +1,149 @@
 {
   "common": {
-    "loading": "Loading..."
+    "loading": "Loading…"
+  },
+  "seo": {
+    "defaultTitle": "Trail – Visualized Browsing",
+    "defaultDescription": "Capture sources, notes, and decisions as you browse. Trail turns tab chaos into organized research trails you can share without storing page content.",
+    "ogImageAlt": "Trail product overview",
+    "privacyTitle": "Privacy Policy",
+    "privacyDescription": "Learn what data is collected, how it is stored, and the choices you have to control sharing, retention, exports, and deletion requests.",
+    "termsTitle": "Terms of Service",
+    "termsDescription": "Review responsibilities, acceptable use, billing, and how the product is provided, including updates, suspension, and termination.",
+    "supportTitle": "Support – Trail",
+    "supportDescription": "Get help with Trail. Check service status and contact our support team."
+  },
+  "nav": {
+    "features": "Features",
+    "tryIt": "Try it",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "primary": "Primary",
+    "addToChrome": "Add to Chrome"
+  },
+  "landing": {
+    "srHeading": "Trail — a Chrome extension that turns your browsing into a living tree.",
+    "heroAriaLabel": "Trail introduction",
+    "scroll": "Scroll",
+    "acts": {
+      "01": {
+        "eyebrow": "01 — A SEED",
+        "title": "Every browser session\nstarts from one root.",
+        "body": "You open a tab. One thought. One question. The path ahead is unwritten."
+      },
+      "02": {
+        "eyebrow": "02 — A FOREST",
+        "title": "But the web is\na thousand forks.",
+        "body": "Tabs split. You backtrack. You revisit. By page seven, the trail is gone."
+      },
+      "03": {
+        "eyebrow": "03 — THE ROOTS",
+        "title": "Trail watches\nthe roots grow.",
+        "body": "A Chrome extension that turns your browsing into a living tree — every click, every detour, every fork preserved."
+      },
+      "04": {
+        "eyebrow": "04 — THE MAP",
+        "title": "See where\nyou've been.",
+        "body": "Pages become nodes. Navigation becomes branches. Your research finally has a shape."
+      },
+      "05": {
+        "eyebrow": "05 — THE TREE",
+        "title": "Pick up\nany thread.",
+        "body": "Jump back to where the idea forked. Pin the pages that mattered. Never lose a path again."
+      }
+    },
+    "static": {
+      "eyebrow": "01 — A seed",
+      "title": "Every browser session\nstarts from one root.",
+      "body": "Trail turns your browsing into a living tree — every click, every detour, every fork preserved.",
+      "addToChrome": "Add to Chrome",
+      "seeHowItWorks": "See how it works"
+    },
+    "features": {
+      "eyebrow": "What is in the box",
+      "headingPrefix": "The browser, but with ",
+      "headingEm": "memory",
+      "headingSuffix": ".",
+      "subheading": "Six things Trail does that your history page never could.",
+      "items": {
+        "graph": {
+          "title": "A graph, not a list",
+          "body": "Forks when you open from one tab twice. Merges when you revisit. The shape of your research, preserved."
+        },
+        "panel": {
+          "title": "Lives in the sidepanel",
+          "body": "Always next to whatever you are reading. ⌘K to search across every node you have ever visited."
+        },
+        "lock": {
+          "title": "Local-first",
+          "body": "Nothing leaves your device by default. Cloud sync is opt-in, end-to-end. Your trail is yours."
+        },
+        "pin": {
+          "title": "Pin & prune",
+          "body": "Mark what mattered. Delete dead-ends. Reparent and rearrange — undo with ⌘Z, just like text."
+        },
+        "forest": {
+          "title": "Many trees",
+          "body": "One for that side project. One for that thesis. Switch contexts without losing the path."
+        },
+        "keys": {
+          "title": "Keyboard-native",
+          "body": "⌘K to search, ⌘Z to undo, ⇧L to cycle layouts, P to pin. Built for hands that never leave the home row."
+        }
+      }
+    },
+    "demo": {
+      "eyebrow": "Try it, no install",
+      "heading": "A tree, in your hands.",
+      "subheading": "Trail lives in your sidepanel — always there, always one click away. Pick a node on the right; the page on the left follows.",
+      "closeWindow": "Close demo window",
+      "windowClosed": "Window closed",
+      "openAgain": "Open again",
+      "openNode": "Open {title}",
+      "trailOn": "Trail · ON",
+      "tip": "Click any node on the right — the page follows",
+      "sidepanel": {
+        "switchTree": "Switch tree",
+        "treeName": "Mycelium",
+        "pinned": "Pinned",
+        "searchTrail": "Search trail",
+        "settings": "Settings",
+        "undo": "Undo",
+        "redo": "Redo",
+        "newTabFromNode": "New tab from this node",
+        "openNodeAria": "Open {title}",
+        "nodes": "{count} nodes"
+      }
+    },
+    "cta": {
+      "eyebrow": "Free · Local-first · Open",
+      "headingPrefix": "Plant your ",
+      "headingEm": "first root",
+      "headingSuffix": ".",
+      "subheading": "Add Trail to Chrome. Open a new tab. Watch the tree appear.",
+      "button": "Add to Chrome — it's free",
+      "browsers": "Chrome · Brave · Edge · Coming to Firefox"
+    }
+  },
+  "footer": {
+    "tagline": "Your browsing, mapped",
+    "blurb": "A Chrome extension that turns every tab, click, and detour into a living tree.",
+    "columns": {
+      "product": "Product",
+      "help": "Help",
+      "legal": "Legal"
+    },
+    "links": {
+      "features": "Features",
+      "tryIt": "Try it",
+      "support": "Support",
+      "status": "Status",
+      "contact": "Contact",
+      "privacy": "Privacy",
+      "terms": "Terms"
+    },
+    "copyright": "© {year} Trail",
+    "bottomNote": "Local-first, on purpose"
   },
   "newsletter": {
     "heading": "Updates",
@@ -9,5 +152,63 @@
     "consent": "Product updates only. Unsubscribe anytime.",
     "success": "Thanks — you're on the list.",
     "error": "Something went wrong. Try again."
+  },
+  "feedback": {
+    "trigger": "Feedback",
+    "triggerAria": "Send feedback",
+    "dialogAria": "Send feedback",
+    "close": "Close",
+    "eyebrow": {
+      "send": "Send",
+      "note": "Note"
+    },
+    "title": {
+      "feature": "Ask us to build something.",
+      "feedback": "Tell us how it feels.",
+      "support": "Tell us what broke."
+    },
+    "tabs": {
+      "feature": "Request",
+      "feedback": "Feedback",
+      "support": "Support"
+    },
+    "placeholders": {
+      "feature": "Describe the feature you'd like to see…",
+      "feedback": "Share your thoughts, suggestions, or issues…",
+      "support": "Describe your issue or question…"
+    },
+    "contactPlaceholder": "Email or Telegram for follow-up — optional",
+    "counter": "{count} / 1000",
+    "sent": "Sent — thank you",
+    "submit": {
+      "feature": "Send request",
+      "feedback": "Send feedback",
+      "support": "Send note"
+    }
+  },
+  "support": {
+    "eyebrow": "Support",
+    "title": "Help with Trail",
+    "description": "Service status, how to reach us, and where to send the bug you just hit.",
+    "statusLabel": "Trees rooted, paths open",
+    "statusBadge": "Status",
+    "contactEmail": "support@gettrail.net",
+    "emailLabel": "01 — Email",
+    "emailDescription": "A real person reads every one. Usually under a day.",
+    "noteLabel": "02 — Leave a note",
+    "noteDescription": "Tell us what broke. We'll follow up.",
+    "noteCta": "Open the form"
+  },
+  "legal": {
+    "eyebrow": "Legal",
+    "lastUpdated": "Last updated · {date}",
+    "privacyToTerms": "Terms of Service →",
+    "termsToPrivacy": "Privacy Policy →"
+  },
+  "notFound": {
+    "eyebrow": "404 — A dead end",
+    "title": "This branch doesn't exist.",
+    "body": "The path you followed has been pruned, renamed, or never planted. Head back to the trunk.",
+    "back": "← Back to Trail"
   }
 }

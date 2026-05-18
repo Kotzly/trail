@@ -1,8 +1,10 @@
 "use client";
 
 import { ArrowUpRight } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 export function LeaveNoteButton() {
+  const t = useTranslations("support");
   return (
     <button
       type="button"
@@ -23,7 +25,7 @@ export function LeaveNoteButton() {
           marginBottom: 16,
         }}
       >
-        02 — Leave a note
+        {t("noteLabel")}
       </div>
       <h3
         className="font-serif text-[var(--landing-ink)]"
@@ -35,7 +37,7 @@ export function LeaveNoteButton() {
           marginBottom: 12,
         }}
       >
-        Tell us what broke. We&rsquo;ll follow up.
+        {t("noteDescription")}
       </h3>
       <span
         className="mt-auto inline-flex items-center gap-1.5 font-mono"
@@ -45,7 +47,7 @@ export function LeaveNoteButton() {
           letterSpacing: "0.04em",
         }}
       >
-        Open the form
+        {t("noteCta")}
         <ArrowUpRight
           size={12}
           className="transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"

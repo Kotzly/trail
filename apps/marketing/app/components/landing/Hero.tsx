@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   motion,
   useMotionValueEvent,
@@ -8,6 +8,7 @@ import {
   useTransform,
   useReducedMotion,
 } from "motion/react";
+import { useTranslations } from "next-intl";
 import { RootNodes } from "./RootNodes";
 import { RootTraces } from "./RootTraces";
 import { LandingHeroStatic } from "./HeroStatic";
@@ -81,38 +82,14 @@ function prefersReducedMotionSync(): boolean {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-const ACTS = [
-  {
-    eyebrow: "01 — A SEED",
-    title: "Every browser session\nstarts from one root.",
-    body: "You open a tab. One thought. One question. The path ahead is unwritten.",
-    range: [0.0, 0.16],
-  },
-  {
-    eyebrow: "02 — A FOREST",
-    title: "But the web is\na thousand forks.",
-    body: "Tabs split. You backtrack. You revisit. By page seven, the trail is gone.",
-    range: [0.18, 0.35],
-  },
-  {
-    eyebrow: "03 — THE ROOTS",
-    title: "Trail watches\nthe roots grow.",
-    body: "A Chrome extension that turns your browsing into a living tree — every click, every detour, every fork preserved.",
-    range: [0.38, 0.58],
-  },
-  {
-    eyebrow: "04 — THE MAP",
-    title: "See where\nyou've been.",
-    body: "Pages become nodes. Navigation becomes branches. Your research finally has a shape.",
-    range: [0.62, 0.8],
-  },
-  {
-    eyebrow: "05 — THE TREE",
-    title: "Pick up\nany thread.",
-    body: "Jump back to where the idea forked. Pin the pages that mattered. Never lose a path again.",
-    range: [0.84, 1.0],
-  },
+const ACT_RANGES = [
+  [0.0, 0.16],
+  [0.18, 0.35],
+  [0.38, 0.58],
+  [0.62, 0.8],
+  [0.84, 1.0],
 ] as const;
+const ACT_KEYS = ["01", "02", "03", "04", "05"] as const;
 
 // Three viewport heights: one for the sticky video to show, two of
 // scroll travel for the act sequence. Cinematic only runs on desktop —
@@ -178,34 +155,34 @@ function LandingHeroCinematic() {
   // Pre-build per-act opacity/y transforms — Motion drives DOM directly.
   const a0o = useTransform(
     scrollYProgress,
-    actInput(ACTS[0].range),
+    actInput(ACT_RANGES[0]),
     ACT_OPACITY,
   );
   const a1o = useTransform(
     scrollYProgress,
-    actInput(ACTS[1].range),
+    actInput(ACT_RANGES[1]),
     ACT_OPACITY,
   );
   const a2o = useTransform(
     scrollYProgress,
-    actInput(ACTS[2].range),
+    actInput(ACT_RANGES[2]),
     ACT_OPACITY,
   );
   const a3o = useTransform(
     scrollYProgress,
-    actInput(ACTS[3].range),
+    actInput(ACT_RANGES[3]),
     ACT_OPACITY,
   );
   const a4o = useTransform(
     scrollYProgress,
-    actInput(ACTS[4].range),
+    actInput(ACT_RANGES[4]),
     ACT_OPACITY,
   );
-  const a0y = useTransform(scrollYProgress, actInput(ACTS[0].range), ACT_Y);
-  const a1y = useTransform(scrollYProgress, actInput(ACTS[1].range), ACT_Y);
-  const a2y = useTransform(scrollYProgress, actInput(ACTS[2].range), ACT_Y);
-  const a3y = useTransform(scrollYProgress, actInput(ACTS[3].range), ACT_Y);
-  const a4y = useTransform(scrollYProgress, actInput(ACTS[4].range), ACT_Y);
+  const a0y = useTransform(scrollYProgress, actInput(ACT_RANGES[0]), ACT_Y);
+  const a1y = useTransform(scrollYProgress, actInput(ACT_RANGES[1]), ACT_Y);
+  const a2y = useTransform(scrollYProgress, actInput(ACT_RANGES[2]), ACT_Y);
+  const a3y = useTransform(scrollYProgress, actInput(ACT_RANGES[3]), ACT_Y);
+  const a4y = useTransform(scrollYProgress, actInput(ACT_RANGES[4]), ACT_Y);
   const acts = [
     { o: a0o, y: a0y },
     { o: a1o, y: a1y },
@@ -213,6 +190,19 @@ function LandingHeroCinematic() {
     { o: a3o, y: a3y },
     { o: a4o, y: a4y },
   ];
+
+  const tActs = useTranslations("landing.acts");
+  const tHeroLabel = useTranslations("landing");
+  const ACTS = useMemo(
+    () =>
+      ACT_KEYS.map((key, i) => ({
+        eyebrow: tActs(`${key}.eyebrow`),
+        title: tActs(`${key}.title`),
+        body: tActs(`${key}.body`),
+        range: ACT_RANGES[i]!,
+      })),
+    [tActs],
+  );
 
   // Defer the video fetch until the hero section is approaching the
   // viewport. Skip entirely once a decision is already locked in (the lazy
@@ -318,7 +308,7 @@ function LandingHeroCinematic() {
       style={{
         height: `${SCROLL_LENGTH_VH * 100}vh`,
       }}
-      aria-label="Trail introduction"
+      aria-label={tHeroLabel("heroAriaLabel")}
     >
       <div className="sticky top-0 h-screen w-full overflow-hidden bg-[var(--landing-bg)]">
         {/* Always-rendered poster — covers the slow-network fallback path
@@ -452,7 +442,7 @@ function LandingHeroCinematic() {
             style={{ transition: "opacity 300ms ease", opacity: 1 }}
             aria-hidden="true"
           >
-            <span>Scroll</span>
+            <span>{tHeroLabel("scroll")}</span>
             <span className="inline-block h-5 w-px bg-[rgba(246,239,225,0.4)] [animation:scrollCue_1.6s_ease-in-out_infinite]" />
           </div>
         </div>

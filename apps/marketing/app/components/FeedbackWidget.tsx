@@ -3,22 +3,13 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { MessageCircle, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 type FeedbackType = "feature" | "feedback" | "support";
 
 const ease = [0.23, 1, 0.32, 1] as const;
 
-const TYPE_LABELS: Record<FeedbackType, string> = {
-  feature: "Request",
-  feedback: "Feedback",
-  support: "Support",
-};
-
-const PLACEHOLDERS: Record<FeedbackType, string> = {
-  feature: "Describe the feature you'd like to see…",
-  support: "Describe your issue or question…",
-  feedback: "Share your thoughts, suggestions, or issues…",
-};
+const FEEDBACK_TYPES: FeedbackType[] = ["feature", "feedback", "support"];
 
 // Optimistic submit: flip to "Sent" the moment the user clicks, fire
 // the request in the background, and swallow any failure to console.
@@ -43,6 +34,7 @@ function postFeedback(payload: {
 }
 
 export function FeedbackWidget() {
+  const t = useTranslations("feedback");
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<FeedbackType>("feature");
   const [message, setMessage] = useState("");
@@ -148,10 +140,10 @@ export function FeedbackWidget() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 8 }}
             transition={{ duration: 0.3, ease }}
-            aria-label="Send feedback"
+            aria-label={t("triggerAria")}
           >
             <MessageCircle size={13} aria-hidden />
-            <span className="hidden sm:inline">Feedback</span>
+            <span className="hidden sm:inline">{t("trigger")}</span>
           </motion.button>
         )}
       </AnimatePresence>
@@ -190,7 +182,7 @@ export function FeedbackWidget() {
                 transition={{ duration: 0.28, ease }}
                 role="dialog"
                 aria-modal="true"
-                aria-label="Send feedback"
+                aria-label={t("dialogAria")}
               >
                 <div className="flex items-center justify-between border-b border-[var(--landing-line)] px-5 py-4">
                   <div className="flex flex-col gap-0.5">
@@ -202,7 +194,9 @@ export function FeedbackWidget() {
                         color: "var(--landing-ember)",
                       }}
                     >
-                      {type === "support" ? "Note" : "Send"}
+                      {type === "support"
+                        ? t("eyebrow.note")
+                        : t("eyebrow.send")}
                     </span>
                     <h2
                       className="font-serif text-[var(--landing-ink)]"
@@ -213,17 +207,13 @@ export function FeedbackWidget() {
                         lineHeight: 1.1,
                       }}
                     >
-                      {type === "support"
-                        ? "Tell us what broke."
-                        : type === "feature"
-                          ? "Ask us to build something."
-                          : "Tell us how it feels."}
+                      {t(`title.${type}`)}
                     </h2>
                   </div>
                   <button
                     onClick={handleClose}
                     className="grid h-8 w-8 place-items-center rounded text-[rgba(246,239,225,0.55)] transition-colors hover:text-[var(--landing-ink)]"
-                    aria-label="Close"
+                    aria-label={t("close")}
                   >
                     <X size={16} aria-hidden />
                   </button>
@@ -238,12 +228,12 @@ export function FeedbackWidget() {
                       border: "1px solid var(--landing-line)",
                     }}
                   >
-                    {(Object.keys(TYPE_LABELS) as FeedbackType[]).map((t) => (
+                    {FEEDBACK_TYPES.map((kind) => (
                       <TypeTab
-                        key={t}
-                        active={type === t}
-                        onClick={() => setType(t)}
-                        label={TYPE_LABELS[t]}
+                        key={kind}
+                        active={type === kind}
+                        onClick={() => setType(kind)}
+                        label={t(`tabs.${kind}`)}
                       />
                     ))}
                   </div>
@@ -252,7 +242,7 @@ export function FeedbackWidget() {
                     ref={textareaRef}
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
-                    placeholder={PLACEHOLDERS[type]}
+                    placeholder={t(`placeholders.${type}`)}
                     maxLength={1000}
                     required
                     rows={5}
@@ -271,7 +261,7 @@ export function FeedbackWidget() {
                         color: "rgba(246,239,225,0.4)",
                       }}
                     >
-                      {message.length} / 1000
+                      {t("counter", { count: message.length })}
                     </span>
                   </div>
 
@@ -279,7 +269,7 @@ export function FeedbackWidget() {
                     type="text"
                     value={contact}
                     onChange={(e) => setContact(e.target.value)}
-                    placeholder="Email or Telegram for follow-up — optional"
+                    placeholder={t("contactPlaceholder")}
                     maxLength={100}
                     className="mt-4 w-full bg-transparent py-2.5 text-[13px] text-[var(--landing-ink)] placeholder:text-[rgba(246,239,225,0.35)] outline-none"
                     style={{
@@ -292,9 +282,7 @@ export function FeedbackWidget() {
                     disabled={!message.trim() || sent}
                     className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[var(--landing-ink)] px-5 py-3 text-[14px] font-semibold text-[#0a0908] transition-transform duration-200 ease-out hover:-translate-y-px active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50"
                   >
-                    {sent
-                      ? "Sent — thank you"
-                      : `Send ${type === "feature" ? "request" : type === "support" ? "note" : "feedback"}`}
+                    {sent ? t("sent") : t(`submit.${type}`)}
                   </button>
                 </form>
               </motion.div>

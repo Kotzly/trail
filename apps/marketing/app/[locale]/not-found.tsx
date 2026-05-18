@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 
-export default function NotFound() {
+export default async function NotFound() {
+  const t = await getTranslations("notFound");
   return (
     <section className="relative flex min-h-svh w-full flex-col justify-center bg-[var(--landing-bg)]">
       <div
@@ -15,7 +17,7 @@ export default function NotFound() {
             color: "var(--landing-ember)",
           }}
         >
-          404 — A dead end
+          {t("eyebrow")}
         </div>
         <h1
           className="font-serif text-[var(--landing-ink)] max-w-[720px]"
@@ -26,7 +28,7 @@ export default function NotFound() {
             letterSpacing: "-0.025em",
           }}
         >
-          This branch doesn&rsquo;t exist.
+          {t("title")}
         </h1>
         <p
           className="mt-7 max-w-[480px]"
@@ -36,14 +38,13 @@ export default function NotFound() {
             color: "rgba(246,239,225,0.65)",
           }}
         >
-          The path you followed has been pruned, renamed, or never planted. Head
-          back to the trunk.
+          {t("body")}
         </p>
         <Link
           href="/"
           className="mt-10 inline-flex items-center gap-2 rounded-full bg-[var(--landing-ink)] px-6 py-3 text-[14px] font-semibold text-[#0a0908] transition-transform duration-200 ease-out hover:-translate-y-px active:scale-[0.97]"
         >
-          ← Back to Trail
+          {t("back")}
         </Link>
       </div>
     </section>

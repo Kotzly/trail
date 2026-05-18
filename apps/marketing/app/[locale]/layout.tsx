@@ -6,10 +6,10 @@ import { getMessages, setRequestLocale } from "next-intl/server";
 import "@/app/globals.css";
 import {
   buildRobots,
-  defaultDescription,
   defaultKeywords,
+  resolveDefaultDescription,
+  resolveDefaultTitle,
   SITE_NAME,
-  defaultTitle,
   resolveSiteUrl,
   resolveOgImage,
   resolveOgLocale,
@@ -33,11 +33,6 @@ const FeedbackWidget = dynamic(() =>
     default: m.FeedbackWidget,
   })),
 );
-
-const FALLBACK_NAV_LINKS: NavLink[] = [
-  { label: "Features", href: "/#features" },
-  { label: "Try it", href: "/#try" },
-];
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({
@@ -63,12 +58,16 @@ export async function generateMetadata({
   params: LayoutParams;
 }): Promise<Metadata> {
   const { locale } = await params;
-  const settings = await fetchSiteSettings(locale);
+  const [settings, fallbackTitle, fallbackDescription] = await Promise.all([
+    fetchSiteSettings(locale),
+    resolveDefaultTitle(locale),
+    resolveDefaultDescription(locale),
+  ]);
   const siteName = settings?.siteName?.trim() || SITE_NAME;
   const siteUrl = resolveSiteUrl(settings?.siteUrl);
-  const title = settings?.defaultSeo?.title?.trim() || defaultTitle;
+  const title = settings?.defaultSeo?.title?.trim() || fallbackTitle;
   const description =
-    settings?.defaultSeo?.description?.trim() || defaultDescription;
+    settings?.defaultSeo?.description?.trim() || fallbackDescription;
   const image = resolveOgImage(settings?.defaultSeo?.ogImage);
 
   return {
@@ -137,10 +136,10 @@ export default async function RootLayout({
     getMessages(),
   ]);
   const siteUrl = resolveSiteUrl(settings?.siteUrl);
-  const navLinks: NavLink[] = settings?.nav?.length
+  const navLinks: NavLink[] | undefined = settings?.nav?.length
     ? settings.nav
-    : FALLBACK_NAV_LINKS;
-  const ctaText = settings?.navCta?.text ?? "Add to Chrome";
+    : undefined;
+  const ctaText = settings?.navCta?.text;
   const ctaHref = settings?.navCta?.href ?? INSTALL_URL;
 
   return (

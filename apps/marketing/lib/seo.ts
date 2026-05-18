@@ -1,12 +1,43 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 
 const FALLBACK_SITE_URL = "https://gettrail.net";
 export const SITE_NAME = "Trail";
 const FALLBACK_OG_IMAGE = "/assets/og-default.png";
 
-export const defaultTitle = "Trail – Visualized Browsing";
-export const defaultDescription =
-  "Capture sources, notes, and decisions as you browse. Trail turns tab chaos into organized research trails you can share without storing page content.";
+const DEFAULT_TITLE_BY_LOCALE: Record<string, string> = {
+  en: "Trail – Visualized Browsing",
+  ru: "Trail — браузинг, который видно",
+};
+const DEFAULT_DESCRIPTION_BY_LOCALE: Record<string, string> = {
+  en: "Capture sources, notes, and decisions as you browse. Trail turns tab chaos into organized research trails you can share without storing page content.",
+  ru: "Сохраняйте источники, заметки и решения прямо во время серфинга. Trail превращает хаос вкладок в аккуратные ветви исследований — без хранения содержимого страниц.",
+};
+
+// Synchronous fallbacks for callers without locale context (e.g. sitemap).
+export const defaultTitle = DEFAULT_TITLE_BY_LOCALE.en!;
+export const defaultDescription = DEFAULT_DESCRIPTION_BY_LOCALE.en!;
+
+export async function resolveDefaultTitle(locale?: string) {
+  if (!locale) return defaultTitle;
+  try {
+    const t = await getTranslations({ locale, namespace: "seo" });
+    return t("defaultTitle");
+  } catch {
+    return DEFAULT_TITLE_BY_LOCALE[locale] ?? defaultTitle;
+  }
+}
+
+export async function resolveDefaultDescription(locale?: string) {
+  if (!locale) return defaultDescription;
+  try {
+    const t = await getTranslations({ locale, namespace: "seo" });
+    return t("defaultDescription");
+  } catch {
+    return DEFAULT_DESCRIPTION_BY_LOCALE[locale] ?? defaultDescription;
+  }
+}
+
 export const defaultKeywords = [
   "research assistant",
   "browser extension",

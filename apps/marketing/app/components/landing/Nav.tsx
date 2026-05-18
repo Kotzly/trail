@@ -3,30 +3,32 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
+import { useTranslations } from "next-intl";
 import { TrailMark } from "./TrailMark";
 
 const easeOut = [0.23, 1, 0.32, 1] as const;
 
 export type NavLink = { label: string; href: string; isExternal?: boolean };
 
-const DEFAULT_LINKS: NavLink[] = [
-  { label: "Features", href: "/#features" },
-  { label: "Try it", href: "/#try" },
-];
-
 function isInternalPath(href: string) {
   return href.startsWith("/") && !href.startsWith("//");
 }
 
 export function LandingNav({
-  links = DEFAULT_LINKS,
-  ctaText = "Add to Chrome",
+  links,
+  ctaText,
   ctaHref = "/#cta",
 }: {
   links?: NavLink[];
   ctaText?: string;
   ctaHref?: string;
 } = {}) {
+  const tNav = useTranslations("nav");
+  const resolvedLinks: NavLink[] = links ?? [
+    { label: tNav("features"), href: "/#features" },
+    { label: tNav("tryIt"), href: "/#try" },
+  ];
+  const resolvedCtaText = ctaText ?? tNav("addToChrome");
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const reduce = useReducedMotion();
@@ -88,7 +90,7 @@ export function LandingNav({
           </Link>
 
           <div className="hidden items-center gap-8 sm:flex">
-            {links.map((link) =>
+            {resolvedLinks.map((link) =>
               !link.isExternal && isInternalPath(link.href) ? (
                 <Link
                   key={link.href}
@@ -113,22 +115,22 @@ export function LandingNav({
           </div>
 
           <div className="flex items-center gap-2">
-            {ctaText ? (
+            {resolvedCtaText ? (
               <a
                 href={ctaHref}
                 {...ctaExternalAttrs}
                 className="group relative inline-flex items-center gap-2 rounded-full bg-[var(--landing-ink)] px-4 py-2 text-[13px] font-semibold text-[#0a0908] shadow-[0_0_0_1px_rgba(246,239,225,0.1)] transition-transform duration-200 ease-out hover:-translate-y-px active:scale-[0.97]"
               >
-                {ctaText}
+                {resolvedCtaText}
               </a>
             ) : null}
 
-            {links.length > 0 ? (
+            {resolvedLinks.length > 0 ? (
               <button
                 type="button"
                 onClick={() => setMobileOpen(true)}
                 className="grid h-9 w-9 place-items-center rounded text-[var(--landing-ink-2)] transition-colors duration-200 hover:text-[var(--landing-ink)] sm:hidden"
-                aria-label="Open menu"
+                aria-label={tNav("openMenu")}
               >
                 <svg
                   width="18"
@@ -172,7 +174,7 @@ export function LandingNav({
                 type="button"
                 onClick={() => setMobileOpen(false)}
                 className="grid h-9 w-9 place-items-center rounded text-[var(--landing-ink-2)] transition-colors duration-200 hover:text-[var(--landing-ink)]"
-                aria-label="Close menu"
+                aria-label={tNav("closeMenu")}
               >
                 <svg
                   width="20"
@@ -190,10 +192,10 @@ export function LandingNav({
             </div>
 
             <nav
-              aria-label="Primary"
+              aria-label={tNav("primary")}
               className="flex flex-1 flex-col justify-center gap-7 px-8"
             >
-              {links.map((link, i) => {
+              {resolvedLinks.map((link, i) => {
                 const isInternal =
                   !link.isExternal && isInternalPath(link.href);
                 const className =
@@ -234,12 +236,12 @@ export function LandingNav({
               })}
             </nav>
 
-            {ctaText ? (
+            {resolvedCtaText ? (
               <motion.div
                 initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{
-                  delay: 0.1 + links.length * 0.06,
+                  delay: 0.1 + resolvedLinks.length * 0.06,
                   duration: 0.45,
                   ease: easeOut,
                 }}
@@ -251,7 +253,7 @@ export function LandingNav({
                   onClick={() => setMobileOpen(false)}
                   className="inline-flex items-center justify-center rounded-full bg-[var(--landing-ink)] px-6 py-3 text-[14px] font-semibold text-[#0a0908] active:scale-[0.97]"
                 >
-                  {ctaText}
+                  {resolvedCtaText}
                 </a>
               </motion.div>
             ) : null}

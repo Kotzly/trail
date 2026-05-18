@@ -98,7 +98,7 @@ export default defineConfig({
     chromiumProfile: chromeProfileDir,
     keepProfileChanges: true,
   },
-  manifest: {
+  manifest: ({ mode }) => ({
     name: "__MSG_extName__",
     description: "__MSG_extDescription__",
     default_locale: "en",
@@ -107,9 +107,14 @@ export default defineConfig({
     // Pins dev unpacked build to the CWS extension ID
     // (pginmdonnghdkcmnhjkniphopcfapodc) so OAuth redirect URLs,
     // chrome.storage, and chrome.identity namespaces match production.
-    // This is the public key of the already-published CWS package; the store
-    // ignores it on upload (it's the matching public half of the signing key).
-    key: "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAnC+Tyur16NrOEAY1FlUyN8NyN9NGz+3ufp0HAEqg0bF9GLYp2vtF1kJTBWKv4Y9Zsg0M4pZMNB9Bn1IPq/VC9vkVGia/OId9QmgmbC8eGO3b9F0eoHCI0uBPeAuWGNl3F6WZSwJfmpAzHbxSUePazoGQCCd7TIq9SXIL3bTVPIWkjP1kDYIh85RbfDrNk0wyGJNUf/4u//qE8Go5376Xz+kyBdf2ACig7F5FO2xTPCDvMPVInIL61EhglGY9VYWmH52ChjSpiOhj6JoSqm0ki3H4TfNhRxADD5x6qnLzmp68ifkM/ThQOPhlO9gILQMA6A+UuirCBCpfoK0KawkRawIDAQAB",
+    // Only embedded for non-production builds — Chrome Web Store rejects
+    // uploads that contain a `key` field with "Invalid field in manifest:
+    // key" (the store assigns its own signing key on publish).
+    ...(mode === "production"
+      ? {}
+      : {
+          key: "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAnC+Tyur16NrOEAY1FlUyN8NyN9NGz+3ufp0HAEqg0bF9GLYp2vtF1kJTBWKv4Y9Zsg0M4pZMNB9Bn1IPq/VC9vkVGia/OId9QmgmbC8eGO3b9F0eoHCI0uBPeAuWGNl3F6WZSwJfmpAzHbxSUePazoGQCCd7TIq9SXIL3bTVPIWkjP1kDYIh85RbfDrNk0wyGJNUf/4u//qE8Go5376Xz+kyBdf2ACig7F5FO2xTPCDvMPVInIL61EhglGY9VYWmH52ChjSpiOhj6JoSqm0ki3H4TfNhRxADD5x6qnLzmp68ifkM/ThQOPhlO9gILQMA6A+UuirCBCpfoK0KawkRawIDAQAB",
+        }),
     icons: {
       "16": "icons/trail-16.png",
       "32": "icons/trail-32.png",
@@ -153,5 +158,5 @@ export default defineConfig({
         "128": "icons/trail-128.png",
       },
     },
-  },
+  }),
 });
