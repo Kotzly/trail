@@ -32,3 +32,18 @@
     z-index: 1;
   }
 }
+
+/*
+ * Pan suppression.
+ *
+ * `panOnScroll` keeps the cursor stationary while content slides
+ * under it — every node passing beneath the cursor toggles `:hover`
+ * for one frame, triggering box-shadow + scale + z-index work N
+ * times per frame. Killing pointer-events on the node layer for the
+ * duration of the move stops the cascade entirely. The flag clears
+ * ~120ms after the last camera event, so static hover is back the
+ * instant the user lets go.
+ */
+.graph--panning .react-flow__nodes {
+  pointer-events: none;
+}

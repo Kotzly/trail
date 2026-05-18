@@ -469,6 +469,31 @@ function TrailGraphInner(props: TrailGraphProps) {
     };
   }, []);
 
+  // ── Pan / camera-move suppression ────────────────────────────────
+  //
+  // `panOnScroll` keeps the cursor stationary while content slides
+  // under it, so during a pan every node sliding past the cursor
+  // toggles `:hover`. With many nodes in the viewbox this is N ×
+  // (box-shadow + transition + z-index reorder) per frame, which is
+  // the dominant pan-lag cost on large trees. The `graph--panning`
+  // class kills pointer-events on all nodes for the duration of the
+  // move, so :hover never matches.
+  //
+  // xyflow's panOnScroll handler already debounces the end event by
+  // 150ms after the last wheel (see @xyflow/system createPanOnScrollHandler).
+  // We flip the flag straight off on onMoveEnd — adding our own
+  // debounce on top would extend the dead window for clicks. A click
+  // immediately after a pan needs hover/pointer-events back instantly.
+  const [isPanning, setIsPanning] = useState(false);
+
+  const handleMoveStart = useCallback(() => {
+    setIsPanning(true);
+  }, []);
+
+  const handleMoveEnd = useCallback(() => {
+    setIsPanning(false);
+  }, []);
+
   // Mirror displayNodes into a ref so the rAF callback above always
   // reads the latest geometry without retriggering the effect.
   const displayNodesRef = useRef(displayNodes);
@@ -692,6 +717,7 @@ function TrailGraphInner(props: TrailGraphProps) {
           hoverGlow && "graph--hover-glow",
           lifecycleEnabled && "graph--lifecycle-on",
           isReshaping && "graph--reshaping",
+          isPanning && "graph--panning",
         )}
         onPointerDownCapture={handleContainerPointerDown}
         onPointerUpCapture={handleContainerPointerUp}
@@ -711,6 +737,8 @@ function TrailGraphInner(props: TrailGraphProps) {
           onSelectionChange={handleSelectionChange}
           onSelectionStart={handleSelectionStart}
           onSelectionEnd={handleSelectionEnd}
+          onMoveStart={handleMoveStart}
+          onMoveEnd={handleMoveEnd}
           selectionOnDrag
           selectionMode={SelectionMode.Partial}
           multiSelectionKeyCode={MULTI_SELECT_KEYS}
