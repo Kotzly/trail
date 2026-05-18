@@ -3,12 +3,12 @@
  *
  * Three sign-in flows are supported:
  *
- * 1. Google OAuth (third-party). MV3 extension uses
- *    `supabase.auth.signInWithOAuth({ provider: 'google', options: {
+ * 1. Third-party OAuth (Google, GitHub). MV3 extension uses
+ *    `supabase.auth.signInWithOAuth({ provider, options: {
  *      redirectTo: chrome.identity.getRedirectURL(), skipBrowserRedirect: true
  *    }})` to obtain an auth URL. We feed it to
- *    `chrome.identity.launchWebAuthFlow`, parse tokens from the redirect
- *    fragment, and call `supabase.auth.setSession`.
+ *    `chrome.identity.launchWebAuthFlow`, parse the PKCE `code` from the
+ *    redirect, and exchange it via `supabase.auth.exchangeCodeForSession`.
  *
  * 2. Email + password. Direct `signInWithPassword`. Sign-up creates an
  *    account; if the project requires email confirmation (recommended,
@@ -320,7 +320,13 @@ function sessionToIdentity(session: Session | null): AuthIdentity | null {
     session.user.identities?.[0]?.provider ||
     null;
   const provider: AuthIdentity["provider"] =
-    rawProvider === "google" ? "google" : rawProvider === "email" ? "email" : "other";
+    rawProvider === "google"
+      ? "google"
+      : rawProvider === "github"
+        ? "github"
+        : rawProvider === "email"
+          ? "email"
+          : "other";
   return {
     userId: session.user.id,
     email: session.user.email ?? null,
@@ -927,41 +933,49 @@ export async function updatePassword(newPassword: string): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
-// Google OAuth (chrome.identity.launchWebAuthFlow)
+// Third-party OAuth (chrome.identity.launchWebAuthFlow)
 // ---------------------------------------------------------------------------
 
+type OAuthProvider = "google" | "github";
+
+const PROVIDER_LABEL: Record<OAuthProvider, string> = {
+  google: "Google",
+  github: "GitHub",
+};
+
 /**
- * Sign in with Google via Supabase OAuth, mediated by
+ * Sign in with a third-party OAuth provider via Supabase, mediated by
  * `chrome.identity.launchWebAuthFlow`. Must be called from a UI surface
  * (sidepanel or settings) — the service worker cannot launch the popup.
  */
-export async function signInWithGoogle(): Promise<AuthState> {
+async function signInWithSupabaseOAuth(provider: OAuthProvider): Promise<AuthState> {
   const supabase = requireClient();
   if (!chrome.identity?.launchWebAuthFlow) {
     throw new Error("Sign-in isn't available from this page — open Settings in the full tab view.");
   }
 
+  const label = PROVIDER_LABEL[provider];
   const redirectUrl = chrome.identity.getRedirectURL();
-  captureEvent("auth_signin_started", { provider: "google" });
+  captureEvent("auth_signin_started", { provider });
 
   let oauthResponse;
   try {
     oauthResponse = await supabase.auth.signInWithOAuth({
-      provider: "google",
+      provider,
       options: {
         redirectTo: redirectUrl,
         skipBrowserRedirect: true,
       },
     });
   } catch (err) {
-    captureEvent("auth_signin_failed", { provider: "google" });
-    captureError(err, { kind: "auth_oauth_request" });
-    throw toUserError(err, "Couldn't start Google sign-in.");
+    captureEvent("auth_signin_failed", { provider });
+    captureError(err, { kind: "auth_oauth_request", provider });
+    throw toUserError(err, `Couldn't start ${label} sign-in.`);
   }
   const { data, error } = oauthResponse;
   if (error || !data.url) {
-    captureEvent("auth_signin_failed", { provider: "google" });
-    captureError(error ?? new Error("No auth URL"), { kind: "auth_oauth_empty_url" });
+    captureEvent("auth_signin_failed", { provider });
+    captureError(error ?? new Error("No auth URL"), { kind: "auth_oauth_empty_url", provider });
     throw new Error(
       "The sign-in service didn't return an authorization URL. The cloud service may be temporarily down.",
     );
@@ -975,10 +989,11 @@ export async function signInWithGoogle(): Promise<AuthState> {
         // Don't log the raw OAuth URL — it contains the state parameter
         // and other query fragments that may leak in browser logs
         // (closes P3.2 / P3.4). The redirect URL is safe (deterministic).
-        console.error("[auth] launchWebAuthFlow failed", { raw, redirectUrl });
+        console.error("[auth] launchWebAuthFlow failed", { raw, redirectUrl, provider });
         captureError(new Error(`launchWebAuthFlow: ${raw}`), {
           kind: "auth_launch_web_auth_flow",
           rawMessage: raw,
+          provider,
         });
         const friendly = /authorization page could not be loaded/i.test(raw)
           ? "Couldn't load the sign-in page — the cloud service is unreachable right now. Your local data is safe; try again in a minute."
@@ -1003,7 +1018,7 @@ export async function signInWithGoogle(): Promise<AuthState> {
     parsedResponse.searchParams.get("error");
 
   if (oauthError) {
-    captureEvent("auth_signin_failed", { provider: "google" });
+    captureEvent("auth_signin_failed", { provider });
     throw new Error(oauthError);
   }
 
@@ -1014,7 +1029,7 @@ export async function signInWithGoogle(): Promise<AuthState> {
     // the OAuth config is wrong. Refuse to accept tokens from the URL
     // fragment — that's an implicit-flow path and bypasses PKCE's
     // whole threat model (closes P1.5 / P2.4).
-    captureEvent("auth_signin_failed", { provider: "google" });
+    captureEvent("auth_signin_failed", { provider });
     throw new Error(
       "OAuth response missing authorization code — check Supabase URL configuration (PKCE required, implicit flow not accepted).",
     );
@@ -1022,7 +1037,7 @@ export async function signInWithGoogle(): Promise<AuthState> {
 
   const exchange = await supabase.auth.exchangeCodeForSession(code);
   if (exchange.error) {
-    captureEvent("auth_signin_failed", { provider: "google" });
+    captureEvent("auth_signin_failed", { provider });
     throw exchange.error;
   }
   session = exchange.data?.session ?? null;
@@ -1032,9 +1047,17 @@ export async function signInWithGoogle(): Promise<AuthState> {
 
   await authIdentityItem.setValue(identity);
   await provisionSignedInUser(identity);
-  captureEvent("auth_signin_completed", { provider: "google" });
+  captureEvent("auth_signin_completed", { provider });
   notify({ status: "signed-in", identity });
   return { status: "signed-in", identity };
+}
+
+export function signInWithGoogle(): Promise<AuthState> {
+  return signInWithSupabaseOAuth("google");
+}
+
+export function signInWithGitHub(): Promise<AuthState> {
+  return signInWithSupabaseOAuth("github");
 }
 
 export async function signOut(): Promise<void> {

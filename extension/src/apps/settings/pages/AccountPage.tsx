@@ -34,6 +34,7 @@ import { useLockFn } from "@ui/hooks/use-lock-fn";
 import { useMount } from "@ui/hooks/use-mount";
 import { Icons } from "@ui/components/icons";
 import { toast } from "sonner";
+import type { AuthProvider } from "@shared/config/storage-items.js";
 import {
   initAuth,
   signOut,
@@ -213,9 +214,12 @@ function ProfileSection({
 
 /* ─── Provider badge ─────────────────────────────────────────── */
 
-function ProviderBadge({ provider }: { provider: "email" | "google" | "other" }) {
+function ProviderBadge({ provider }: { provider: AuthProvider }) {
   if (provider === "google") {
     return <Badge variant="secondary">{i18n.t("account.provider.google")}</Badge>;
+  }
+  if (provider === "github") {
+    return <Badge variant="secondary">{i18n.t("account.provider.github")}</Badge>;
   }
   if (provider === "email") {
     return <Badge variant="secondary">{i18n.t("account.provider.email")}</Badge>;

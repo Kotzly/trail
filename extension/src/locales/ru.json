@@ -332,6 +332,7 @@
     "signOutFailed": "Не удалось выйти",
     "provider": {
       "google": "Google",
+      "github": "GitHub",
       "email": "Email"
     },
     "sync": {
@@ -469,8 +470,9 @@
   "login": {
     "form": {
       "welcomeBack": "С возвращением",
-      "signInDescription": "Войди через Google или почту",
+      "signInDescription": "Войди через Google, GitHub или почту",
       "loginWithGoogle": "Войти через Google",
+      "loginWithGithub": "Войти через GitHub",
       "orContinueWith": "Или продолжить через",
       "emailLabel": "Email",
       "emailPlaceholder": "me@example.com",
@@ -486,8 +488,9 @@
     },
     "signupForm": {
       "createAccount": "Создай аккаунт",
-      "createDescription": "Создай аккаунт через Google или почту",
+      "createDescription": "Создай аккаунт через Google, GitHub или почту",
       "signUpWithGoogle": "Зарегистрироваться через Google",
+      "signUpWithGithub": "Зарегистрироваться через GitHub",
       "passwordHint": "Не короче 8 символов, с заглавными, строчными, цифрой и спецсимволом.",
       "submit": "Создать аккаунт",
       "haveAccount": "Уже есть аккаунт?",
