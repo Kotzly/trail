@@ -98,65 +98,102 @@ export default defineConfig({
     chromiumProfile: chromeProfileDir,
     keepProfileChanges: true,
   },
-  manifest: ({ mode }) => ({
-    name: "__MSG_extName__",
-    description: "__MSG_extDescription__",
-    default_locale: "en",
-    version: "1.0.0",
-    homepage_url: "https://gettrail.net",
-    // Pins dev unpacked build to the CWS extension ID
-    // (pginmdonnghdkcmnhjkniphopcfapodc) so OAuth redirect URLs,
-    // chrome.storage, and chrome.identity namespaces match production.
-    // Only embedded for non-production builds — Chrome Web Store rejects
-    // uploads that contain a `key` field with "Invalid field in manifest:
-    // key" (the store assigns its own signing key on publish).
-    ...(mode === "production"
-      ? {}
-      : {
-          key: "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAnC+Tyur16NrOEAY1FlUyN8NyN9NGz+3ufp0HAEqg0bF9GLYp2vtF1kJTBWKv4Y9Zsg0M4pZMNB9Bn1IPq/VC9vkVGia/OId9QmgmbC8eGO3b9F0eoHCI0uBPeAuWGNl3F6WZSwJfmpAzHbxSUePazoGQCCd7TIq9SXIL3bTVPIWkjP1kDYIh85RbfDrNk0wyGJNUf/4u//qE8Go5376Xz+kyBdf2ACig7F5FO2xTPCDvMPVInIL61EhglGY9VYWmH52ChjSpiOhj6JoSqm0ki3H4TfNhRxADD5x6qnLzmp68ifkM/ThQOPhlO9gILQMA6A+UuirCBCpfoK0KawkRawIDAQAB",
-        }),
-    icons: {
-      "16": "icons/trail-16.png",
-      "32": "icons/trail-32.png",
-      "48": "icons/trail-48.png",
-      "128": "icons/trail-128.png",
-    },
-    permissions: [
-      "sidePanel",
-      "storage",
-      "tabs",
-      "webNavigation",
-      "favicon",
-      "alarms",
-      "identity",
-    ],
-    // Fonts are loaded from extension-owned pages (sidepanel, settings,
-    // login, onboarding) which don't need `web_accessible_resources` —
-    // they can reference chrome-extension://<id>/assets/... directly.
-    // Exposing WAR to `<all_urls>` let any website fingerprint the
-    // installation by loading the asset (closes P1.12).
-    web_accessible_resources: [
-      {
-        resources: ["assets/*.woff2"],
-        matches: [...ALLOWED_SITE_MATCH_PATTERNS],
-      },
-    ],
-    content_security_policy: {
-      extension_pages:
-        "script-src 'self'; object-src 'self'; connect-src 'self' https: wss:;",
-    },
-    host_permissions: [...ALLOWED_SITE_MATCH_PATTERNS],
-    side_panel: {
-      default_path: "sidepanel/index.html",
-    },
-    action: {
-      default_title: "__MSG_openTrail__",
-      default_icon: {
+  manifest: ({ mode, browser }) => {
+    const isFirefox = browser === "firefox";
+    // Chrome-only permissions: `sidePanel` (sidepanel manifest namespace) and
+    // `favicon` (the chrome-extension://<id>/_favicon/ URL space). Firefox
+    // doesn't recognize either — `web-ext lint` rejects them as unknown.
+    const chromeOnlyPermissions = isFirefox ? [] : ["sidePanel", "favicon"];
+    return {
+      name: "__MSG_extName__",
+      description: "__MSG_extDescription__",
+      default_locale: "en",
+      version: "1.0.0",
+      homepage_url: "https://gettrail.net",
+      // Pins dev unpacked build to the CWS extension ID
+      // (pginmdonnghdkcmnhjkniphopcfapodc) so OAuth redirect URLs,
+      // chrome.storage, and chrome.identity namespaces match production.
+      // Only embedded for non-production Chrome builds — CWS rejects
+      // uploads that contain a `key` field ("Invalid field in manifest:
+      // key"), and Firefox doesn't honor it at all.
+      ...(mode === "production" || isFirefox
+        ? {}
+        : {
+            key: "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAnC+Tyur16NrOEAY1FlUyN8NyN9NGz+3ufp0HAEqg0bF9GLYp2vtF1kJTBWKv4Y9Zsg0M4pZMNB9Bn1IPq/VC9vkVGia/OId9QmgmbC8eGO3b9F0eoHCI0uBPeAuWGNl3F6WZSwJfmpAzHbxSUePazoGQCCd7TIq9SXIL3bTVPIWkjP1kDYIh85RbfDrNk0wyGJNUf/4u//qE8Go5376Xz+kyBdf2ACig7F5FO2xTPCDvMPVInIL61EhglGY9VYWmH52ChjSpiOhj6JoSqm0ki3H4TfNhRxADD5x6qnLzmp68ifkM/ThQOPhlO9gILQMA6A+UuirCBCpfoK0KawkRawIDAQAB",
+          }),
+      // Firefox AMO requires a stable add-on ID and a minimum version.
+      // 115.0 is the oldest ESR line that ships sidebarAction.toggle in
+      // its current shape and matches the Manifest V2 path we ride.
+      //
+      // `data_collection_permissions` is required for new AMO
+      // submissions. `required: ["none"]` is accurate: by default,
+      // nothing leaves the device. Cloud sync, OAuth, and Sentry are
+      // all opt-in via in-app consent, and `technicalAndInteraction`
+      // would belong in `optional` (where the schema permits it) when
+      // we want them surfaced. The field is honored by Firefox 140+;
+      // older versions ignore it harmlessly (a known web-ext warning).
+      ...(isFirefox
+        ? {
+            browser_specific_settings: {
+              gecko: {
+                id: "trail@gettrail.net",
+                strict_min_version: "115.0",
+                data_collection_permissions: {
+                  required: ["none"],
+                },
+              },
+            },
+          }
+        : {}),
+      icons: {
         "16": "icons/trail-16.png",
         "32": "icons/trail-32.png",
         "48": "icons/trail-48.png",
         "128": "icons/trail-128.png",
       },
-    },
-  }),
+      permissions: [
+        ...chromeOnlyPermissions,
+        "storage",
+        "tabs",
+        "webNavigation",
+        "alarms",
+        "identity",
+      ],
+      // Fonts are loaded from extension-owned pages (sidepanel, settings,
+      // login, onboarding) which don't need `web_accessible_resources` —
+      // they can reference chrome-extension://<id>/assets/... directly.
+      // Exposing WAR to `<all_urls>` let any website fingerprint the
+      // installation by loading the asset (closes P1.12).
+      web_accessible_resources: [
+        {
+          resources: ["assets/*.woff2"],
+          matches: [...ALLOWED_SITE_MATCH_PATTERNS],
+        },
+      ],
+      content_security_policy: {
+        extension_pages:
+          "script-src 'self'; object-src 'self'; connect-src 'self' https: wss:;",
+      },
+      host_permissions: [...ALLOWED_SITE_MATCH_PATTERNS],
+      // Firefox auto-generates `sidebar_action` from the sidepanel
+      // entrypoint and rejects `side_panel` as unknown. Only emit
+      // `side_panel` for Chromium MV3.
+      ...(isFirefox
+        ? {}
+        : {
+            side_panel: {
+              default_path: "sidepanel/index.html",
+            },
+          }),
+      action: {
+        default_title: "__MSG_openTrail__",
+        default_icon: {
+          "16": "icons/trail-16.png",
+          "32": "icons/trail-32.png",
+          "48": "icons/trail-48.png",
+          "128": "icons/trail-128.png",
+        },
+      },
+    };
+  },
 });

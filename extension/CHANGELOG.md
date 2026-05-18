@@ -3,6 +3,18 @@
 All notable changes to the Trail extension. Follows [Keep a Changelog](https://keepachangelog.com/)
 and semver (via `chrome-v<semver>` git tags).
 
+## [Unreleased]
+
+### Added
+
+- Firefox support. `pnpm build:firefox` / `pnpm zip:firefox` produce an
+  AMO-ready Manifest V2 add-on (`trail@gettrail.net`, min Firefox 115).
+  Toolbar icon toggles the sidebar via `sidebarAction.toggle`; the
+  Chrome-only `sidePanel.setPanelBehavior` branch is tree-shaken out.
+- Browser-aware favicon fallback. Chrome keeps using
+  `chrome-extension://<id>/_favicon/` (gated by the `favicon` permission);
+  Firefox falls back to the origin's `/favicon.ico`.
+
 ## [1.0.0] — 2026-04-16
 
 First public release. Ships the core graph-based browsing experience with

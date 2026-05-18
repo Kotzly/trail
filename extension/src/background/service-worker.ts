@@ -137,12 +137,47 @@ void Promise.all([tabManager.hydrate(), hydrateNavPatterns()]).then(async () => 
 });
 void CommandManager.init();
 
-if (chrome.sidePanel?.setPanelBehavior) {
+// Chrome: route toolbar-action clicks to the sidepanel. Tree-shake the
+// whole branch out of Firefox builds so `addons-linter` doesn't flag
+// the sidePanel call site as an unsupported API.
+if (!import.meta.env.FIREFOX && chrome.sidePanel?.setPanelBehavior) {
   void chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch((err: unknown) => {
     log.warn("Failed to set side panel behavior", {
       error: err instanceof Error ? err.message : String(err),
     });
   });
+}
+
+// Firefox has no `chrome.sidePanel` and no "open panel on action click"
+// affordance — clicking the toolbar button only fires `onClicked`. Wire
+// that to toggle the sidebar so the toolbar icon does what users expect.
+// Must register synchronously at SW startup so cold-start clicks land.
+if (import.meta.env.FIREFOX) {
+  const actionApi =
+    (chrome as unknown as { browserAction?: typeof chrome.action }).browserAction ?? chrome.action;
+  const sidebarAction = (
+    chrome as unknown as {
+      sidebarAction?: { toggle?: () => Promise<void> | void };
+    }
+  ).sidebarAction;
+  if (actionApi?.onClicked && sidebarAction?.toggle) {
+    actionApi.onClicked.addListener(() => {
+      try {
+        const result = sidebarAction.toggle?.();
+        if (result && typeof (result as Promise<void>).catch === "function") {
+          (result as Promise<void>).catch((err: unknown) => {
+            log.warn("sidebarAction.toggle failed", {
+              error: err instanceof Error ? err.message : String(err),
+            });
+          });
+        }
+      } catch (err) {
+        log.warn("sidebarAction.toggle threw", {
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    });
+  }
 }
 
 // Pre-compute layout positions so sidepanel opens instantly

@@ -26,8 +26,11 @@ WXT opens a fresh Chromium profile with the extension loaded.
 | Command | What it does |
 |---------|--------------|
 | `pnpm dev` | Watch mode dev build + auto-reload Chromium |
+| `pnpm dev:firefox` | Watch mode dev build + auto-reload Firefox |
 | `pnpm build` | Production build to `.output/chrome-mv3` |
-| `pnpm zip` | Package the build as `.output/*.zip` for Web Store upload |
+| `pnpm build:firefox` | Production build to `.output/firefox-mv2` |
+| `pnpm zip` | Package the Chrome build for Web Store upload |
+| `pnpm zip:firefox` | Package the Firefox build for AMO upload |
 | `pnpm typecheck` | `tsc --noEmit` across the project |
 | `pnpm lint` / `pnpm lint:fix` | ESLint |
 | `pnpm format` / `pnpm format:check` | Prettier |
