@@ -192,6 +192,17 @@ export async function initObservability(surface: ObservabilitySurface): Promise<
     cachedConsent = { errors: true, analytics: true, decidedAt: null };
   }
 
+  // Firefox: the AMO manifest declares `technicalAndInteraction` as
+  // OPTIONAL (the `required` enum doesn't accept it), so the install
+  // prompt promises no data collection until the user opts in. The
+  // stored fallback is `errors: true, analytics: true` to keep Chrome's
+  // behavior — overriding that for Firefox until the user has actually
+  // visited Settings → Privacy (decidedAt != null) keeps the manifest
+  // disclosure honest on a fresh install.
+  if (import.meta.env.FIREFOX && cachedConsent.decidedAt === null) {
+    cachedConsent = { errors: false, analytics: false, decidedAt: null };
+  }
+
   // Sentry ——————————————————————————————
   if (SENTRY_DSN && cachedConsent.errors) {
     try {

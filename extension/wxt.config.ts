@@ -125,13 +125,18 @@ export default defineConfig({
       // 115.0 is the oldest ESR line that ships sidebarAction.toggle in
       // its current shape and matches the Manifest V2 path we ride.
       //
-      // `data_collection_permissions` is required for new AMO
-      // submissions. `required: ["none"]` is accurate: by default,
-      // nothing leaves the device. Cloud sync, OAuth, and Sentry are
-      // all opt-in via in-app consent, and `technicalAndInteraction`
-      // would belong in `optional` (where the schema permits it) when
-      // we want them surfaced. The field is honored by Firefox 140+;
-      // older versions ignore it harmlessly (a known web-ext warning).
+      // `data_collection_permissions`: required for new AMO submissions.
+      // - `required: ["none"]` — by default nothing leaves the device:
+      //   cloud sync and OAuth are opt-in via in-app consent, the local
+      //   tree is never transmitted without sign-in.
+      // - `optional: ["technicalAndInteraction"]` — Sentry crash reports
+      //   + PostHog product analytics are technical / interaction signals
+      //   the user can toggle from Settings → Privacy. Declaring it here
+      //   keeps the AMO listing honest about what telemetry CAN flow
+      //   when the user opts in. The Firefox telemetry default is OFF
+      //   until that decision is made (see `observability.ts`).
+      // Honored by Firefox 140+; older versions ignore it harmlessly
+      // (a known web-ext warning, no functional impact).
       ...(isFirefox
         ? {
             browser_specific_settings: {
@@ -140,6 +145,7 @@ export default defineConfig({
                 strict_min_version: "115.0",
                 data_collection_permissions: {
                   required: ["none"],
+                  optional: ["technicalAndInteraction"],
                 },
               },
             },
