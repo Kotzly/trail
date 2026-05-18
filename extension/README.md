@@ -18,10 +18,18 @@ in a tree you can revisit, organize, and pick up where you left off.
 
 ### Firefox
 
-Trail ships as a Manifest V2 Firefox add-on (`trail@gettrail.net`,
+Trail ships as a Manifest V3 Firefox add-on (`trail@gettrail.net`,
 minimum Firefox 115). The sidebar opens from Firefox's built-in sidebar
 toggle or from clicking the Trail toolbar icon. `pnpm build:firefox`
-produces `.output/firefox-mv2/`; `pnpm zip:firefox` packages it for AMO.
+produces `.output/firefox-mv3/`; `pnpm zip:firefox` packages it for AMO.
+
+Firefox (and forks like Zen, LibreWolf) refuse to install unsigned
+add-ons through `about:addons` — you'll see "This add-on could not be
+installed because it appears to be corrupt". To run a local build, load
+it via `about:debugging#/runtime/this-firefox` → "Load Temporary
+Add-on" → pick `.output/firefox-mv3/manifest.json`. For a persistent
+install, upload the .zip to AMO Developer Hub under "self-distribution"
+so AMO signs it before download.
 
 ## Features
 

@@ -8,7 +8,7 @@ and semver (via `chrome-v<semver>` git tags).
 ### Added
 
 - Firefox support. `pnpm build:firefox` / `pnpm zip:firefox` produce an
-  AMO-ready Manifest V2 add-on (`trail@gettrail.net`, min Firefox 115).
+  AMO-ready Manifest V3 add-on (`trail@gettrail.net`, min Firefox 115).
   Toolbar icon toggles the sidebar via `sidebarAction.toggle`; the
   Chrome-only `sidePanel.setPanelBehavior` branch is tree-shaken out.
 - Browser-aware favicon fallback. Chrome keeps using
