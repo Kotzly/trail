@@ -332,6 +332,7 @@
     "signOutFailed": "Sign-out failed",
     "provider": {
       "google": "Google",
+      "github": "GitHub",
       "email": "Email"
     },
     "sync": {
@@ -469,8 +470,9 @@
   "login": {
     "form": {
       "welcomeBack": "Welcome back",
-      "signInDescription": "Sign in with Google or email",
+      "signInDescription": "Sign in with Google, GitHub, or email",
       "loginWithGoogle": "Login with Google",
+      "loginWithGithub": "Login with GitHub",
       "orContinueWith": "Or continue with",
       "emailLabel": "Email",
       "emailPlaceholder": "me@example.com",
@@ -486,8 +488,9 @@
     },
     "signupForm": {
       "createAccount": "Create your account",
-      "createDescription": "Create account with Google or email",
+      "createDescription": "Create account with Google, GitHub, or email",
       "signUpWithGoogle": "Sign up with Google",
+      "signUpWithGithub": "Sign up with GitHub",
       "passwordHint": "At least 8 characters with uppercase, lowercase, a number, and a symbol.",
       "submit": "Create account",
       "haveAccount": "Already have an account?",

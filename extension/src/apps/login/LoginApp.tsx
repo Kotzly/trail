@@ -25,6 +25,7 @@ import {
   requestPasswordReset,
   resendSignupOtp,
   signInWithEmailPassword,
+  signInWithGitHub,
   signInWithGoogle,
   signUpWithEmailPassword,
   subscribeAuthState,
@@ -153,6 +154,20 @@ export default function LoginApp() {
         await signInWithGoogle();
       } catch (err) {
         captureError(err, { kind: "login_google" });
+        setFormError(err instanceof Error ? err.message : String(err));
+      }
+    });
+  });
+
+  // ---- GitHub ----------------------------------------------------------
+
+  const handleGithub = useLockFn(async () => {
+    clearMessages();
+    await withPending(async () => {
+      try {
+        await signInWithGitHub();
+      } catch (err) {
+        captureError(err, { kind: "login_github" });
         setFormError(err instanceof Error ? err.message : String(err));
       }
     });
@@ -382,6 +397,7 @@ export default function LoginApp() {
             onPasswordChange={setPassword}
             onSubmit={handleSignUp}
             onGoogle={handleGoogle}
+            onGithub={handleGithub}
             onSignIn={goToSignIn}
           />
           <Banners formError={formError} info={info} />
@@ -399,6 +415,7 @@ export default function LoginApp() {
           onPasswordChange={setPassword}
           onSubmit={handleSignIn}
           onGoogle={handleGoogle}
+          onGithub={handleGithub}
           onForgot={handleForgot}
           onSignUp={goToSignUp}
         />

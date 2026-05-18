@@ -169,7 +169,7 @@ export const pendingWelcomeBackVersionItem = storage.defineItem<string | null>(
 
 // ── Auth / Device / Sync ────────────────────────────────────────────
 
-export type AuthProvider = "email" | "google" | "other";
+export type AuthProvider = "email" | "google" | "github" | "other";
 
 export type AuthIdentity = {
   userId: string;
