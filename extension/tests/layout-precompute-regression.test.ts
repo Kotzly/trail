@@ -105,7 +105,7 @@ function testPruneLayoutCacheEntriesReplacesSameLayoutFamily(): void {
   console.log("  layout cache pruning: OK");
 }
 
-function testBackgroundUsesTreeLayoutAndNonBlockingSnapshot(): void {
+function testBackgroundUsesTreeLayoutAndInlineCompute(): void {
   const precomputeSource = readSource("src/background/services/layout-precompute.ts");
   const treeHandlersSource = readSource("src/background/messaging/handlers/tree-handlers.ts");
   const notificationsSource = readSource("src/background/messaging/notifications.ts");
@@ -113,18 +113,31 @@ function testBackgroundUsesTreeLayoutAndNonBlockingSnapshot(): void {
   assert.match(precomputeSource, /computeTreePositionsRecord/);
   assert.doesNotMatch(precomputeSource, /elkjs/);
   assert.doesNotMatch(precomputeSource, /web-worker/);
-  assert.doesNotMatch(treeHandlersSource, /await\s+computePositions/);
-  assert.match(treeHandlersSource, /requestLayoutRefinement\(treeJSON\)/);
-  assert.match(notificationsSource, /skipPrecompute/);
+  // Snapshot path inline-computes positions on cache miss so the
+  // first TREE_UPDATED carries final coordinates. The legacy async
+  // refinement push (`requestLayoutRefinement(treeJSON)` inside the
+  // hot path) caused a second `applyTreeState` on the sidepanel per
+  // mutation — ~90ms × N nodes of repeated React-Flow diff. Trace
+  // evidence: post-fix navigation/new-tab no longer triggers
+  // back-to-back long-tasks at +X / +X+82ms in the timeline.
+  assert.match(treeHandlersSource, /computePositions\(treeJSON, settings\)/);
+  assert.match(treeHandlersSource, /persistComputedPositions/);
+  assert.match(notificationsSource, /computePositions\(treeJSON, settings\)/);
+  assert.match(notificationsSource, /persistInlinePositions/);
+  // `requestLayoutRefinement` still exists for the settings-change /
+  // cache-warm callers; it must no longer fire from the hot
+  // mutation/snapshot paths.
+  assert.doesNotMatch(treeHandlersSource, /requestLayoutRefinement\(/);
+  assert.doesNotMatch(notificationsSource, /skipPrecompute/);
 
-  console.log("  d3-hierarchy + non-blocking snapshot: OK");
+  console.log("  d3-hierarchy + inline-compute snapshot: OK");
 }
 
 function run(): void {
   console.log("Running layout-precompute-regression.test.ts...");
   testLayoutCacheKeyIncludesAllFields();
   testPruneLayoutCacheEntriesReplacesSameLayoutFamily();
-  testBackgroundUsesTreeLayoutAndNonBlockingSnapshot();
+  testBackgroundUsesTreeLayoutAndInlineCompute();
 }
 
 run();

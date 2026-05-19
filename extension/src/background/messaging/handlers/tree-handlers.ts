@@ -7,12 +7,7 @@ import {
   type TreeSwitchOrigin,
 } from "@shared/rpc/contracts.js";
 import { treeStorage } from "../../services/tree-storage.js";
-import {
-  notifyTreeUpdate,
-  getTabStates,
-  notifyTreesUpdate,
-  requestLayoutRefinement,
-} from "../notifications.js";
+import { notifyTreeUpdate, getTabStates, notifyTreesUpdate } from "../notifications.js";
 import { tabManager } from "../../state/tab-manager.js";
 import { NavigationTreeMapper } from "@shared/lib/mapper.js";
 import { CommandManager } from "@shared/lib/commands.js";
@@ -40,8 +35,10 @@ import { isTreeStub, type NavigationTreeJSON, type TreeMeta } from "@shared/type
 import { EXPORT_SCHEMA, type TrailExportBundle } from "@shared/types/export.js";
 import { settingsManager } from "../../services/settings.js";
 import {
+  computePositions,
   getActiveLayoutCacheContext,
   getCachedPositions,
+  persistComputedPositions,
 } from "../../services/layout-precompute.js";
 import {
   saveOpenTabs,
@@ -140,26 +137,38 @@ async function buildTreeSnapshot(): Promise<TreeUpdatedInput> {
   const [tree, tabStates] = await Promise.all([treeStorage.getOrCreateTree(), getTabStates()]);
   const treeJSON = NavigationTreeMapper.toJSON(tree);
 
+  // Inline-compute positions on cache miss so the sidepanel's first
+  // applyTreeState already has final coordinates. The async-refinement
+  // path that ran here previously cost the sidepanel an extra full
+  // `applyTreeState` (1800-node displayNodes re-derivation, React Flow
+  // diff) per tree snapshot — visible as back-to-back ~90ms long-tasks
+  // in the DevTools timeline after every navigation/new-tab.
   let positions: Awaited<ReturnType<typeof getCachedPositions>> = null;
+  let cacheContext: Awaited<ReturnType<typeof getActiveLayoutCacheContext>> | null = null;
   try {
-    const context = await getActiveLayoutCacheContext(settings);
-    positions = await getCachedPositions(context);
+    cacheContext = await getActiveLayoutCacheContext(settings);
+    positions = await getCachedPositions(cacheContext);
   } catch (error) {
     log.warn("Failed to load cached positions for tree snapshot", {
       error: error instanceof Error ? error.message : String(error),
     });
   }
 
-  // If the cached positions don't cover every node in the current tree, treat
-  // this as a miss: savedAt only bumps on the debounced save (~1.5s after
-  // cacheTree), so just-added nodes are usually missing here and would
-  // otherwise render at (0, 0) until the next snapshot.
+  // savedAt only bumps on the debounced save (~1.5s after cacheTree),
+  // so just-added nodes are usually missing in the cache. Compute
+  // inline rather than shipping positions=null and triggering the
+  // async refinement push.
   if (positions && !coversAllNodes(treeJSON, positions)) {
     positions = null;
   }
 
-  if (!positions) {
-    requestLayoutRefinement(treeJSON);
+  if (!positions && treeJSON.root) {
+    positions = computePositions(treeJSON, settings);
+    if (positions && cacheContext) {
+      // Persist for the next snapshot; fire-and-forget so this call
+      // doesn't block returning the snapshot to the sidepanel.
+      void persistComputedPositions(positions, cacheContext);
+    }
   }
 
   const snapshot: TreeUpdatedInput = {

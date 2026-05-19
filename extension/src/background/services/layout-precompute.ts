@@ -180,6 +180,27 @@ export async function ensureCachedPositions(
   }
 }
 
+/**
+ * Persist already-computed positions to the cache without re-running
+ * the layout. Used by the sync inline-compute path in
+ * `sendTreeNotification`: the caller computes positions synchronously
+ * (so it can include them in the first `TREE_UPDATED`), then kicks
+ * off cache persistence fire-and-forget so subsequent reads find them.
+ */
+export async function persistComputedPositions(
+  positions: LayoutPositions,
+  context: LayoutCacheContext,
+): Promise<void> {
+  try {
+    await writeCacheEntry({ ...context, positions });
+  } catch (error) {
+    log.warn("persistComputedPositions failed", {
+      error: error instanceof Error ? error.message : String(error),
+      treeId: context.treeId,
+    });
+  }
+}
+
 export async function warmLayoutPositions(): Promise<void> {
   try {
     const settings = settingsManager.get();

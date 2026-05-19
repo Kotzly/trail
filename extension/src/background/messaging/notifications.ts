@@ -7,9 +7,11 @@ import type { NavigationTreeJSON } from "@shared/types/tree.js";
 import type { NavigationTree } from "../state/nav-tree.js";
 import { browser } from "@shared/platform/webext.js";
 import {
+  computePositions,
   createLayoutCacheKey,
   getActiveLayoutCacheContext,
   getCachedPositions,
+  persistComputedPositions,
   precompute,
   type LayoutPositions,
 } from "../services/layout-precompute.js";
@@ -85,11 +87,22 @@ type PendingNotification = {
 
 type TreeNotificationOptions = {
   positions?: LayoutPositions | null;
-  skipPrecompute?: boolean;
 };
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 let pendingArgs: PendingNotification | null = null;
+
+async function persistInlinePositions(positions: LayoutPositions): Promise<void> {
+  try {
+    const settings = settingsManager.get();
+    const context = await getActiveLayoutCacheContext(settings);
+    await persistComputedPositions(positions, context);
+  } catch (error) {
+    log.warn("Failed to persist inline-computed positions", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
 
 async function loadCachedPositionsForActiveTree(): Promise<LayoutPositions | null> {
   try {
@@ -138,7 +151,6 @@ export function requestLayoutRefinement(treeJSON: NavigationTreeJSON): void {
 
       await sendTreeNotification(treeJSON, "layout", undefined, {
         positions,
-        skipPrecompute: true,
       });
     } catch (error) {
       log.warn("Late layout refinement failed", {
@@ -170,17 +182,31 @@ async function sendTreeNotification(
     ? { ...view, intentId: view.intentId ?? (viewIntentCounter += 1) }
     : undefined;
 
+  // Compute positions synchronously inline so the first TREE_UPDATED
+  // already carries final coordinates. Previously this path emitted a
+  // positions=null message and scheduled a `requestLayoutRefinement`
+  // that pushed a second TREE_UPDATED ~one tick later — every tree
+  // mutation thus cost two `applyTreeState`s on the sidepanel, each
+  // re-deriving the full 1800+ node array. Going inline cuts post-
+  // mutation jank in half on big trees. d3 Reingold–Tilford for ~5k
+  // nodes is ~30–80ms; acceptable on the SW side vs. the duplicate
+  // sidepanel render it replaces.
   let positions: LayoutPositions | null;
+  let computedInline = false;
   if (options.positions !== undefined) {
     positions = options.positions;
-  } else if (STRUCTURAL_REASONS.has(reason)) {
-    positions = null;
   } else {
-    const cached = await loadCachedPositionsForActiveTree();
-    positions = cached && positionsCoverTree(treeJSON, cached) ? cached : null;
+    const cached = STRUCTURAL_REASONS.has(reason) ? null : await loadCachedPositionsForActiveTree();
+    if (cached && positionsCoverTree(treeJSON, cached)) {
+      positions = cached;
+    } else if (treeJSON.root) {
+      const settings = settingsManager.get();
+      positions = computePositions(treeJSON, settings);
+      computedInline = positions !== null;
+    } else {
+      positions = null;
+    }
   }
-  const triggerRefinement =
-    (STRUCTURAL_REASONS.has(reason) || positions === null) && !options.skipPrecompute;
 
   fireExtensionEvent(EXTENSION_MESSAGE.TREE_UPDATED, {
     tree: treeJSON,
@@ -194,8 +220,11 @@ async function sendTreeNotification(
     commandState: CommandManager.getState(),
   });
 
-  if (triggerRefinement) {
-    requestLayoutRefinement(treeJSON);
+  // Fire-and-forget cache persistence so the next snapshot read hits
+  // the cache. Detached from the send so it can't block, and so a
+  // stale-context check inside the persist doesn't double-fire.
+  if (computedInline && positions) {
+    void persistInlinePositions(positions);
   }
 
   // Opportunistic sync push — no-op when signed out or sync not configured.
