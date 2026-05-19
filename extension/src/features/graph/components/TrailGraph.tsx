@@ -747,15 +747,28 @@ function TrailGraphInner(props: TrailGraphProps) {
           // callback, swallowing the event before tinykeys sees it. Disable
           // entirely so our keyboard handler in useShortcuts owns delete.
           deleteKeyCode={null}
-          // `onlyRenderVisibleElements` is intentionally OFF (xyflow default).
-          // On big trees with many nodes in the viewbox, the cull was the
-          // pan-lag culprit: it ran getNodesInside(O(N)) per pan tick and
-          // — worse — mounted/unmounted nodes at the viewport edge. Each
-          // mount fired TrailNode's useUpdateNodeInternals → xyflow's
+          // `onlyRenderVisibleElements` ON. Previously OFF because the
+          // viewport-cull mounted/unmounted nodes at the edge and each
+          // mount fired TrailNode's `useUpdateNodeInternals` → xyflow
           // store set({}) → woke every useStore subscriber, amplifying
-          // a per-pan-tick frame to N × bail-out work. With the cull off,
-          // pan reduces to a single GPU composite on .react-flow__viewport.
-          // Off-screen NodeWrappers stay subscribed but shallow-bail.
+          // pan to N×bail-out work.
+          //
+          // That cascade is now defanged at the source:
+          //   - `TrailNode.tsx:firstHandlesKeyRef` skips the call on
+          //     initial mount (each remount during pan is a "fresh"
+          //     instance, so the ref initializes to the current
+          //     handlesKey and the effect short-circuits — confirmed
+          //     in Trace-20260519T025639.json.gz, ~50 cascade events
+          //     vs the 1808 the old behaviour produced).
+          //   - `url-blocklist.ts:predicateCache` caches per-URL
+          //     match results so `computeChainFoldInfo` walks no
+          //     longer thrash GC on each TREE_UPDATED (commit 3ff723f0).
+          //
+          // With cull ON, only ~50–100 visible TrailNodes run their
+          // memo comparator + useStore(selectLod) per render instead
+          // of all 1808. Per-frame work drops ~20×; React commit cost
+          // scales with viewport size, not tree size.
+          onlyRenderVisibleElements
           nodesDraggable
           nodeDragThreshold={5}
           nodesConnectable={false}
