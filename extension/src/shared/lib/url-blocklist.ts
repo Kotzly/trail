@@ -150,23 +150,62 @@ function urlToSegments(url: string): readonly string[] | null {
 }
 
 /**
+ * Predicate-level cache, keyed by the joined pattern list. Without
+ * it, every `useGraphLayout` recompute (one per `TREE_UPDATED` —
+ * dozens per minute of normal use) builds a fresh matcher closure
+ * AND walks ~N URLs through `urlToSegments` from scratch. The walk
+ * is `computeChainFoldInfo` calling `matches(url)` for every node;
+ * each call allocates a `URL` object, a lowercased concat, and two
+ * arrays from split/filter. On a 1800-node tree that's ~7k
+ * short-lived allocations per render → 50ms of V8.GC_SCAVENGER per
+ * 80–100ms reconcile task, traced in DevTools.
+ *
+ * Caching the predicate by `patterns.join("|")` returns the same
+ * closure (and its inner URL→bool map) every time the user's
+ * collapselist content is unchanged, even when React passes a new
+ * array reference.
+ */
+const predicateCache = new Map<string, UrlPredicate>();
+
+/**
  * Compile a list of patterns into a single URL predicate.
  *
  * Empty strings are ignored. An empty list returns `false` for every
  * URL. Patterns are tested in order; any match short-circuits to true.
  */
 export function compileBlocklist(patterns: readonly string[]): UrlPredicate {
+  const cacheKey = patterns.join("\n");
+  const cached = predicateCache.get(cacheKey);
+  if (cached) return cached;
+
   const matchers: CompiledPattern[] = [];
   for (const p of patterns) {
     const m = compilePattern(p);
     if (m) matchers.push(m);
   }
-  if (matchers.length === 0) return () => false;
-  return (url: string) => {
-    const segments = urlToSegments(url);
-    if (!segments) return false;
-    return matchers.some((m) => m(segments));
-  };
+
+  let predicate: UrlPredicate;
+  if (matchers.length === 0) {
+    predicate = () => false;
+  } else {
+    // Per-predicate URL→bool memo. Lives for the life of this matcher
+    // (i.e. as long as the same collapselist content is in use). On a
+    // tree with N nodes but K unique URLs (K ≪ N typically — multiple
+    // node visits share a URL), this collapses ~N work per render
+    // into K work on the very first render and 0 work thereafter.
+    const urlMemo = new Map<string, boolean>();
+    predicate = (url: string) => {
+      const memoed = urlMemo.get(url);
+      if (memoed !== undefined) return memoed;
+      const segments = urlToSegments(url);
+      const result = segments !== null && matchers.some((m) => m(segments));
+      urlMemo.set(url, result);
+      return result;
+    };
+  }
+
+  predicateCache.set(cacheKey, predicate);
+  return predicate;
 }
 
 /**
