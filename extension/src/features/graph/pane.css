@@ -131,3 +131,41 @@
     animation: none;
   }
 }
+
+/*
+ * Level-of-detail (LOD) chrome control.
+ *
+ * `LodController` writes `data-lod="far|mid|near"` onto the graph
+ * container based on zoom. Each TrailNode renders its full Card
+ * markup; these rules hide chunks of it via ancestor selectors so
+ * LOD transitions don't cost a React re-render per node.
+ *
+ * Prior implementation: TrailNode subscribed via `useStore(selectLod)`
+ * and rendered different JSX per LOD. On a 1808-node tree that meant
+ * 1808 re-renders per zoom-threshold cross. With CSS the work happens
+ * once per `data-lod` change on the parent — GPU-only.
+ *
+ * Tiers:
+ *   far  — viewport zoomed out (<0.15): only the Card frame is
+ *          visible, no inner text or chrome. The node still has hit
+ *          area but reads as a colored rectangle.
+ *   mid  — moderate zoom (<0.4): Card frame + title. Hide URL,
+ *          favicon, and badges.
+ *   near — default: everything visible.
+ */
+[data-lod="far"] [data-trail-card] > *,
+[data-lod="mid"] [data-trail-card] [data-lod-detail] {
+  display: none;
+}
+
+/* Suppress per-Card hover lift/transition at far-zoom — the user
+   can't see the effect anyway, and 50+ Cards under the cursor with
+   `hover:scale-[1.015]` running 150ms transitions is gratuitous
+   compositor work. */
+[data-lod="far"] [data-trail-card] {
+  transition: none;
+}
+[data-lod="far"] [data-trail-card]:hover {
+  transform: none;
+  box-shadow: none;
+}

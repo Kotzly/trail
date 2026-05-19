@@ -1,12 +1,11 @@
 import { memo, useEffect, useRef, useState } from "react";
-import { Handle, Position, useStore, useUpdateNodeInternals } from "@xyflow/react";
+import { Handle, Position, useUpdateNodeInternals } from "@xyflow/react";
 import type { TrailNodeData } from "../types.js";
 import { cn } from "@ui/lib/utils";
 import { Icons } from "@ui/components/icons";
 import { Badge } from "@ui/components/ui/badge";
 import { Card } from "@ui/components/ui/card";
 import { Input } from "@ui/components/ui/input";
-import { selectLod, showDetailAt, showLabelsAt } from "../lod.js";
 import { useInlineRename } from "./inline-rename-context.js";
 
 const hidden = { opacity: 0, width: 6, height: 6 } as const;
@@ -63,13 +62,13 @@ function TrailNodeComponent({
     spotlight,
   } = data;
 
-  // One xyflow subscription per node instead of two independent boolean
-  // selectors. Tri-state `selectLod` only flips twice per zoom gesture,
-  // so the overhead during panning/tweening is a single string-compare
-  // per node per frame.
-  const lod = useStore(selectLod);
-  const showLabels = showLabelsAt(lod);
-  const showDetail = showDetailAt(lod);
+  // LOD is driven by CSS rules targeting the `data-lod` attribute that
+  // `LodController` sets on the graph container (see pane.css). Each
+  // TrailNode used to call `useStore(selectLod)` itself — which meant
+  // ~1808 xyflow subscriptions all firing per zoom-threshold cross
+  // and ~1808 React re-renders to swap between the plain-rect and
+  // full-Card variants. Pulling the subscription out keeps the DOM
+  // static; CSS toggles visibility for free on the GPU.
 
   // When handles change (e.g. first child added → parent gains
   // `source-bottom`, or freshly mounted node registers `target-top`),
@@ -97,34 +96,6 @@ function TrailNodeComponent({
     .replace(/\/$/, "");
 
   const displayTitle = String(title) || displayUrl;
-
-  // LOD: minimal colored rectangle when zoomed way out
-  if (!showLabels) {
-    return (
-      <>
-        {handles.map((id) => (
-          <Handle
-            key={id}
-            id={id}
-            type={handleTypeMap[id]!}
-            position={handlePositionMap[id]!}
-            style={hidden}
-          />
-        ))}
-        <div
-          className={cn(
-            "h-[60px] w-[160px] border",
-            isOpen || isCurrent
-              ? "bg-foreground/20 border-foreground/30"
-              : "bg-foreground/10 border-foreground/15",
-            onActivePath && !isCurrent && isOpen && "bg-primary/15 border-primary/50",
-            isCurrent && "bg-primary/30 border-primary",
-            selected && "ring-ring ring-2",
-          )}
-        />
-      </>
-    );
-  }
 
   return (
     <>
@@ -157,27 +128,29 @@ function TrailNodeComponent({
           dragRole === "invalid-target" && "ring-destructive/70 opacity-80 ring-2",
         )}
       >
-        {showDetail &&
-          (favicon ? (
-            <span className="flex size-4 shrink-0 items-center justify-center">
-              <img
-                src={String(favicon)}
-                alt=""
-                className="size-4"
-                loading="lazy"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = "none";
-                }}
-              />
-            </span>
+        {/* `data-lod-detail` markers let pane.css hide non-essential
+            chrome at mid-zoom and everything but the Card frame at
+            far-zoom — no per-node React subscription required. */}
+        <span data-lod-detail className="flex size-4 shrink-0 items-center justify-center">
+          {favicon ? (
+            <img
+              src={String(favicon)}
+              alt=""
+              className="size-4"
+              loading="lazy"
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = "none";
+              }}
+            />
           ) : (
             <Icons.Globe
               className="text-muted-foreground/60 size-4 shrink-0"
               strokeWidth={1.75}
               aria-hidden
             />
-          ))}
-        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+          )}
+        </span>
+        <div data-lod-title className="flex min-w-0 flex-1 flex-col gap-0.5">
           {isRenaming ? (
             <InlineTitleEditor nodeId={nodeId} initialTitle={String(title)} />
           ) : (
@@ -188,93 +161,89 @@ function TrailNodeComponent({
               {displayTitle}
             </span>
           )}
-          {showDetail && (
-            <span className="text-muted-foreground truncate text-[6px] leading-tight">
-              {displayUrl}
-            </span>
+          <span data-lod-detail className="text-muted-foreground truncate text-[6px] leading-tight">
+            {displayUrl}
+          </span>
+        </div>
+        <div data-lod-detail className="flex shrink-0 flex-col items-end gap-0.5">
+          {tabCount > 1 && (
+            <Badge
+              variant="outline"
+              className="bg-primary/10 text-primary h-4 rounded border-transparent px-1 text-[9px] leading-none tabular-nums"
+            >
+              {tabCount}
+            </Badge>
+          )}
+          {pinned && (
+            <Badge
+              variant="outline"
+              aria-label="Pinned"
+              className="text-muted-foreground h-4 rounded border-transparent px-0.5"
+            >
+              <Icons.Pin className="size-2.5" aria-hidden />
+            </Badge>
+          )}
+          {isCollapsed && childCount > 0 && (
+            <Badge
+              asChild
+              variant="secondary"
+              className="hover:bg-accent hover:text-accent-foreground h-4 rounded px-1 text-[9px] leading-none tabular-nums"
+            >
+              <button
+                type="button"
+                aria-label={`${childCount} hidden children — click to expand`}
+                data-collapse-action="badge-toggle"
+              >
+                +{childCount}
+              </button>
+            </Badge>
+          )}
+          {wasExpandedViaBadge && !isCollapsed && (
+            <Badge
+              asChild
+              variant="secondary"
+              className="hover:bg-accent hover:text-accent-foreground h-4 rounded px-1 text-[9px] leading-none"
+            >
+              <button
+                type="button"
+                aria-label="Re-collapse children"
+                data-collapse-action="badge-toggle"
+              >
+                ↓
+              </button>
+            </Badge>
+          )}
+          {foldedAncestorCount > 0 && (
+            <Badge
+              asChild
+              variant="outline"
+              className="text-muted-foreground hover:bg-accent hover:text-accent-foreground h-4 rounded border-dashed px-1 text-[9px] leading-none tabular-nums"
+            >
+              <button
+                type="button"
+                aria-label={`${foldedAncestorCount} hidden steps — click to unfold`}
+                data-fold-action="toggle"
+              >
+                ⋯{foldedAncestorCount}
+              </button>
+            </Badge>
+          )}
+          {isChainUnfolded && (
+            <Badge
+              asChild
+              variant="outline"
+              className="text-primary/70 hover:bg-accent h-4 rounded border-dashed px-1 text-[9px] leading-none tabular-nums"
+            >
+              <button
+                type="button"
+                aria-label="Chain unfolded — click to refold"
+                data-fold-action="toggle"
+              >
+                ⇡
+              </button>
+            </Badge>
           )}
         </div>
-        {showDetail && (
-          <div className="flex shrink-0 flex-col items-end gap-0.5">
-            {tabCount > 1 && (
-              <Badge
-                variant="outline"
-                className="bg-primary/10 text-primary h-4 rounded border-transparent px-1 text-[9px] leading-none tabular-nums"
-              >
-                {tabCount}
-              </Badge>
-            )}
-            {pinned && (
-              <Badge
-                variant="outline"
-                aria-label="Pinned"
-                className="text-muted-foreground h-4 rounded border-transparent px-0.5"
-              >
-                <Icons.Pin className="size-2.5" aria-hidden />
-              </Badge>
-            )}
-            {isCollapsed && childCount > 0 && (
-              <Badge
-                asChild
-                variant="secondary"
-                className="hover:bg-accent hover:text-accent-foreground h-4 rounded px-1 text-[9px] leading-none tabular-nums"
-              >
-                <button
-                  type="button"
-                  aria-label={`${childCount} hidden children — click to expand`}
-                  data-collapse-action="badge-toggle"
-                >
-                  +{childCount}
-                </button>
-              </Badge>
-            )}
-            {wasExpandedViaBadge && !isCollapsed && (
-              <Badge
-                asChild
-                variant="secondary"
-                className="hover:bg-accent hover:text-accent-foreground h-4 rounded px-1 text-[9px] leading-none"
-              >
-                <button
-                  type="button"
-                  aria-label="Re-collapse children"
-                  data-collapse-action="badge-toggle"
-                >
-                  ↓
-                </button>
-              </Badge>
-            )}
-            {foldedAncestorCount > 0 && (
-              <Badge
-                asChild
-                variant="outline"
-                className="text-muted-foreground hover:bg-accent hover:text-accent-foreground h-4 rounded border-dashed px-1 text-[9px] leading-none tabular-nums"
-              >
-                <button
-                  type="button"
-                  aria-label={`${foldedAncestorCount} hidden steps — click to unfold`}
-                  data-fold-action="toggle"
-                >
-                  ⋯{foldedAncestorCount}
-                </button>
-              </Badge>
-            )}
-            {isChainUnfolded && (
-              <Badge
-                asChild
-                variant="outline"
-                className="text-primary/70 hover:bg-accent h-4 rounded border-dashed px-1 text-[9px] leading-none tabular-nums"
-              >
-                <button
-                  type="button"
-                  aria-label="Chain unfolded — click to refold"
-                  data-fold-action="toggle"
-                >
-                  ⇡
-                </button>
-              </Badge>
-            )}
-          </div>
-        )}
       </Card>
     </>
   );
