@@ -4,10 +4,11 @@ import type { NodeId } from "@shared/types/ids.js";
 import type { LayoutMode } from "@shared/types/settings.js";
 import { browser } from "@shared/platform/webext.js";
 import { redo, undo } from "../../api/commands.js";
-import { navigateTo, setCurrentNode } from "../../api/tree.js";
+import { navigateToNodeId, setCurrentNode } from "../../api/tree.js";
 import { saveSettings } from "../../api/settings.js";
 import { bulkPin, bulkUnpin, fireAndForget, openInNewTab, togglePin } from "../../api/actions.js";
 import { useStore } from "../state/store.js";
+import { getNode, getParent, iter } from "../state/tree-index.js";
 import { IS_MAC_PLATFORM } from "@ui/components/shortcut";
 import { requestDelete } from "./useDeleteFlow.js";
 
@@ -31,7 +32,7 @@ const getFocusBaseId = (state: Store): NodeId | null => {
   }
   if (state.graph.hoverNodeId) return state.graph.hoverNodeId;
   if (state.currentNodeId) return state.currentNodeId;
-  return state.tree?.getRoot?.()?.id ?? null;
+  return state.treeIndex.rootId;
 };
 
 const getTargetNodeIds = (state: Store): NodeId[] => {
@@ -61,29 +62,29 @@ const overlayOpen = (state: Store) =>
   Boolean(state.syncConflict);
 
 async function moveFocus(state: Store, direction: "parent" | "child" | "prev" | "next") {
-  const tree = state.tree;
-  if (!tree) return;
+  const idx = state.treeIndex;
+  if (idx.size === 0) return;
   const baseId = getFocusBaseId(state);
   if (!baseId) return;
-  const node = tree.findNodeById(baseId);
+  const node = getNode(idx, baseId);
   if (!node) return;
 
   let next: { id: NodeId } | null = null;
-  if (direction === "parent") next = node.getParent?.() ?? null;
-  else if (direction === "child") next = node.getChildren?.()[0] ?? null;
+  if (direction === "parent") next = getParent(idx, node.id);
+  else if (direction === "child") next = node.children[0] ?? null;
   else {
-    const parent = node.getParent?.() ?? null;
+    const parent = getParent(idx, node.id);
     if (!parent) return;
-    const siblings = parent.getChildren?.() ?? [];
-    const idx = siblings.findIndex((entry) => entry.id === node.id);
-    if (idx === -1) return;
+    const siblings = parent.children;
+    const pos = siblings.findIndex((entry) => entry.id === node.id);
+    if (pos === -1) return;
     const target =
       direction === "prev"
-        ? idx > 0
-          ? siblings[idx - 1]
+        ? pos > 0
+          ? siblings[pos - 1]
           : null
-        : idx < siblings.length - 1
-          ? siblings[idx + 1]
+        : pos < siblings.length - 1
+          ? siblings[pos + 1]
           : null;
     next = target ?? null;
   }
@@ -96,14 +97,14 @@ async function moveFocus(state: Store, direction: "parent" | "child" | "prev" | 
 }
 
 function togglePinned(state: Store, nodeIds: NodeId[]) {
-  const tree = state.tree;
-  if (!tree || nodeIds.length === 0) return;
+  const idx = state.treeIndex;
+  if (idx.size === 0 || nodeIds.length === 0) return;
   if (nodeIds.length === 1) {
     const [nodeId] = nodeIds;
     if (nodeId) fireAndForget(togglePin(nodeId), "toggle pin");
     return;
   }
-  const nodes = nodeIds.map((id) => tree.findNodeById(id)).filter(Boolean);
+  const nodes = nodeIds.map((id) => getNode(idx, id)).filter(Boolean);
   if (nodes.length === 0) return;
   const allPinned = nodes.every((node) => node?.data.pinned);
   fireAndForget(allPinned ? bulkUnpin(nodeIds) : bulkPin(nodeIds), "bulk pin toggle");
@@ -116,10 +117,10 @@ function deleteNodes(state: Store, nodeIds: NodeId[], recursive: boolean) {
 }
 
 function selectAllNodes(state: Store) {
-  const tree = state.tree;
-  if (!tree) return;
+  const idx = state.treeIndex;
+  if (idx.size === 0) return;
   const ids = new Set<NodeId>();
-  for (const node of tree.iter()) ids.add(node.id);
+  for (const node of iter(idx)) ids.add(node.id);
   state.setSelectedNodeIds(ids);
 }
 
@@ -148,13 +149,13 @@ function openHubPage() {
 }
 
 async function openFocusedNode(state: Store) {
-  const tree = state.tree;
+  const idx = state.treeIndex;
   const [firstId] = getTargetNodeIds(state);
-  if (!tree || !firstId) return;
-  const node = tree.findNodeById(firstId);
+  if (idx.size === 0 || !firstId) return;
+  const node = getNode(idx, firstId);
   if (!node) return;
   try {
-    await navigateTo(node);
+    await navigateToNodeId(node.id, node.data.url);
   } catch (error) {
     console.error("Failed to navigate:", error);
   }

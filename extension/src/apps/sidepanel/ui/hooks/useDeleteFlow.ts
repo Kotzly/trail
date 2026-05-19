@@ -68,7 +68,7 @@ function describeNodeToast(args: {
 export async function requestDelete(intent: DeleteIntent, opts?: RequestOpts): Promise<void> {
   const source: DeleteSource = opts?.source ?? "context";
   const state = useStore.getState();
-  const { tree, graph, nodeTabCounts, trees } = state;
+  const { treeIndex, graph, nodeTabCounts, trees } = state;
 
   if (intent.kind === "node" && intent.nodeIds.length === 0) return;
 
@@ -76,7 +76,7 @@ export async function requestDelete(intent: DeleteIntent, opts?: RequestOpts): P
   // delete (deleting the root via node-RPC would leave a stub of an
   // empty tree, which P0c flow specifically avoids).
   if (intent.kind === "node") {
-    const rootInSelection = getIncludedRootId(tree, intent.nodeIds);
+    const rootInSelection = getIncludedRootId(treeIndex, intent.nodeIds);
     if (rootInSelection && trees.active?.id) {
       return requestDelete({ kind: "tree", treeId: trees.active.id }, opts);
     }
@@ -134,9 +134,9 @@ export async function requestDelete(intent: DeleteIntent, opts?: RequestOpts): P
   // intent.kind === "node"
   const resolved = resolveDeleteTarget(intent, graph.collapsedNodeIds);
   if (resolved.kind !== "node") return;
-  const counts = countDeletedForIntent(tree, resolved);
+  const counts = countDeletedForIntent(treeIndex, resolved);
   const tabCount = countOpenTabsForDelete(
-    tree,
+    treeIndex,
     resolved.nodeIds,
     nodeTabCounts,
     resolved.recursive ? "subtree" : "self",

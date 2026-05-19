@@ -1,4 +1,3 @@
-import type { NavigationNode } from "@shared/types/node.js";
 import type { NodeId, TabId, Url } from "@shared/types/ids.js";
 import {
   type BeginTempSelectionInput,
@@ -11,13 +10,6 @@ import {
 } from "../../../shared/rpc/contracts.js";
 import { treeService } from "@shared/transport/proxy-clients.js";
 import type { TrailExportBundle } from "@shared/types/export.js";
-
-export async function navigateTo(node: NavigationNode): Promise<void> {
-  await treeService.navigateTo({
-    nodeId: node.id,
-    ...(node.data.url ? { url: node.data.url } : {}),
-  });
-}
 
 export async function navigateToNodeId(nodeId: NodeId, url?: Url): Promise<void> {
   await treeService.navigateTo({ nodeId, ...(url ? { url } : {}) });

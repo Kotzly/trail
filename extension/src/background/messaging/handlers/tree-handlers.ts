@@ -427,7 +427,7 @@ export async function openTreeAndFocusNode(treeId: string, nodeId: NodeId): Prom
   const record = await treeStorage.takeStoredTree(treeId);
   if (!record) throw new Error("Tree not found");
 
-  const nextTree = NavigationTreeMapper.fromJSON(record.tree);
+  const nextTree = NavigationTreeMapper.fromTrustedJSON(record.tree);
   const targetNode = nextTree.findNodeById(nodeId);
   if (!targetNode) throw new Error("Node not found");
 
@@ -649,7 +649,7 @@ export const treeHandlers = defineRpcHandlers({
         "Tree data is missing on this device — the local index is stale. Try re-syncing by opening and closing the trees list.",
       );
     }
-    const nextTree = NavigationTreeMapper.fromJSON(record.tree);
+    const nextTree = NavigationTreeMapper.fromTrustedJSON(record.tree);
     const meta: TreeMeta = {
       id: record.id,
       label: record.label,
@@ -778,7 +778,7 @@ export const treeHandlers = defineRpcHandlers({
       // Stash whatever fresh tree is currently active (likely empty —
       // the one DELETE_TREE seeded), then re-attach the restored tree.
       await treeStorage.stashActiveTree();
-      const restored = NavigationTreeMapper.fromJSON(snap.tree);
+      const restored = NavigationTreeMapper.fromTrustedJSON(snap.tree);
       await treeStorage.setActiveTree(restored, snap.meta);
       await treeStorage.flushSaveNow();
       await notifyTreeUpdate(restored, "tree-reset");
@@ -1014,7 +1014,7 @@ export const treeHandlers = defineRpcHandlers({
 
     const label = bundle.source.treeLabel ?? "Imported Trail";
     const meta = treeStorage.createMeta(label);
-    const nextTree = NavigationTreeMapper.fromJSON(bundle.tree);
+    const nextTree = NavigationTreeMapper.fromUntrustedJSON(bundle.tree);
 
     await switchTree(nextTree, meta, nextTree.getRoot()?.data.url ?? null);
 

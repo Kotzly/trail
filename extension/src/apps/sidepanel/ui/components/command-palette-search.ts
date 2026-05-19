@@ -1,5 +1,5 @@
 import MiniSearch from "minisearch";
-import type { NavigationTree } from "@background/state/nav-tree.js";
+import { iter, type TreeIndex } from "../state/tree-index.js";
 import type { NodeId } from "@shared/types/ids.js";
 
 export type IndexEntry = {
@@ -18,9 +18,9 @@ const RECENCY_HALFLIFE_MS = 14 * 24 * 60 * 60 * 1000;
 const DEFAULT_TOP = 20;
 
 /**
- * Command-palette search over a NavigationTree. MiniSearch handles the
- * text matching (prefix, fuzzy, title boost); a per-entry baseScore
- * (visit frequency + exp-decay recency) is added on top so that two
+ * Command-palette search over a TreeIndex. MiniSearch handles the text
+ * matching (prefix, fuzzy, title boost); a per-entry baseScore (visit
+ * frequency + exp-decay recency) is added on top so that two
  * equally-matched entries rank by usage. Empty queries skip MiniSearch
  * entirely and return a precomputed top-N by baseScore.
  */
@@ -29,8 +29,8 @@ export class SearchIndex {
   private readonly mini: MiniSearch<IndexEntry>;
   readonly topByBase: readonly IndexEntry[];
 
-  constructor(tree: NavigationTree, now: number = Date.now()) {
-    const entries = build(tree, now);
+  constructor(idx: TreeIndex, now: number = Date.now()) {
+    const entries = build(idx, now);
     this.entries = new Map(entries.map((e) => [e.id, e]));
     this.topByBase = topK(entries, DEFAULT_TOP);
 
@@ -68,9 +68,9 @@ export class SearchIndex {
   }
 }
 
-function build(tree: NavigationTree, now: number): IndexEntry[] {
+function build(idx: TreeIndex, now: number): IndexEntry[] {
   const entries: IndexEntry[] = [];
-  for (const node of tree.iter()) {
+  for (const node of iter(idx)) {
     const title = String(node.data.title ?? node.data.url ?? "Untitled");
     const url = String(node.data.url ?? "");
     const freq = typeof node.data.visitCount === "number" ? node.data.visitCount : 0;

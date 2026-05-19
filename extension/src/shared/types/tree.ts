@@ -59,5 +59,3 @@ export type TreeIndexEntry = TreeSummary | TreeStub;
 export function isTreeStub(entry: TreeIndexEntry): entry is TreeStub {
   return "stub" in entry && entry.stub === true;
 }
-
-export { isNavigationTreeJSON } from "../schemas/node.js";

@@ -1,5 +1,5 @@
-import type { NavigationTree } from "@background/state/nav-tree.js";
 import type { NodeId } from "@shared/types/ids.js";
+import { getNode, type TreeIndex } from "../state/tree-index.js";
 
 /**
  * Intent passed to `useDeleteFlow.request`. The hook resolves this
@@ -61,10 +61,10 @@ export function resolveDeleteTarget(
  * For tree-kind: returns 0 (the toast uses the tree label, not a count).
  */
 export function countDeletedForIntent(
-  tree: NavigationTree | null,
+  idx: TreeIndex,
   intent: ResolvedDeleteIntent,
 ): { direct: number; hidden: number } {
-  if (!tree || intent.kind !== "node") return { direct: 0, hidden: 0 };
+  if (idx.size === 0 || intent.kind !== "node") return { direct: 0, hidden: 0 };
   const seen = new Set<NodeId>();
   let direct = 0;
   let hidden = 0;
@@ -83,8 +83,8 @@ export function countDeletedForIntent(
     } else {
       hidden += 1;
     }
-    const node = tree.findNodeById(id);
-    for (const child of node?.getChildren?.() ?? []) {
+    const node = getNode(idx, id);
+    for (const child of node?.children ?? []) {
       addSubtree(child.id, false);
     }
   };

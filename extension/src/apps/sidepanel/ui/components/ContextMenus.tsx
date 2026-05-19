@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useClipboard } from "@ui/hooks/use-clipboard";
 import type { NodeId, TabId, Url } from "@shared/types/ids.js";
 import { getFaviconUrl } from "@shared/utils/favicon.js";
-import { navigateTo } from "../../api/tree.js";
+import { navigateToNodeId } from "../../api/tree.js";
+import { getNode } from "../state/tree-index.js";
 import { getTabsForNodeMessage } from "../../api/tabs.js";
 import {
   bulkCloseTabs,
@@ -43,12 +44,12 @@ export default function ContextMenus() {
   const contextMenu = useStore((state) => state.contextMenu);
   useOverlayEffects(Boolean(contextMenu), { kind: "context" });
 
-  const tree = useStore((state) => state.tree);
+  const treeIndex = useStore((state) => state.treeIndex);
 
   if (!contextMenu) return null;
 
   if (contextMenu.type === "node") {
-    const node = tree?.findNodeById(contextMenu.nodeId);
+    const node = getNode(treeIndex, contextMenu.nodeId);
     if (!node) return null;
     return (
       <NodeContextMenu
@@ -220,7 +221,7 @@ type NodeMenuProps = { nodeId: NodeId; position: { x: number; y: number } };
 function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
   const closeContextMenu = useStore((state) => state.closeContextMenu);
   const setHoverNodeId = useStore((state) => state.setHoverNodeId);
-  const tree = useStore((state) => state.tree);
+  const treeIndex = useStore((state) => state.treeIndex);
   const treeJSON = useStore((state) => state.treeJSON);
   const collapsedNodeIds = useStore((state) => state.graph.collapsedNodeIds);
   const unfoldedChainIds = useStore((state) => state.graph.unfoldedChainIds);
@@ -230,7 +231,7 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
   const toggleChainUnfolded = useStore((state) => state.toggleChainUnfolded);
   const trees = useStore((state) => state.trees);
   const { request: requestDelete } = useDeleteFlow();
-  const node = tree?.findNodeById(nodeId);
+  const node = getNode(treeIndex, nodeId);
   const [tabs, setTabs] = useState<Tab[]>([]);
   const { copy: copyToClipboard } = useClipboard();
 
@@ -278,8 +279,8 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
 
   const hasOpenTab = tabs.length > 0;
   const hasTitle = Boolean(node.data.title && node.data.title.trim().length > 0);
-  const hasChildren = (node.getChildren?.() ?? []).length > 0;
-  const isRoot = node.isRoot();
+  const hasChildren = node.children.length > 0;
+  const isRoot = treeIndex.rootId === nodeId;
   const isCollapsed = collapsedNodeIds.has(nodeId);
 
   const closeAllTabsForNode = () => {
@@ -301,7 +302,7 @@ function NodeContextMenu({ nodeId, position }: NodeMenuProps) {
         <DropdownMenuItem
           onSelect={async () => {
             try {
-              await navigateTo(node);
+              await navigateToNodeId(node.id, node.data.url);
             } catch (error) {
               showOperationError(i18n.t("menus.openPageOp"), error);
             }
@@ -495,7 +496,7 @@ type BulkMenuProps = { nodeIds: NodeId[]; position: { x: number; y: number } };
 function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
   const closeContextMenu = useStore((state) => state.closeContextMenu);
   const clearSelection = useStore((state) => state.clearSelection);
-  const tree = useStore((state) => state.tree);
+  const treeIndex = useStore((state) => state.treeIndex);
   const collapsedNodeIds = useStore((state) => state.graph.collapsedNodeIds);
   const collapseNodes = useStore((state) => state.collapseNodes);
   const expandNodes = useStore((state) => state.expandNodes);
@@ -503,19 +504,17 @@ function BulkContextMenu({ nodeIds, position }: BulkMenuProps) {
   const { copy: copyToClipboard } = useClipboard();
 
   const selectedNodes = useMemo(() => {
-    if (!tree) return [];
+    if (treeIndex.size === 0) return [];
     return nodeIds
-      .map((id) => tree.findNodeById(id))
+      .map((id) => getNode(treeIndex, id))
       .filter((node): node is NonNullable<typeof node> => Boolean(node));
-  }, [nodeIds, tree]);
+  }, [nodeIds, treeIndex]);
 
   const allPinned = selectedNodes.length > 0 && selectedNodes.every((node) => node.data.pinned);
 
   const collapseCandidates = useMemo(
     () =>
-      selectedNodes.filter(
-        (node) => (node.getChildren?.() ?? []).length > 0 && !collapsedNodeIds.has(node.id),
-      ),
+      selectedNodes.filter((node) => node.children.length > 0 && !collapsedNodeIds.has(node.id)),
     [collapsedNodeIds, selectedNodes],
   );
   const expandCandidates = useMemo(

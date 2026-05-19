@@ -86,20 +86,23 @@ export default function CommandPalette() {
  * Mounted only while the dialog is open. Owns the input/query state, so
  * it resets naturally when Radix unmounts the portal on close.
  *
- * Index lifecycle: built once per tree reference (the store hands us a
- * fresh `NavigationTree` on every applyTreeState — see store.ts), cached
+ * Index lifecycle: built once per treeIndex reference (the store hands
+ * us a fresh `TreeIndex` on every applyTreeState — see store.ts), cached
  * by useMemo. Filtering and ranking happen inside the index; this
  * component just plumbs the deferred query through and renders results.
  */
 function PaletteBody({ onClose }: { onClose: () => void }) {
-  const tree = useStore((s) => s.tree);
+  const treeIndex = useStore((s) => s.treeIndex);
   const currentNodeId = useStore((s) => s.currentNodeId);
   const selectedNodeIds = useStore((s) => s.graph.selectedNodeIds);
   const activeTreeId = useStore((s) => s.trees.active?.id ?? null);
   const { request: requestDelete } = useDeleteFlow();
   const [query, setQuery] = useState("");
 
-  const index = useMemo(() => (tree ? new SearchIndex(tree) : null), [tree]);
+  const index = useMemo(
+    () => (treeIndex.size > 0 ? new SearchIndex(treeIndex) : null),
+    [treeIndex],
+  );
 
   // useDeferredValue keeps the input snappy: React commits the new query
   // value first as urgent, then schedules the re-rank as low priority.

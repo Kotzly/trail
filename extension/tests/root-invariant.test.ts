@@ -153,7 +153,7 @@ function testFromJsonWithNtpRootIsNoop(): void {
     nodeCount: 2,
   };
 
-  const tree = NavigationTreeMapper.fromJSON(json);
+  const tree = NavigationTreeMapper.fromTrustedJSON(json);
   assert(tree.getRoot(), "root exists");
   assert.equal(tree.getRoot()!.id, rootJson.id, "NTP root id is preserved — no wrap");
   assert.equal(tree.size(), 2, "node count unchanged");
@@ -172,7 +172,7 @@ function testFromJsonWrapsNonNtpRoot(): void {
     nodeCount: 3,
   };
 
-  const tree = NavigationTreeMapper.fromJSON(json);
+  const tree = NavigationTreeMapper.fromTrustedJSON(json);
   const root = tree.getRoot();
   assert(root, "root exists");
   assert.equal(root.data.url, NEW_TAB_ROOT_URL, "synthetic NTP wrapper is root");
@@ -199,7 +199,7 @@ function testFromJsonPreservesCurrentNodeIdAfterWrap(): void {
     nodeCount: 1,
   };
 
-  const tree = NavigationTreeMapper.fromJSON(json);
+  const tree = NavigationTreeMapper.fromTrustedJSON(json);
   const current = tree.getCurrent();
   assert(current, "current resolves");
   assert.equal(current.id, originalRoot.id, "current still points at old root by id");
@@ -220,7 +220,7 @@ function testFromJsonWithMissingCurrentFallsBackToRoot(): void {
     nodeCount: 1,
   };
 
-  const tree = NavigationTreeMapper.fromJSON(json);
+  const tree = NavigationTreeMapper.fromTrustedJSON(json);
   const current = tree.getCurrent();
   assert(current, "current resolves to fallback");
   assert.equal(current.id, tree.getRoot()!.id, "falls back to the wrapper root");
@@ -229,7 +229,7 @@ function testFromJsonWithMissingCurrentFallsBackToRoot(): void {
 
 function testFromJsonEmptyTreeReturnsEmpty(): void {
   const json: NavigationTreeJSON = { root: null, currentNodeId: null, nodeCount: 0 };
-  const tree = NavigationTreeMapper.fromJSON(json);
+  const tree = NavigationTreeMapper.fromTrustedJSON(json);
   assert.equal(tree.getRoot(), null, "empty tree stays empty");
   assert.equal(tree.size(), 0, "no nodes");
   console.log("  fromJSON(empty) stays empty: OK");
@@ -245,7 +245,7 @@ function testToJsonFromJsonRoundTrip(): void {
   tree.navigate(dataFor("https://example.com/child", "Child"));
 
   const json = NavigationTreeMapper.toJSON(tree);
-  const rebuilt = NavigationTreeMapper.fromJSON(json);
+  const rebuilt = NavigationTreeMapper.fromTrustedJSON(json);
 
   assert.equal(rebuilt.size(), tree.size(), "size preserved");
   assert.equal(rebuilt.getRoot()!.data.url, NEW_TAB_ROOT_URL, "root is NTP");

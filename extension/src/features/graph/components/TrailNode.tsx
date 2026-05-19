@@ -33,18 +33,6 @@ const handleTypeMap: Record<string, "source" | "target"> = {
   "source-right": "source",
 };
 
-/**
- * Cache of the handlesKey we last passed to `updateNodeInternals(id)`
- * per node id, lifetime of the page. Skipping the xyflow call when
- * handles haven't actually changed avoids the global store set({})
- * cascade — that wakes every useStore subscriber and is the dominant
- * cost behind remount-driven pan jank. First sighting of an id always
- * falls through (cache miss), preserving the original bug fix where
- * a node with brand-new handles needs an internals refresh so incident
- * edges can be drawn.
- */
-const lastHandlesKeyById = new Map<string, string>();
-
 function TrailNodeComponent({
   id,
   data,
@@ -89,15 +77,18 @@ function TrailNodeComponent({
   // Without this, a new parent→child edge stays invisible until the
   // viewport re-culls it (pan/zoom), which was the reported bug.
   //
-  // The module-level cache above skips the call when the handles
-  // string is identical to the last one we passed for this id —
-  // remounts (collapse/expand, lifecycle return) no longer trigger
-  // the global store set({}) cascade.
+  // Skip the call on initial mount: React Flow measures handles
+  // automatically during the first commit using the initial node
+  // data. On a big tree (5k+ nodes) the cascading per-node calls
+  // serialize across ~1 frame each and turn cold sidepanel open into
+  // an 8+ second rAF cascade. Only fire when handlesKey CHANGES
+  // post-mount.
   const handlesKey = handles.join("|");
   const updateNodeInternals = useUpdateNodeInternals();
+  const firstHandlesKeyRef = useRef(handlesKey);
   useEffect(() => {
-    if (lastHandlesKeyById.get(id) === handlesKey) return;
-    lastHandlesKeyById.set(id, handlesKey);
+    if (firstHandlesKeyRef.current === handlesKey) return;
+    firstHandlesKeyRef.current = handlesKey;
     updateNodeInternals(id);
   }, [id, handlesKey, updateNodeInternals]);
 

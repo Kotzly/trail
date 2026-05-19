@@ -1,12 +1,12 @@
 import { memo, useCallback, useMemo } from "react";
 import { i18n } from "#i18n";
-import type { NavigationNode, NodeData } from "@shared/types/node.js";
-import type { TreeNode } from "@background/state/tree-node.js";
+import type { NavigationNodeJSON } from "@shared/types/node.js";
 import type { NodeId } from "@shared/types/ids.js";
 import { getFaviconUrl } from "@shared/utils/favicon.js";
-import { navigateTo } from "../../api/tree.js";
+import { navigateToNodeId } from "../../api/tree.js";
 import { togglePin } from "../../api/actions.js";
 import { useStore } from "../state/store.js";
+import { getNode } from "../state/tree-index.js";
 import { useOverlayEffects } from "../state/overlay-effects.js";
 import { Icons } from "./Icon.js";
 import { showOperationError } from "../shared/show-operation-error.js";
@@ -39,33 +39,42 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@ui/components/ui/popover";
 import { ButtonTooltip } from "@ui/components/button-tooltip";
 
-type NavNode = TreeNode<NodeData> | NavigationNode;
+type NavNode = NavigationNodeJSON;
 
 const PINNED_KEYS = ["shift", "P"] as const;
 const SEARCH_THRESHOLD = 6;
 
 export default function PinnedDropdown() {
-  const pins = useStore((s) => s.pins);
-  const tree = useStore((s) => s.tree);
+  const treeIndex = useStore((s) => s.treeIndex);
   const open = useStore((s) => s.ui.pinnedOpen);
   const setOpen = useStore((s) => s.setPinnedOpen);
 
   useOverlayEffects(open, { kind: "dropdown" });
 
-  const pinnedNodes = useMemo<NavNode[]>(() => (pins ? Array.from(pins.pinned) : []), [pins]);
+  // `pinnedIndex` insertion order is pre-order DFS (parent before
+  // children, left-to-right) — preserves the visual ordering the old
+  // `Array.from(pins.pinned)` Set produced via tree.iter()-based walk.
+  const pinnedNodes = useMemo<NavNode[]>(() => {
+    const out: NavNode[] = [];
+    treeIndex.pinnedIndex.forEach((id) => {
+      const node = getNode(treeIndex, id);
+      if (node) out.push(node);
+    });
+    return out;
+  }, [treeIndex]);
 
   const handleNavigate = useCallback(
     async (nodeId: NodeId) => {
-      const node = tree?.findNodeById(nodeId);
+      const node = getNode(treeIndex, nodeId);
       if (!node) return;
       try {
-        await navigateTo(node);
+        await navigateToNodeId(node.id, node.data.url);
         setOpen(false);
       } catch (error) {
         showOperationError(i18n.t("sidepanel.operations.openPage"), error);
       }
     },
-    [tree, setOpen],
+    [treeIndex, setOpen],
   );
 
   const handleUnpin = useCallback(async (nodeId: NodeId) => {

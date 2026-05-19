@@ -134,6 +134,38 @@ function testLegacyImportsAreGone(): void {
   console.log('  import boundaries: OK');
 }
 
+// Sidepanel must not depend on background OOP tree internals — the
+// store has been rewritten to consume `treeJSON` + a precomputed
+// TreeIndex, and consumers read from there. Re-introducing an import
+// would reintroduce per-node Zod safeParse + TreeNode allocation on
+// every cold open.
+const SIDEPANEL_FORBIDDEN_BACKGROUND_IMPORTS = [
+  '@background/state/nav-tree',
+  '@background/state/pinned',
+];
+
+function testSidepanelBackgroundBoundary(): void {
+  const sidepanelDir = join(SRC_DIR, 'apps', 'sidepanel');
+  const offenders: string[] = [];
+
+  for (const file of listSourceFiles(sidepanelDir)) {
+    const content = readFileSync(file, 'utf8');
+    const hit = SIDEPANEL_FORBIDDEN_BACKGROUND_IMPORTS.find((pattern) =>
+      content.includes(pattern),
+    );
+    if (hit) {
+      offenders.push(`${relative(ROOT, file)} -> ${hit}`);
+    }
+  }
+
+  assert.deepEqual(
+    offenders,
+    [],
+    `sidepanel must not import background OOP tree internals:\n${offenders.join('\n')}`,
+  );
+  console.log('  sidepanel/background boundary: OK');
+}
+
 function testProdManifestNoDev(): void {
   const manifestPath = join(ROOT, '.output', 'chrome-mv3', 'manifest.json');
 
@@ -166,6 +198,7 @@ function run(): void {
   testPackageRootHygiene();
   testEntrypointsStayThin();
   testLegacyImportsAreGone();
+  testSidepanelBackgroundBoundary();
   testProdManifestNoDev();
 }
 

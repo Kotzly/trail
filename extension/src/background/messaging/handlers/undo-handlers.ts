@@ -5,7 +5,7 @@ import { CommandManager } from "@shared/lib/commands.js";
 import { NavigationTreeMapper } from "@shared/lib/mapper.js";
 import { tabManager } from "../../state/tab-manager.js";
 async function applyTree(json: ReturnType<typeof NavigationTreeMapper.toJSON>): Promise<void> {
-  const tree = NavigationTreeMapper.fromJSON(json);
+  const tree = NavigationTreeMapper.fromTrustedJSON(json);
 
   // Cache the restored tree FIRST so any reader under the lock sees
   // the new shape. Previously syncOpenTabs ran before cacheTree,

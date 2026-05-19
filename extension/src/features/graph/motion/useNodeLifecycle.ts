@@ -79,6 +79,18 @@ export function useNodeLifecycle(nodes: readonly TrailNode[], enabled: boolean):
     const currentIds = new Set(nodes.map((n) => n.id));
     const prevIds = prevIdsRef.current;
 
+    // Bootstrap paint: every node is "new" only because we just
+    // mounted. Treating the cohort as `entering` triggers 1 CSS
+    // animation per node + a style recalc/layout-tree cascade — on a
+    // 5k+ tree that adds ~5s of main-thread work for what is
+    // semantically not an entry event. Pass through unchanged on the
+    // very first render; seed prevIdsRef so subsequent diffs work.
+    if (prevIds.size === 0 && currentIds.size > 0) {
+      for (const node of nodes) lastSnapshotRef.current.set(node.id, node);
+      prevIdsRef.current = currentIds;
+      return nodes as TrailNode[];
+    }
+
     // Classify newcomers — entering vs returning.
     const enteringIds: string[] = [];
     const returningIds: string[] = [];

@@ -1,6 +1,5 @@
 import { z } from "zod";
-import type { NodeData, NavigationNodeJSON } from "@shared/types/node.js";
-import type { NavigationTreeJSON } from "@shared/types/tree.js";
+import type { NavigationNodeJSON, NodeData } from "@shared/types/node.js";
 
 const finiteNumber = z.number().refine(Number.isFinite);
 
@@ -42,22 +41,51 @@ export const nodeDataSchema = z
       }) as NodeData,
   );
 
-export function normalizeNodeData(raw: unknown): NodeData {
+/**
+ * Full Zod-backed validation + normalization. Use ONLY for inputs from
+ * trust boundaries:
+ *   - sync pull from server (Supabase row payloads)
+ *   - import bundles (file/export upload)
+ *
+ * On parse failure, retries once with `visitCount` stripped before
+ * falling through to the empty default. Without this, a single bad
+ * `visitCount: 0` (or negative) from a malformed payload wipes the
+ * entire node (url, title, tags blank) — the old `normalizeNodeData`
+ * had this footgun. The retry preserves the rest of the node and just
+ * drops the offending counter.
+ */
+export function validateNodeData(raw: unknown): NodeData {
   const candidate =
     raw && typeof raw === "object" && "data" in raw ? (raw as { data: unknown }).data : raw;
   const parsed = nodeDataSchema.safeParse(candidate);
   if (parsed.success) return parsed.data;
+
+  if (candidate && typeof candidate === "object") {
+    const rest: Record<string, unknown> = { ...(candidate as Record<string, unknown>) };
+    delete rest.visitCount;
+    const retry = nodeDataSchema.safeParse(rest);
+    if (retry.success) return retry.data;
+  }
   return nodeDataSchema.parse({});
 }
 
-export const navigationTreeJSONSchema = z.object({
-  root: z.unknown().nullable(),
-  currentNodeId: z.union([z.number(), z.null()]),
-  nodeCount: finiteNumber,
-});
-
-export function isNavigationTreeJSON(value: unknown): value is NavigationTreeJSON {
-  return navigationTreeJSONSchema.safeParse(value).success;
+/**
+ * Fast-path normalizer for trusted inputs — SW cold-load from local
+ * storage, undo restore, in-process serialize→deserialize round trips.
+ *
+ * The data was produced by `toJSON` (or written through the same
+ * pipeline) so its shape is already canonical: `pinned: boolean`,
+ * `tags: string[]`, strings present where required.
+ *
+ * The one-branch defaults guard against legacy active-blob storage
+ * written before the current schema landed (`pinned` or `tags` may be
+ * absent). On already-canonical input the function returns the source
+ * data by reference — zero allocation, branch-predictable.
+ */
+export function normalizeNodeDataTrusted(json: NavigationNodeJSON): NodeData {
+  const d = json.data;
+  if (d.pinned !== undefined && d.tags !== undefined) return d;
+  return { ...d, pinned: d.pinned ?? false, tags: d.tags ?? [] };
 }
 
 export type NodeDataInput = z.input<typeof nodeDataSchema>;

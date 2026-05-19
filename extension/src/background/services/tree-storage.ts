@@ -383,7 +383,7 @@ class TreeStorageService {
           return tree;
         }
 
-        this.cachedTree = NavigationTreeMapper.fromJSON(json);
+        this.cachedTree = NavigationTreeMapper.fromTrustedJSON(json);
         return this.cachedTree;
       } catch (error) {
         log.error("Error loading tree", {

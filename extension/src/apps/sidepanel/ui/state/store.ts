@@ -11,9 +11,7 @@ import type {
 } from "@shared/rpc/contracts.js";
 
 export type SyncStatus = "idle" | "saving" | "saved" | "error";
-import { NavigationTreeMapper } from "@shared/lib/mapper.js";
-import type { NavigationTree } from "@background/state/nav-tree.js";
-import { PinnedManager } from "@background/state/pinned.js";
+import { buildTreeIndex, EMPTY_TREE_INDEX, type TreeIndex } from "./tree-index.js";
 import type { TreeMeta, TreeSummary, NavigationTreeJSON } from "@shared/types/tree.js";
 import type { ResolvedFlags } from "@shared/types/flags.js";
 import type {
@@ -63,7 +61,7 @@ type OverlayEffectsState = {
 type StoreState = {
   settings: Settings | null;
   flags: ResolvedFlags | null;
-  tree: NavigationTree | null;
+  treeIndex: TreeIndex;
   treeJSON: NavigationTreeJSON | null;
   precomputedPositions: Record<string, { x: number; y: number }> | null;
   treeUpdate: {
@@ -74,7 +72,6 @@ type StoreState = {
     active: TreeMeta | null;
     others: TreeSummary[];
   };
-  pins: PinnedManager | null;
   tabStates: Record<NodeId, TabState>;
   nodeTabCounts: Record<NodeId, number>;
   nodeRecency: Record<NodeId, number>;
@@ -292,24 +289,24 @@ const openUiPopup = (ui: StoreState["ui"], key: PopupKey): StoreState["ui"] => (
   [key]: true,
 });
 
-const pruneCollapsedNodes = (tree: NavigationTree | null, collapsed: Set<NodeId>): Set<NodeId> => {
-  if (!tree || collapsed.size === 0) return new Set<NodeId>();
+const pruneCollapsedNodes = (idx: TreeIndex, collapsed: Set<NodeId>): Set<NodeId> => {
+  if (idx.size === 0 || collapsed.size === 0) return new Set<NodeId>();
   const next = new Set<NodeId>();
   collapsed.forEach((id) => {
-    const node = tree.findNodeById(id);
+    const node = idx.nodeIndex.get(id);
     if (!node) return;
-    if ((node.getChildren?.() ?? []).length === 0) return;
+    if (node.children.length === 0) return;
     next.add(id);
   });
   return next;
 };
 
 /** Drop IDs no longer present in the tree — for sets that don't care about child count. */
-const prunePresentIds = (tree: NavigationTree | null, ids: Set<NodeId>): Set<NodeId> => {
-  if (!tree || ids.size === 0) return new Set<NodeId>();
+const prunePresentIds = (idx: TreeIndex, ids: Set<NodeId>): Set<NodeId> => {
+  if (idx.size === 0 || ids.size === 0) return new Set<NodeId>();
   const next = new Set<NodeId>();
   ids.forEach((id) => {
-    if (tree.findNodeById(id)) next.add(id);
+    if (idx.nodeIndex.has(id)) next.add(id);
   });
   return next;
 };
@@ -317,7 +314,7 @@ const prunePresentIds = (tree: NavigationTree | null, ids: Set<NodeId>): Set<Nod
 export const useStore = create<StoreState & StoreActions>((set, _get) => ({
   settings: null,
   flags: null,
-  tree: null,
+  treeIndex: EMPTY_TREE_INDEX,
   treeJSON: null,
   precomputedPositions: null,
   treeUpdate: null,
@@ -325,7 +322,6 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
     active: null,
     others: [],
   },
-  pins: null,
   tabStates: {},
   nodeTabCounts: {},
   nodeRecency: {},
@@ -388,31 +384,24 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
   },
 
   bootstrapGraph: (settings, payload) => {
-    const tree = NavigationTreeMapper.fromJSON(payload.tree);
-    const pins = new PinnedManager(tree);
-    const currentId = tree.getCurrentId();
-    const nodeCount = tree.size();
+    const treeIndex = buildTreeIndex(payload.tree);
     set({
       settings,
-      tree,
+      treeIndex,
       treeJSON: payload.tree,
       precomputedPositions: payload.positions ?? null,
       treeUpdate: { reason: payload.reason, at: Date.now() },
-      pins,
       tabStates: payload.tabStates,
       nodeTabCounts: payload.nodeTabCounts,
       nodeRecency: payload.nodeRecency ?? {},
       openNodeIds: new Set(payload.openNodeIds),
-      currentNodeId: currentId,
-      nodeCount,
+      currentNodeId: treeIndex.currentNodeId,
+      nodeCount: treeIndex.size,
     });
   },
 
   applyTreeState: (payload) => {
-    const tree = NavigationTreeMapper.fromJSON(payload.tree);
-    const pins = new PinnedManager(tree);
-    const currentId = tree.getCurrentId();
-    const nodeCount = tree.size();
+    const treeIndex = buildTreeIndex(payload.tree);
     set((state) => {
       // viewIntent is a one-shot signal from the background: "focus
       // this node now". Do NOT carry the previous view forward when
@@ -431,7 +420,7 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
       let nextBadgeExpandedByTree = state.graph.badgeExpandedByTree;
       let nextBadgeExpandedIds: Set<NodeId>;
       if (shouldResetTransient) {
-        const oldRootId = state.tree?.getRoot()?.id;
+        const oldRootId = state.treeIndex.rootId;
         if (oldRootId && state.graph.collapsedNodeIds.size > 0) {
           nextCollapsedByTree = new Map(nextCollapsedByTree);
           nextCollapsedByTree.set(oldRootId, state.graph.collapsedNodeIds);
@@ -444,19 +433,21 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
           nextBadgeExpandedByTree = new Map(nextBadgeExpandedByTree);
           nextBadgeExpandedByTree.set(oldRootId, state.graph.badgeExpandedIds);
         }
-        const newRootId = tree.getRoot()?.id;
+        const newRootId = treeIndex.rootId;
         const saved = newRootId ? nextCollapsedByTree.get(newRootId) : undefined;
-        nextCollapsedNodeIds = saved ? pruneCollapsedNodes(tree, saved) : new Set<NodeId>();
+        nextCollapsedNodeIds = saved ? pruneCollapsedNodes(treeIndex, saved) : new Set<NodeId>();
         const savedUnfolded = newRootId ? nextUnfoldedChainsByTree.get(newRootId) : undefined;
         nextUnfoldedChainIds = savedUnfolded
-          ? prunePresentIds(tree, savedUnfolded)
+          ? prunePresentIds(treeIndex, savedUnfolded)
           : new Set<NodeId>();
         const savedBadge = newRootId ? nextBadgeExpandedByTree.get(newRootId) : undefined;
-        nextBadgeExpandedIds = savedBadge ? prunePresentIds(tree, savedBadge) : new Set<NodeId>();
+        nextBadgeExpandedIds = savedBadge
+          ? prunePresentIds(treeIndex, savedBadge)
+          : new Set<NodeId>();
       } else {
-        nextCollapsedNodeIds = pruneCollapsedNodes(tree, state.graph.collapsedNodeIds);
-        nextUnfoldedChainIds = prunePresentIds(tree, state.graph.unfoldedChainIds);
-        nextBadgeExpandedIds = prunePresentIds(tree, state.graph.badgeExpandedIds);
+        nextCollapsedNodeIds = pruneCollapsedNodes(treeIndex, state.graph.collapsedNodeIds);
+        nextUnfoldedChainIds = prunePresentIds(treeIndex, state.graph.unfoldedChainIds);
+        nextBadgeExpandedIds = prunePresentIds(treeIndex, state.graph.badgeExpandedIds);
       }
       const autoExpandIds: NodeId[] = shouldResetTransient ? [] : [];
       const collapseVersion =
@@ -473,7 +464,7 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
       // another device deleted the node mid-rename, or the local user
       // undoes back through it. Without this the rename input renders
       // for a no-longer-existing node.
-      const treeContains = (id: NodeId | null) => Boolean(id && tree.findNodeById(id));
+      const treeContains = (id: NodeId | null) => Boolean(id && treeIndex.nodeIndex.has(id));
       const nextRenameTarget = treeContains(state.renameTarget) ? state.renameTarget : null;
       const nextPickTarget =
         state.pickTarget && treeContains(state.pickTarget.sourceNodeId) ? state.pickTarget : null;
@@ -484,7 +475,7 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
       // confuse downstream consumers (BulkContextMenu, SelectionActionBar).
       const prunedSelection = shouldResetTransient
         ? new Set<NodeId>()
-        : prunePresentIds(tree, state.graph.selectedNodeIds);
+        : prunePresentIds(treeIndex, state.graph.selectedNodeIds);
 
       const nextGraph = {
         ...state.graph,
@@ -506,17 +497,16 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
           : {}),
       };
       return {
-        tree,
+        treeIndex,
         treeJSON: payload.tree,
         precomputedPositions: payload.positions ?? null,
         treeUpdate: { reason: payload.reason, at: Date.now() },
-        pins,
         tabStates: payload.tabStates,
         nodeTabCounts: payload.nodeTabCounts,
         nodeRecency: payload.nodeRecency ?? {},
         openNodeIds: new Set(payload.openNodeIds),
-        currentNodeId: currentId,
-        nodeCount,
+        currentNodeId: treeIndex.currentNodeId,
+        nodeCount: treeIndex.size,
         renameTarget: nextRenameTarget,
         pickTarget: nextPickTarget,
         graph: nextGraph,
@@ -1022,12 +1012,11 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
 
   resetForAuth: () =>
     set({
-      tree: null,
+      treeIndex: EMPTY_TREE_INDEX,
       treeJSON: null,
       precomputedPositions: null,
       treeUpdate: null,
       trees: { active: null, others: [] },
-      pins: null,
       tabStates: {},
       nodeTabCounts: {},
       nodeRecency: {},

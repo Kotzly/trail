@@ -1146,7 +1146,7 @@ export async function applyConflictMergeInternal(
     // 6. Local write — active vs stored branch.
     try {
       if (activeMeta.id === input.treeId) {
-        const nextTree = NavigationTreeMapper.fromJSON(merged);
+        const nextTree = NavigationTreeMapper.fromUntrustedJSON(merged);
         await treeStorage.setActiveTree(nextTree, {
           ...activeMeta,
           label: input.mergedLabel.label,
@@ -1287,7 +1287,7 @@ export async function forkTreeFromConflict(
 
     // 4. Overwrite the original slot with the server payload.
     if (isActive) {
-      const serverTree = NavigationTreeMapper.fromJSON(serverJSON);
+      const serverTree = NavigationTreeMapper.fromUntrustedJSON(serverJSON);
       await treeStorage.setActiveTree(serverTree, {
         id: treeId,
         createdAt: origCreatedAt,

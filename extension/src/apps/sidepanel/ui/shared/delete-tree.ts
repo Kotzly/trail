@@ -1,12 +1,8 @@
-import type { NavigationTree } from "@background/state/nav-tree.js";
 import type { NodeId } from "@shared/types/ids.js";
+import { getNode, type TreeIndex } from "../state/tree-index.js";
 
-export function getIncludedRootId(
-  tree: NavigationTree | null,
-  nodeIds: Iterable<NodeId>,
-): NodeId | null {
-  if (!tree) return null;
-  const rootId = tree.getRoot?.()?.id ?? null;
+export function getIncludedRootId(idx: TreeIndex, nodeIds: Iterable<NodeId>): NodeId | null {
+  const rootId = idx.rootId;
   if (!rootId) return null;
   for (const id of nodeIds) {
     if (id === rootId) return rootId;
@@ -17,12 +13,12 @@ export function getIncludedRootId(
 type DeleteScope = "self" | "children" | "subtree";
 
 export function countOpenTabsForDelete(
-  tree: NavigationTree | null,
+  idx: TreeIndex,
   nodeIds: Iterable<NodeId>,
   counts: Record<NodeId, number>,
   scope: DeleteScope,
 ): number {
-  if (!tree) return 0;
+  if (idx.size === 0) return 0;
   const visited = new Set<NodeId>();
   let total = 0;
 
@@ -30,8 +26,8 @@ export function countOpenTabsForDelete(
     if (visited.has(id)) return;
     visited.add(id);
     total += counts[id] ?? 0;
-    const node = tree.findNodeById(id);
-    for (const child of node?.getChildren?.() ?? []) {
+    const node = getNode(idx, id);
+    for (const child of node?.children ?? []) {
       addSubtree(child.id);
     }
   };
@@ -44,8 +40,8 @@ export function countOpenTabsForDelete(
       continue;
     }
     if (scope === "children") {
-      const node = tree.findNodeById(id);
-      for (const child of node?.getChildren?.() ?? []) {
+      const node = getNode(idx, id);
+      for (const child of node?.children ?? []) {
         addSubtree(child.id);
       }
       continue;

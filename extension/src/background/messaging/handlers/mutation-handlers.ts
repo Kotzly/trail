@@ -142,7 +142,7 @@ export const mutationHandlers = defineRpcHandlers({
     cloneSubtree(node, targetParent, tree);
 
     const json = NavigationTreeMapper.toJSON(tree);
-    const refreshed = NavigationTreeMapper.fromJSON(json);
+    const refreshed = NavigationTreeMapper.fromTrustedJSON(json);
     treeStorage.cacheTree(refreshed);
 
     await notifyTreeUpdate(refreshed, "duplicate", {

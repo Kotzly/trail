@@ -11,25 +11,35 @@ import {
   countDeletedForIntent,
   resolveDeleteTarget,
 } from "../src/apps/sidepanel/ui/shared/delete-targets.js";
+import type { TreeIndex } from "../src/apps/sidepanel/ui/state/tree-index.js";
+import type { NavigationNodeJSON } from "../src/shared/types/node.js";
 
-// Minimal NavigationTree-like stub. countDeletedForIntent only calls
-// `findNodeById` and `getChildren` so we don't need the real class.
-type StubNode = {
-  id: NodeId;
-  getChildren: () => StubNode[];
-};
-
-function tree(map: Record<string, string[]>) {
-  const nodes = new Map<NodeId, StubNode>();
+// Builds a minimal TreeIndex from an adjacency map. countDeletedForIntent
+// only needs `size`, `nodeIndex.get`, and `node.children`, so the other
+// fields can stay empty.
+function tree(map: Record<string, string[]>): TreeIndex {
+  const nodeIndex = new Map<NodeId, NavigationNodeJSON>();
   for (const id of Object.keys(map)) {
-    nodes.set(id as NodeId, {
+    nodeIndex.set(id as NodeId, {
       id: id as NodeId,
-      getChildren: () => (map[id] ?? []).map((cid) => nodes.get(cid as NodeId)!),
-    });
+      children: [],
+    } as unknown as NavigationNodeJSON);
+  }
+  for (const id of Object.keys(map)) {
+    const parent = nodeIndex.get(id as NodeId)!;
+    (parent.children as NavigationNodeJSON[]).push(
+      ...(map[id] ?? []).map((cid) => nodeIndex.get(cid as NodeId)!),
+    );
   }
   return {
-    findNodeById: (id: NodeId) => nodes.get(id) ?? null,
-  } as unknown as Parameters<typeof countDeletedForIntent>[0];
+    json: null,
+    nodeIndex,
+    parentIndex: new Map(),
+    pinnedIndex: new Set(),
+    rootId: null,
+    currentNodeId: null,
+    size: nodeIndex.size,
+  };
 }
 
 function testResolvePassesThroughNonNode(): void {

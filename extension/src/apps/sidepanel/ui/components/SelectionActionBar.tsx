@@ -4,6 +4,7 @@ import { Button } from "@ui/components/ui/button";
 import { ButtonTooltip } from "@ui/components/button-tooltip";
 import { Icons } from "./Icon.js";
 import { useStore } from "../state/store.js";
+import { getNode } from "../state/tree-index.js";
 import { useDeleteFlow } from "../hooks/useDeleteFlow.js";
 import { bulkPin, bulkUnpin, fireAndForget } from "../../api/actions.js";
 
@@ -17,21 +18,21 @@ import { bulkPin, bulkUnpin, fireAndForget } from "../../api/actions.js";
  */
 export default function SelectionActionBar() {
   const selectedNodeIds = useStore((s) => s.graph.selectedNodeIds);
-  const tree = useStore((s) => s.tree);
+  const treeIndex = useStore((s) => s.treeIndex);
   const clearSelection = useStore((s) => s.clearSelection);
   const { request: requestDelete } = useDeleteFlow();
 
   const ids = useMemo(() => Array.from(selectedNodeIds), [selectedNodeIds]);
 
   const allPinned = useMemo(() => {
-    if (!tree || ids.length === 0) return false;
-    return ids.every((id) => tree.findNodeById(id)?.data.pinned === true);
-  }, [tree, ids]);
+    if (treeIndex.size === 0 || ids.length === 0) return false;
+    return ids.every((id) => getNode(treeIndex, id)?.data.pinned === true);
+  }, [treeIndex, ids]);
 
   const hasChildren = useMemo(() => {
-    if (!tree || ids.length === 0) return false;
-    return ids.some((id) => (tree.findNodeById(id)?.getChildren?.() ?? []).length > 0);
-  }, [tree, ids]);
+    if (treeIndex.size === 0 || ids.length === 0) return false;
+    return ids.some((id) => (getNode(treeIndex, id)?.children ?? []).length > 0);
+  }, [treeIndex, ids]);
 
   if (ids.length < 2) return null;
 
