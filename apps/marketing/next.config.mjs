@@ -71,6 +71,17 @@ const nextConfig = {
           },
         ],
       },
+      {
+        // Belt-and-suspenders to the page-level <meta robots>: also
+        // emit X-Robots-Tag on the response so crawlers that honor it
+        // before parsing HTML (Googlebot via cURL, archive.org) don't
+        // index opaque share codes (premortem #9).
+        source: "/s/:path*",
+        headers: [
+          { key: "X-Robots-Tag", value: "noindex, nofollow, noimageindex" },
+          { key: "Cache-Control", value: "private, no-store" },
+        ],
+      },
     ];
   },
 };

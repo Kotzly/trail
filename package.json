@@ -7,7 +7,6 @@
     "dev:web": "pnpm -r --parallel dev",
     "dev:extension": "pnpm --dir extension dev",
     "dev:marketing": "pnpm --filter @trail/marketing dev",
-    "dev:account": "pnpm --filter @trail/account dev",
     "build": "pnpm -r build",
     "lint": "pnpm -r lint",
     "test": "pnpm -r test",

@@ -1,5 +1,6 @@
 import { contentHandlers } from "@background/messaging/handlers/content-handlers.js";
 import { panelHandlers } from "@background/messaging/handlers/panel-handlers.js";
+import { handleImportSharedTrailFromSite } from "@background/messaging/handlers/share-from-site-handler.js";
 import { EXTENSION_MESSAGE, onExtensionMessage } from "@shared/transport/extension-messaging.js";
 import { RPC_METHOD } from "@shared/rpc/contracts.js";
 import { captureError } from "@shared/lib/observability.js";
@@ -42,6 +43,10 @@ export function registerExtensionMessaging(): void {
       tabId: sender.tab?.id ?? null,
     });
   });
+
+  onExtensionMessage(EXTENSION_MESSAGE.IMPORT_SHARED_TRAIL_FROM_SITE, ({ data, sender }) =>
+    handleImportSharedTrailFromSite(data, sender),
+  );
 }
 
 function safeHostname(url: string): string {

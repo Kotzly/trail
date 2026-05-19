@@ -20,7 +20,30 @@ export const EXTENSION_MESSAGE = {
   AUTH_STATE: "event/auth-state",
   AUTH_TRANSITION: "event/auth-transition",
   CONTENT_BRIDGE_ERROR: "event/content-bridge-error",
+  IMPORT_SHARED_TRAIL_FROM_SITE: "extension/import-shared-trail-from-site",
 } as const;
+
+export type ImportSharedTrailFromSiteData = {
+  code: string;
+};
+
+export type ImportSharedTrailFromSiteReply =
+  | {
+      ok: true;
+      trailId: string;
+      label: string;
+      nodeCount: number;
+    }
+  | {
+      ok: false;
+      error:
+        | "needs-signin"
+        | "share-unavailable"
+        | "share-self-import"
+        | "share-no-device"
+        | "unknown";
+      message?: string;
+    };
 
 export type ContentBridgeErrorEvent = {
   message: string;
@@ -71,19 +94,62 @@ export interface ExtensionProtocolMap {
   [EXTENSION_MESSAGE.AUTH_STATE](data: AuthStateEvent): void;
   [EXTENSION_MESSAGE.AUTH_TRANSITION](data: AuthTransitionEvent): void;
   [EXTENSION_MESSAGE.CONTENT_BRIDGE_ERROR](data: ContentBridgeErrorEvent): void;
+  [EXTENSION_MESSAGE.IMPORT_SHARED_TRAIL_FROM_SITE](
+    data: ImportSharedTrailFromSiteData,
+  ): ImportSharedTrailFromSiteReply;
 }
 
 export const WEBSITE_MESSAGE = {
   PING: "site/ping",
   OPEN_PANEL: "site/open-panel",
+  IMPORT_SHARED_TRAIL: "site/import-shared-trail",
 } as const;
 
+/**
+ * Reply to a `site/ping` from a marketing page. The `capabilities`
+ * array lets the page check feature support before exposing UI tied to
+ * extension-side functionality — e.g. the share-import button on
+ * `/s/<code>` only renders when `capabilities.includes("share_import")`.
+ * Old extensions installed before sharing shipped will not include the
+ * capability and the marketing page will fall back to a "copy code"
+ * affordance instead.
+ */
+export type WebsitePingReply = {
+  version: string;
+  authenticated: boolean;
+  capabilities: string[];
+};
+
+export type ImportSharedTrailRequest = {
+  code: string;
+};
+
+export type ImportSharedTrailReply =
+  | {
+      ok: true;
+      trailId: string;
+      label: string;
+      nodeCount: number;
+    }
+  | {
+      ok: false;
+      /**
+       * Stable error code for the marketing page to switch on. UI copy
+       * lives in the page, not the extension.
+       */
+      error:
+        | "needs-signin"
+        | "share-unavailable"
+        | "share-self-import"
+        | "share-no-device"
+        | "unknown";
+      message?: string;
+    };
+
 export interface WebsiteProtocolMap {
-  [WEBSITE_MESSAGE.PING](): {
-    version: string;
-    authenticated: boolean;
-  };
+  [WEBSITE_MESSAGE.PING](): WebsitePingReply;
   [WEBSITE_MESSAGE.OPEN_PANEL](): void;
+  [WEBSITE_MESSAGE.IMPORT_SHARED_TRAIL](data: ImportSharedTrailRequest): ImportSharedTrailReply;
 }
 
 export type ExtensionMessageTarget = number | SendMessageOptions;

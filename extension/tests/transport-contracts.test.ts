@@ -56,9 +56,14 @@ function testProtocolConstants(): void {
     'event/auth-state',
     'event/auth-transition',
     'event/content-bridge-error',
+    'extension/import-shared-trail-from-site',
   ]);
 
-  assert.deepEqual(Object.values(WEBSITE_MESSAGE), ['site/ping', 'site/open-panel']);
+  assert.deepEqual(Object.values(WEBSITE_MESSAGE), [
+    'site/ping',
+    'site/open-panel',
+    'site/import-shared-trail',
+  ]);
 
   const extensionMessageIds = Object.values(EXTENSION_MESSAGE);
   const websiteMessageIds = Object.values(WEBSITE_MESSAGE);

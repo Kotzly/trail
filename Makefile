@@ -6,7 +6,7 @@ help: ## Show this help
 setup: ## Install all workspace deps (pnpm install)
 	pnpm install
 
-dev: ## Run marketing + account + extension in parallel
+dev: ## Run marketing + extension in parallel
 	pnpm dev
 
 test: ## Run all workspace tests

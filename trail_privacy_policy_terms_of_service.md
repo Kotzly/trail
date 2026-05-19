@@ -55,8 +55,9 @@ By default, your navigation tree data is stored locally in the browser using **`
 If you use account/subscription features, the product communicates with our backend at **`https://app.gettrail.net`** to authenticate and retrieve account/subscription/billing-related information.
 
 ## 5. What We Send to Our Backend
-- **Navigation/trail data:** The product is designed to keep your navigation tree data **local to your browser** and does not send your navigation tree to our backend by default.
-- **Account/subscription requests (optional):** If you use account/subscription features, the product will send requests needed to provide those features (for example: auth portal session requests, account snapshot, subscription/billing status). These requests may include authentication tokens when applicable.
+- **Navigation/trail data:** When you are signed in, the product synchronizes your trails with our backend so they are available across your devices. If you stay signed out, trail data remains local to your browser.
+- **Account/subscription requests (optional):** If you use account/subscription features, the product will send requests needed to provide those features (for example: auth requests, account snapshot, subscription/billing status). These requests may include authentication tokens when applicable.
+- **Shared trails (optional):** When you explicitly share a trail using the "Share" action, a frozen snapshot of that trail (page titles, URLs with query strings and fragments stripped, parent/child relationships, day-rounded visit timestamps) is uploaded to our backend and made readable via a public link at `https://gettrail.net/s/<code>`. The snapshot stays available until you revoke the link. Anyone who imports your shared trail receives an independent copy in their own account; revoking the link does not remove copies others have already imported. **Sharing a trail makes its contents — including any URLs that survived the sanitizer — visible to anyone who has the link. Do not share trails containing sensitive URLs.**
 
 ## 6. Data Sharing
 We do not sell your data.

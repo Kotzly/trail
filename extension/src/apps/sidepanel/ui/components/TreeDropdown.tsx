@@ -13,6 +13,8 @@ import { useStore } from "../state/store.js";
 import { useOverlayEffects } from "../state/overlay-effects.js";
 import { cn } from "@ui/lib/utils";
 import { Icons } from "./Icon.js";
+import { isShareCreateEnabled } from "@features/sharing/flags.js";
+import { ShareDialog } from "./ShareDialog.js";
 
 import type { FaviconUrl, Title, Url } from "@shared/types/ids.js";
 import { getFaviconUrl } from "@shared/utils/favicon.js";
@@ -224,6 +226,12 @@ export default function TreeDropdown() {
     }
   }, []);
 
+  const [shareTarget, setShareTarget] = useState<{ id: string; label: string } | null>(null);
+  const shareEnabled = isShareCreateEnabled();
+  const handleShare = useCallback((treeId: string, treeLabel: string) => {
+    setShareTarget({ id: treeId, label: treeLabel });
+  }, []);
+
   const handleNewTree = useLockFn(async () => {
     try {
       const label = labelDraft.trim() || i18n.t("sidepanel.treesDropdown.unnamedTree");
@@ -368,12 +376,14 @@ export default function TreeDropdown() {
                       loading={loadingTreeId === tree.id}
                       unavailable={unavailableTreeIds.has(tree.id)}
                       deleting={deletePending === tree.id}
+                      shareEnabled={shareEnabled}
                       onStartEdit={handleStartEdit}
                       onCommitRename={handleCommitRename}
                       onCancelEdit={handleCancelEdit}
                       onOpen={handleOpen}
                       onExport={handleExport}
                       onDelete={handleDelete}
+                      onShare={handleShare}
                     />
                   ))}
                 </CommandGroup>
@@ -398,6 +408,17 @@ export default function TreeDropdown() {
           void handleNewTree();
         }}
       />
+
+      {shareTarget && (
+        <ShareDialog
+          open={shareTarget !== null}
+          onOpenChange={(next) => {
+            if (!next) setShareTarget(null);
+          }}
+          treeId={shareTarget.id}
+          treeLabel={shareTarget.label}
+        />
+      )}
     </>
   );
 }
@@ -411,12 +432,14 @@ type TreeRowProps = {
   loading: boolean;
   unavailable: boolean;
   deleting: boolean;
+  shareEnabled: boolean;
   onStartEdit: (id: string) => void;
   onCommitRename: (id: string, nextLabel: string) => void | Promise<void>;
   onCancelEdit: () => void;
   onOpen: (tree: TreeItem) => void;
   onExport: (treeId?: string) => void;
   onDelete: (treeId: string) => void;
+  onShare: (treeId: string, treeLabel: string) => void;
 };
 
 const TreeRow = memo(function TreeRow({
@@ -426,12 +449,14 @@ const TreeRow = memo(function TreeRow({
   loading,
   unavailable,
   deleting,
+  shareEnabled,
   onStartEdit,
   onCommitRename,
   onCancelEdit,
   onOpen,
   onExport,
   onDelete,
+  onShare,
 }: TreeRowProps) {
   const clickable = !tree.active && !loading && !unavailable && !isEditing;
   const metaParts = tree.active
@@ -514,6 +539,13 @@ const TreeRow = memo(function TreeRow({
                 label={i18n.t("trees.actions.exportTree")}
                 icon={<Icons.Upload />}
                 onClick={() => onExport(tree.active ? undefined : tree.id)}
+              />
+            )}
+            {shareEnabled && !tree.stub && (
+              <IconAction
+                label="Share trail"
+                icon={<Icons.Share2 />}
+                onClick={() => onShare(tree.id, tree.label)}
               />
             )}
             {!tree.active && (

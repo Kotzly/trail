@@ -31,4 +31,7 @@ export function registerWebsiteBridgeRuntime(deps: {
 
   onWebsiteMessage(WEBSITE_MESSAGE.PING, () => websiteBridge.ping());
   onWebsiteMessage(WEBSITE_MESSAGE.OPEN_PANEL, () => websiteBridge.openPanel());
+  onWebsiteMessage(WEBSITE_MESSAGE.IMPORT_SHARED_TRAIL, ({ data }) =>
+    websiteBridge.importSharedTrail(data),
+  );
 }

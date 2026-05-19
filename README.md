@@ -1,6 +1,6 @@
 # Trail
 
-Trail visualises browsing sessions as an interactive navigation tree. The repo holds the marketing site, the account app, the browser extension, and supporting packages.
+Trail visualises browsing sessions as an interactive navigation tree. The repo holds the marketing site, the browser extension (which owns the account UI), and supporting packages.
 
 ## Tech stack
 
@@ -16,11 +16,11 @@ Trail visualises browsing sessions as an interactive navigation tree. The repo h
 
 ```
 apps/
-  marketing/        gettrail.net — landing, legal, support, Telegram feedback bot
-  account/          app.gettrail.net — dashboard, auth callbacks, REST API runtime
-extension/          browser extension (separate workspace, WXT-based)
+  marketing/        gettrail.net — landing, legal, support, public shared-trail
+                    viewer at /s/<code>, password-reset page at /auth/reset-password
+extension/          browser extension (separate workspace, WXT-based) — owns
+                    sign-in, account UI, trail sync, sharing flow
 packages/
-  auth-token/       extension JWT signing/verification (shared with account API)
   config/           shared TS configs
   content/          static copy strings
   db/               generated Supabase Database types + thin client
@@ -30,13 +30,18 @@ docs/               project documentation
 tasks/              ephemeral planning, lessons, review artefacts
 ```
 
+> Note: the legacy `apps/account` app (formerly served at `app.gettrail.net`)
+> was retired. The extension authenticates directly via Supabase, marketing
+> hosts the one remaining web auth surface (`/auth/reset-password`), and
+> `app.gettrail.net` will 301-redirect to `gettrail.net` until DNS retires
+> the subdomain.
+
 ## Quickstart
 
 Prereqs: Node 22+, pnpm 10, Supabase project credentials (ask the lead if you do not yet have them).
 
 ```sh
 git clone <repo> && cd trail
-cp apps/account/.env.example apps/account/.env.local
 cp apps/marketing/.env.example apps/marketing/.env.local
 cp extension/.env.example extension/.env.local
 # Fill in Supabase URL/keys + secrets in each .env.local
@@ -46,7 +51,6 @@ make dev
 
 Ports:
 - Marketing: `http://localhost:3000`
-- Account: `http://localhost:4001`
 - Extension: loaded as unpacked from `extension/.output/chrome-mv3-dev` (WXT auto-reloads)
 
 ## Make targets
@@ -54,7 +58,7 @@ Ports:
 | Target | What it does |
 |---|---|
 | `make setup` | `pnpm install` |
-| `make dev` | run marketing + account + extension in parallel |
+| `make dev` | run marketing + extension in parallel |
 | `make test` | run all workspace tests |
 | `make lint` | lint all workspaces |
 | `make typecheck` | typecheck all workspaces |
@@ -74,7 +78,7 @@ Ports:
 | `pnpm dev` | Run web apps + extension in parallel |
 | `pnpm dev:web` | Web apps only |
 | `pnpm dev:extension` | Extension only |
-| `pnpm dev:marketing` / `dev:account` | Single app |
+| `pnpm dev:marketing` | Single app |
 | `pnpm build` / `lint` / `test` / `typecheck` / `format` | Recursive across workspaces |
 | `pnpm clean` | Remove all node_modules and build outputs |
 | `pnpm db:migrate` | Push Supabase migrations (`supabase db push`) |
@@ -82,9 +86,11 @@ Ports:
 
 ## Runtime model
 
-- Public API/Auth domain: `https://app.gettrail.net`
-- API routes: `https://app.gettrail.net/api/v1/*`
-- Auth: Supabase (Google OAuth + email/password). The extension uses `chrome.identity.launchWebAuthFlow` against the Supabase authorize URL.
+- Public web origin: `https://gettrail.net` (marketing + share viewer + reset-password)
+- Auth: Supabase (Google OAuth + email/password + email OTP). The extension uses `chrome.identity.launchWebAuthFlow` against the Supabase authorize URL and `chromiumapp.org` as the redirect target — no web origin is involved for OAuth.
+- Password reset: extension calls `resetPasswordForEmail(redirectTo="https://gettrail.net/auth/reset-password")`; the link lands on marketing's reset-password page.
+- Trail sync: extension writes directly to Supabase via RLS-gated `trails` upserts; no REST API.
+- Shared trails: rows in `shared_trail_links`, served read-only at `https://gettrail.net/s/<code>` via the `get_shared_trail` RPC; importers clone via `import_shared_trail`.
 - Supabase project: `tevskvkyhenzqxkcgbbm` (hosted; no local Supabase stack)
 
 ## Database & migrations

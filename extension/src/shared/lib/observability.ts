@@ -111,7 +111,15 @@ export type AnalyticsEvent =
   | "graph.hover"
   | "graph.frame_drop"
   | "graph.motion_degraded"
-  | "graph.ambient_session";
+  | "graph.ambient_session"
+  // Trail sharing
+  | "share_create_succeeded"
+  | "share_create_failed"
+  | "share_revoked"
+  | "share_import_needs_signin"
+  | "share_import_success"
+  | "share_import_failed"
+  | "share_import_pending_consumed";
 
 export type AnalyticsProperties = Record<string, string | number | boolean | null | undefined>;
 

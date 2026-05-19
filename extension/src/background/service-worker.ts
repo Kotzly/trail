@@ -9,7 +9,12 @@ import { registerProxyServices } from "./transport/register-proxy-services.js";
 import { registerExtensionMessaging } from "./transport/register-extension-messaging.js";
 import { captureError, captureEvent, initObservability } from "@shared/lib/observability.js";
 import { initAuth, subscribeAuthState, getAuthState } from "@shared/auth/auth-orchestrator.js";
-import { startSyncEngine, handlePullAlarm, SYNC_PULL_ALARM } from "./sync/sync-engine.js";
+import {
+  handlePullAlarm,
+  periodicPull,
+  startSyncEngine,
+  SYNC_PULL_ALARM,
+} from "./sync/sync-engine.js";
 import { maybeReclaimStorage } from "./services/storage-retention.js";
 import { wireStorageRetention } from "./services/storage-retention-wiring.js";
 import { EXTENSION_MESSAGE, fireExtensionEvent } from "@shared/transport/extension-messaging.js";
@@ -17,7 +22,11 @@ import { treeStorage } from "./services/tree-storage.js";
 import { tabManager } from "./state/tab-manager.js";
 import { hydrateNavPatterns } from "./navigation/nav-pattern-tracker.js";
 import { getSupabaseClient } from "@shared/lib/supabase.js";
-import { pendingWelcomeBackVersionItem } from "@shared/config/storage-items.js";
+import {
+  pendingShareImportItem,
+  pendingWelcomeBackVersionItem,
+} from "@shared/config/storage-items.js";
+import { importSharedTrail } from "@features/sharing/share-api.js";
 
 const log = createLogger("service-worker");
 
@@ -192,10 +201,42 @@ chrome.alarms.create(AUTH_REFRESH_ALARM, {
 
 void initAuth().then((state) => {
   fireExtensionEvent(EXTENSION_MESSAGE.AUTH_STATE, state);
+  void consumePendingShareImport(state);
   subscribeAuthState((next) => {
     fireExtensionEvent(EXTENSION_MESSAGE.AUTH_STATE, next);
+    void consumePendingShareImport(next);
   });
   startSyncEngine();
 });
+
+/**
+ * If a share-import was queued while signed-out and the user is now
+ * signed-in, execute the import and clear the slot. Errors are
+ * non-fatal — the user can re-click the Import button on the marketing
+ * page. Idempotent: re-runs of this function after the slot is cleared
+ * are no-ops.
+ */
+async function consumePendingShareImport(state: { status: string }): Promise<void> {
+  if (state.status !== "signed-in") return;
+  const pending = await pendingShareImportItem.getValue();
+  if (!pending) return;
+  // 1-hour staleness window: stale pending codes are dropped silently
+  // so an unrelated sign-in days later doesn't trigger a surprise import.
+  const ONE_HOUR_MS = 60 * 60 * 1000;
+  if (Date.now() - pending.queuedAt > ONE_HOUR_MS) {
+    await pendingShareImportItem.setValue(null);
+    return;
+  }
+  const result = await importSharedTrail(pending.code);
+  await pendingShareImportItem.setValue(null);
+  if (result.ok) {
+    captureEvent("share_import_pending_consumed");
+    void periodicPull().catch((err) => {
+      log.warn("post-pending-import pull failed", { error: String(err) });
+    });
+  } else {
+    log.info("pending share import failed", { error: result.error });
+  }
+}
 
 // Service worker initialized.

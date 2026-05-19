@@ -253,6 +253,27 @@ export const layoutPositionsCacheItem = storage.defineItem<
   Record<string, LayoutPositionsCacheEntry>
 >("session:trail_layout_positions", { fallback: {} });
 
+// ── Pending share-link import (session-scoped) ──────────────────────
+//
+// Set when a marketing page sends `site/import-shared-trail` while the
+// extension is signed-out. The background handler stores the share
+// code here, opens the sidepanel, and lets the login flow complete the
+// import on first sign-in. Cleared on consumption AND on the per-user
+// wipe so account switches don't carry the previous viewer's pending
+// import into a different account (premortem #5).
+
+export type PendingShareImport = {
+  /** Share code received from the bridge. */
+  code: string;
+  /** Unix-ms when the bridge call was received; used for staleness checks. */
+  queuedAt: number;
+};
+
+export const pendingShareImportItem = storage.defineItem<PendingShareImport | null>(
+  "session:trail_pending_share_import",
+  { fallback: null },
+);
+
 // ── Auto-cleanup tombstones ─────────────────────────────────────────
 //
 // When a node is silently pruned by the glance cleanup layer, a

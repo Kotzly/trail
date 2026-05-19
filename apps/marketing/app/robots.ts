@@ -28,7 +28,10 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/api", "/api/*"],
+        // Disallow the share-link viewer so robots don't index opaque
+        // codes posted to public forums. Defense-in-depth alongside
+        // `<meta robots>` and the `X-Robots-Tag` header on /s/*.
+        disallow: ["/api", "/api/*", "/s", "/s/*"],
       },
     ],
     host: siteUrl,

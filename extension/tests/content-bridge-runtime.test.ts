@@ -25,10 +25,14 @@ async function testRuntimeRegistration(): Promise<void> {
   const websiteBridge: WebsiteBridgeRuntime = {
     async ping() {
       calls.push('ping');
-      return { version: '1.2.3', authenticated: false };
+      return { version: '1.2.3', authenticated: false, capabilities: ['share_import'] };
     },
     async openPanel() {
       calls.push('open-panel');
+    },
+    async importSharedTrail({ code }) {
+      calls.push(`import:${code}`);
+      return { ok: true, trailId: 't-imported', label: 'Imported', nodeCount: 3 };
     },
   };
 
@@ -41,22 +45,32 @@ async function testRuntimeRegistration(): Promise<void> {
   assert.deepEqual([...websiteRegistrar.handlers.keys()], [
     WEBSITE_MESSAGE.PING,
     WEBSITE_MESSAGE.OPEN_PANEL,
+    WEBSITE_MESSAGE.IMPORT_SHARED_TRAIL,
   ]);
   assert.deepEqual([...extensionRegistrar.handlers.keys()], []);
 
   const ping = websiteRegistrar.handlers.get(WEBSITE_MESSAGE.PING);
   const openPanel = websiteRegistrar.handlers.get(WEBSITE_MESSAGE.OPEN_PANEL);
+  const importShare = websiteRegistrar.handlers.get(WEBSITE_MESSAGE.IMPORT_SHARED_TRAIL);
 
   assert(ping, 'ping handler must be registered');
   assert(openPanel, 'open panel handler must be registered');
+  assert(importShare, 'import shared trail handler must be registered');
 
   assert.deepEqual(await ping({ data: undefined }), {
     version: '1.2.3',
     authenticated: false,
+    capabilities: ['share_import'],
   });
   await openPanel({ data: undefined });
+  assert.deepEqual(await importShare({ data: { code: 'abc' } }), {
+    ok: true,
+    trailId: 't-imported',
+    label: 'Imported',
+    nodeCount: 3,
+  });
 
-  assert.deepEqual(calls, ['ping', 'open-panel']);
+  assert.deepEqual(calls, ['ping', 'open-panel', 'import:abc']);
 
   console.log('  website bridge runtime registration: OK');
 }

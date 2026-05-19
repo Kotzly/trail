@@ -49,6 +49,7 @@ import {
   layoutPositionsCacheItem,
   localDeleteTombstonesItem,
   openTabsItem,
+  pendingShareImportItem,
   pendingSyncOpsItem,
   provisionedUsersItem,
   syncStateItem,
@@ -144,6 +145,10 @@ async function wipeUserScopedLocalState(): Promise<void> {
   await safeRun("undoHistory", () => undoHistoryItem.setValue(null));
   await safeRun("conflictPicks", () => conflictPicksItem.setValue({}));
   await safeRun("layoutPositions", () => layoutPositionsCacheItem.setValue({}));
+  // Drop any pending share-import code queued under the previous
+  // viewer — three-actor cross-tenant trap from premortem #5 +
+  // lesson 2026-04-27 on account-switch wipe completeness.
+  await safeRun("pendingShareImport", () => pendingShareImportItem.setValue(null));
   // Rotate the device id so `ensureDeviceRegistered` inserts a fresh
   // `devices` row instead of upserting on top of the previous user's
   // row (which silently fails RLS USING and leaves an orphan).
@@ -859,11 +864,12 @@ export async function requestPasswordReset(emailRaw: string): Promise<{ email: s
 
   captureEvent("auth_password_reset_requested");
   try {
-    const redirectTo = chrome.identity?.getRedirectURL?.();
-    const { error } = await supabase.auth.resetPasswordForEmail(
-      email,
-      redirectTo ? { redirectTo } : undefined,
-    );
+    // Land the recovery email link on the public marketing reset-password
+    // page. Users with the extension installed can also use the OTP from
+    // the email body inside the extension; users on a different device
+    // / fresh browser fall through to the web form.
+    const redirectTo = "https://gettrail.net/auth/reset-password";
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
     if (error) {
       const code = isAuthError(error) ? error.code : undefined;
       const msg = error.message ?? "";
