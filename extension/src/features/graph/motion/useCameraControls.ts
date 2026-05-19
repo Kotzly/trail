@@ -23,7 +23,12 @@ const SMOOTH_DURATION_MS = 350;
 const DEFAULT_FIT_PADDING = 0.2;
 
 export type SmoothCenterOptions = {
-  /** Target zoom level; defaults to 1. */
+  /**
+   * Target zoom level. Default: preserve the current zoom (the user's
+   * own zoom level is the most useful camera state to keep across
+   * navigation hops). Pass an explicit value only when you actually
+   * want to reset the zoom — e.g., the initial bootstrap fitView.
+   */
   zoom?: number;
 };
 
@@ -31,7 +36,7 @@ export function useCameraControls(): {
   smoothCenter: (x: number, y: number, options?: SmoothCenterOptions) => void;
   smoothFitView: (options?: FitViewOptions) => void;
 } {
-  const { setCenter, fitView } = useReactFlow();
+  const { setCenter, fitView, getZoom } = useReactFlow();
   const centerEnabled = useMotionFlag("camera_smooth_center");
   const fitEnabled = useMotionFlag("camera_fit_to_view");
   const tier = useFpsTier();
@@ -43,11 +48,11 @@ export function useCameraControls(): {
   const smoothCenter = useCallback(
     (x: number, y: number, options?: SmoothCenterOptions) => {
       setCenter(x, y, {
-        zoom: options?.zoom ?? 1,
+        zoom: options?.zoom ?? getZoom(),
         duration: allowSmoothCenter ? SMOOTH_DURATION_MS : 0,
       });
     },
-    [setCenter, allowSmoothCenter],
+    [setCenter, getZoom, allowSmoothCenter],
   );
 
   const smoothFitView = useCallback(

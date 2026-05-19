@@ -143,40 +143,37 @@ function TrailGraphInner(props: TrailGraphProps) {
   const spotlightKind = spotlight?.kind ?? null;
 
   // ── Drag-to-reparent ─────────────────────────────────────────────
-  // We keep two slices of state for the duration of a drag:
-  //   • `dragState` drives drop-target highlighting (source + hovered
-  //     + valid? flag). Triggers a `displayNodes` recompute so the
-  //     `dragRole` data prop reaches the right TrailNodes.
-  //   • `dragOverride` mirrors the dragged node's live position so the
-  //     visible node follows the cursor while xyflow's internal store
-  //     updates. We control `nodes`, so without this override the node
-  //     would stay glued to its layout position during drag.
-  // Both are cleared on `onNodeDragStop`. After a successful reparent,
-  // the next `notifyTreeUpdate` round-trip rebuilds `layout.nodes` with
-  // the new parent's geometry — the override doesn't need to persist.
+  // `dragState` drives drop-target highlighting (source + hovered +
+  // valid?), triggering a `displayNodes` recompute so the `dragRole`
+  // data prop reaches the right TrailNodes. It updates only on
+  // target-enter/exit, not per cursor tick — cheap.
+  //
+  // We previously also mirrored the dragged node's live cursor
+  // position into a `dragOverride` state on every `onNodesChange`
+  // tick. That added a React render to every mousemove and the node
+  // visibly debounced behind the cursor (~30–50ms). In xyflow v12
+  // controlled mode, React Flow's internal drag handler updates the
+  // dragged node's DOM transform directly per frame — no application
+  // state needed for visual feedback. The override was fighting that.
+  // Cleared the override; `onNodesChange` is now a no-op (we get the
+  // hovered-target info from `onNodeDrag` and the persisted reparent
+  // from `onNodeDragStop`).
   const [dragState, setDragState] = useState<{
     sourceId: NodeId | null;
     hoveredTargetId: NodeId | null;
     isValidTarget: boolean;
   }>({ sourceId: null, hoveredTargetId: null, isValidTarget: false });
-  const [dragOverride, setDragOverride] = useState<{
-    id: string;
-    x: number;
-    y: number;
-  } | null>(null);
 
   // Parent / root lookup once per tree. Drives the per-frame
   // `isValidDropTarget` check during a drag — same rules the backend
   // enforces, so the user gets instant valid/invalid ring feedback.
   const treeMaps = useMemo(() => buildTreeMaps(tree), [tree]);
 
-  const handleNodesChange = useCallback((changes: NodeChange[]) => {
-    for (const change of changes) {
-      if (change.type === "position" && change.dragging && change.position) {
-        setDragOverride({ id: change.id, x: change.position.x, y: change.position.y });
-      }
-    }
-  }, []);
+  // No-op `onNodesChange`: xyflow handles drag visuals via its own
+  // DOM updates in v12 controlled mode; everything Trail cares about
+  // (drop target, reparent persistence) flows through onNodeDrag /
+  // onNodeDragStop.
+  const handleNodesChange = useCallback((_changes: NodeChange[]) => {}, []);
 
   const handleNodeDragStart: NodeMouseHandler = useCallback(
     (_event, node) => {
@@ -246,7 +243,6 @@ function TrailGraphInner(props: TrailGraphProps) {
       const target = dragState.hoveredTargetId;
       const valid = dragState.isValidTarget;
       setDragState({ sourceId: null, hoveredTargetId: null, isValidTarget: false });
-      setDragOverride(null);
       if (target !== null && valid) {
         onReparentNode(sourceId, target);
       }
@@ -276,7 +272,6 @@ function TrailGraphInner(props: TrailGraphProps) {
             dragRole = dragValid ? "valid-target" : "invalid-target";
         }
 
-        const overridePos = dragOverride && dragOverride.id === n.id ? dragOverride : null;
         // Root can't be reparented; suppressing draggable here stops the
         // visual "drag then snap back" gesture before it starts.
         const isDraggable = n.data.nodeId !== rootId;
@@ -285,8 +280,7 @@ function TrailGraphInner(props: TrailGraphProps) {
           n.selected === sel &&
           n.data.spotlight === sp &&
           n.data.dragRole === dragRole &&
-          n.draggable === isDraggable &&
-          !overridePos
+          n.draggable === isDraggable
         ) {
           return n;
         }
@@ -294,7 +288,6 @@ function TrailGraphInner(props: TrailGraphProps) {
           ...n,
           selected: sel,
           draggable: isDraggable,
-          ...(overridePos ? { position: { x: overridePos.x, y: overridePos.y } } : {}),
           data: { ...n.data, spotlight: sp, dragRole },
         };
       }),
@@ -306,7 +299,6 @@ function TrailGraphInner(props: TrailGraphProps) {
       dragSourceId,
       dragHoveredId,
       dragValid,
-      dragOverride,
       rootId,
     ],
   );
