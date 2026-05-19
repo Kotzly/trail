@@ -144,20 +144,18 @@ function TrailGraphInner(props: TrailGraphProps) {
 
   // ── Drag-to-reparent ─────────────────────────────────────────────
   // `dragState` drives drop-target highlighting (source + hovered +
-  // valid?), triggering a `displayNodes` recompute so the `dragRole`
-  // data prop reaches the right TrailNodes. It updates only on
-  // target-enter/exit, not per cursor tick — cheap.
+  // valid?). Updates only on target-enter/exit — cheap.
   //
-  // We previously also mirrored the dragged node's live cursor
-  // position into a `dragOverride` state on every `onNodesChange`
-  // tick. That added a React render to every mousemove and the node
-  // visibly debounced behind the cursor (~30–50ms). In xyflow v12
-  // controlled mode, React Flow's internal drag handler updates the
-  // dragged node's DOM transform directly per frame — no application
-  // state needed for visual feedback. The override was fighting that.
-  // Cleared the override; `onNodesChange` is now a no-op (we get the
-  // hovered-target info from `onNodeDrag` and the persisted reparent
-  // from `onNodeDragStop`).
+  // For the dragged node's visual position we DON'T round-trip
+  // through React state: in controlled mode xyflow doesn't move the
+  // node visually itself (it only fires `onNodesChange` with the
+  // new flow-coords and waits for the app to update `nodes`). A
+  // React-state-driven path adds ~30–50ms of debounce per cursor
+  // move. Instead, on every `onNodesChange` tick we write the new
+  // position into a CSS variable on the dragged node's DOM element;
+  // a `!important` rule in `pane.css` overrides the inline transform
+  // that xyflow renders from `node.position`. No React render in
+  // the drag loop; cursor-tight.
   const [dragState, setDragState] = useState<{
     sourceId: NodeId | null;
     hoveredTargetId: NodeId | null;
@@ -169,11 +167,24 @@ function TrailGraphInner(props: TrailGraphProps) {
   // enforces, so the user gets instant valid/invalid ring feedback.
   const treeMaps = useMemo(() => buildTreeMaps(tree), [tree]);
 
-  // No-op `onNodesChange`: xyflow handles drag visuals via its own
-  // DOM updates in v12 controlled mode; everything Trail cares about
-  // (drop target, reparent persistence) flows through onNodeDrag /
-  // onNodeDragStop.
-  const handleNodesChange = useCallback((_changes: NodeChange[]) => {}, []);
+  const handleNodesChange = useCallback((changes: NodeChange[]) => {
+    for (const change of changes) {
+      if (change.type !== "position" || !change.dragging || !change.position) continue;
+      const el = document.querySelector<HTMLElement>(`.react-flow__node[data-id="${change.id}"]`);
+      if (!el) continue;
+      el.dataset.dragActive = "true";
+      el.style.setProperty("--drag-x", `${change.position.x}px`);
+      el.style.setProperty("--drag-y", `${change.position.y}px`);
+    }
+  }, []);
+
+  const clearDragTransform = useCallback((nodeId: string) => {
+    const el = document.querySelector<HTMLElement>(`.react-flow__node[data-id="${nodeId}"]`);
+    if (!el) return;
+    delete el.dataset.dragActive;
+    el.style.removeProperty("--drag-x");
+    el.style.removeProperty("--drag-y");
+  }, []);
 
   const handleNodeDragStart: NodeMouseHandler = useCallback(
     (_event, node) => {
@@ -243,11 +254,12 @@ function TrailGraphInner(props: TrailGraphProps) {
       const target = dragState.hoveredTargetId;
       const valid = dragState.isValidTarget;
       setDragState({ sourceId: null, hoveredTargetId: null, isValidTarget: false });
+      clearDragTransform(node.id);
       if (target !== null && valid) {
         onReparentNode(sourceId, target);
       }
     },
-    [dragState, onReparentNode],
+    [dragState, onReparentNode, clearDragTransform],
   );
 
   const dragSourceId = dragState.sourceId;

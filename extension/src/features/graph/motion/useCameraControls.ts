@@ -13,14 +13,21 @@
  * universal interrupt rule.
  */
 
-import { useCallback } from "react";
-import { useReactFlow, type FitViewOptions } from "@xyflow/react";
+import { useCallback, useRef } from "react";
+import { useReactFlow, useStore, type FitViewOptions, type ReactFlowState } from "@xyflow/react";
 import { useMotionFlag } from "./store.js";
 import { useFpsTier } from "./fps-tier.js";
 import { useReducedMotion } from "./use-reduced-motion.js";
 
 const SMOOTH_DURATION_MS = 350;
 const DEFAULT_FIT_PADDING = 0.2;
+
+const selectWidth = (s: ReactFlowState) => s.width;
+const selectHeight = (s: ReactFlowState) => s.height;
+
+function easeInOutCubic(t: number): number {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
 
 export type SmoothCenterOptions = {
   /**
@@ -36,7 +43,9 @@ export function useCameraControls(): {
   smoothCenter: (x: number, y: number, options?: SmoothCenterOptions) => void;
   smoothFitView: (options?: FitViewOptions) => void;
 } {
-  const { setCenter, fitView, getZoom } = useReactFlow();
+  const { fitView, getZoom, getViewport, setViewport } = useReactFlow();
+  const viewportWidth = useStore(selectWidth);
+  const viewportHeight = useStore(selectHeight);
   const centerEnabled = useMotionFlag("camera_smooth_center");
   const fitEnabled = useMotionFlag("camera_fit_to_view");
   const tier = useFpsTier();
@@ -45,14 +54,64 @@ export function useCameraControls(): {
   const allowSmoothCenter = centerEnabled && tier !== "low" && !reduced;
   const allowSmoothFit = fitEnabled && tier !== "low" && !reduced;
 
+  const tweenRafRef = useRef<number | null>(null);
+
+  /**
+   * Custom rAF-driven viewport tween. Replaces xyflow's `setCenter`,
+   * which routes through d3-zoom's `interpolateZoom` and uses van
+   * Wijk's smooth-zoom algorithm — it deliberately ARCS through a
+   * lower zoom level when the screen-space distance is large, even
+   * if start and end zoom are equal. Visually: unzoom → translate →
+   * zoom back in. Not what the user wants when they navigate to a
+   * far node at the same zoom.
+   *
+   * This implementation linearly interpolates viewport.x / .y / .zoom
+   * over `SMOOTH_DURATION_MS` with a cubic ease. Same zoom in/out =
+   * pure translate, no arc. Far-distance moves still look smooth, no
+   * extra zoom animation.
+   */
   const smoothCenter = useCallback(
-    (x: number, y: number, options?: SmoothCenterOptions) => {
-      setCenter(x, y, {
-        zoom: options?.zoom ?? getZoom(),
-        duration: allowSmoothCenter ? SMOOTH_DURATION_MS : 0,
-      });
+    (flowX: number, flowY: number, options?: SmoothCenterOptions) => {
+      if (tweenRafRef.current !== null) {
+        cancelAnimationFrame(tweenRafRef.current);
+        tweenRafRef.current = null;
+      }
+
+      const targetZoom = options?.zoom ?? getZoom();
+      const targetVpX = viewportWidth / 2 - flowX * targetZoom;
+      const targetVpY = viewportHeight / 2 - flowY * targetZoom;
+
+      if (!allowSmoothCenter) {
+        setViewport({ x: targetVpX, y: targetVpY, zoom: targetZoom });
+        return;
+      }
+
+      const start = getViewport();
+      const dx = targetVpX - start.x;
+      const dy = targetVpY - start.y;
+      const dz = targetZoom - start.zoom;
+      // No-op tween: already there.
+      if (dx === 0 && dy === 0 && dz === 0) return;
+
+      const t0 = performance.now();
+      const step = (now: number) => {
+        const elapsed = now - t0;
+        const p = Math.min(1, elapsed / SMOOTH_DURATION_MS);
+        const e = easeInOutCubic(p);
+        setViewport({
+          x: start.x + dx * e,
+          y: start.y + dy * e,
+          zoom: start.zoom + dz * e,
+        });
+        if (p < 1) {
+          tweenRafRef.current = requestAnimationFrame(step);
+        } else {
+          tweenRafRef.current = null;
+        }
+      };
+      tweenRafRef.current = requestAnimationFrame(step);
     },
-    [setCenter, getZoom, allowSmoothCenter],
+    [getZoom, getViewport, setViewport, viewportWidth, viewportHeight, allowSmoothCenter],
   );
 
   const smoothFitView = useCallback(
