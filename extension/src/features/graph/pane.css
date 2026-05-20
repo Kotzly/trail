@@ -39,28 +39,6 @@
   contain: layout style;
 }
 
-/*
- * Cursor-tight drag transform.
- *
- * In controlled mode xyflow doesn't move the dragged node visually
- * by itself — it only fires `onNodesChange` and waits for the app
- * to update `nodes`. Round-tripping through React state per cursor
- * tick adds ~30–50ms of perceptible debounce.
- *
- * `TrailGraph.handleNodesChange` writes the dragged node's live
- * flow-space coords into `--drag-x` / `--drag-y` CSS variables on
- * the node's DOM element, and toggles `data-drag-active`. This
- * `!important` rule overrides xyflow's inline `transform` for the
- * duration of the drag, so the node sticks to the cursor with no
- * React render in the loop.
- *
- * Cleared at `onNodeDragStop`; xyflow's next inline-transform
- * write (or our tree-update if reparent landed) takes over.
- */
-.react-flow__node[data-drag-active="true"] {
-  transform: translate(var(--drag-x, 0), var(--drag-y, 0)) !important;
-}
-
 /* Smooth edge color transitions (active-path highlight on/off).
    Stroke is the only smoothly-animatable visual property — the path
    `d` attribute can't be CSS-interpolated. Opacity transitions are

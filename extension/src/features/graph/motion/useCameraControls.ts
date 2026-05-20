@@ -13,7 +13,7 @@
  * universal interrupt rule.
  */
 
-import { useCallback, useRef } from "react";
+import { useCallback, useLayoutEffect, useRef } from "react";
 import { useReactFlow, useStore, type FitViewOptions, type ReactFlowState } from "@xyflow/react";
 import { useMotionFlag } from "./store.js";
 import { useFpsTier } from "./fps-tier.js";
@@ -55,6 +55,18 @@ export function useCameraControls(): {
   const allowSmoothFit = fitEnabled && tier !== "low" && !reduced;
 
   const tweenRafRef = useRef<number | null>(null);
+  // Deferred-center queue. On initial mount xyflow's `width`/`height`
+  // store fields are 0 until its ResizeObserver fires (~1 frame after
+  // first paint). Running the centering math with 0 dimensions produces
+  // viewport (0, 0), parking the target node at the screen's top-left.
+  // Callers shouldn't have to know about this race — we stash the
+  // request here and replay it (snapped, not tweened) when dimensions
+  // arrive via the effect below.
+  const pendingTargetRef = useRef<{
+    flowX: number;
+    flowY: number;
+    options?: SmoothCenterOptions;
+  } | null>(null);
 
   /**
    * Custom rAF-driven viewport tween. Replaces xyflow's `setCenter`,
@@ -72,6 +84,14 @@ export function useCameraControls(): {
    */
   const smoothCenter = useCallback(
     (flowX: number, flowY: number, options?: SmoothCenterOptions) => {
+      if (viewportWidth === 0 || viewportHeight === 0) {
+        // Defer until xyflow measures the container. Last call wins —
+        // matches the in-flight tween's universal-interrupt semantics.
+        pendingTargetRef.current = { flowX, flowY, options };
+        return;
+      }
+      pendingTargetRef.current = null;
+
       if (tweenRafRef.current !== null) {
         cancelAnimationFrame(tweenRafRef.current);
         tweenRafRef.current = null;
@@ -113,6 +133,26 @@ export function useCameraControls(): {
     },
     [getZoom, getViewport, setViewport, viewportWidth, viewportHeight, allowSmoothCenter],
   );
+
+  // Replay any deferred center as soon as xyflow finishes measuring.
+  // `useLayoutEffect` so the corrected viewport lands before the
+  // browser paints the first frame with valid dimensions — otherwise
+  // there's a one-frame flash of the node at the screen's top-left.
+  // Snap rather than tween: the pre-measurement viewport (0, 0, 1) is
+  // a placeholder, not a meaningful origin, so animating from it would
+  // look like the node is flying in.
+  useLayoutEffect(() => {
+    if (viewportWidth === 0 || viewportHeight === 0) return;
+    const pending = pendingTargetRef.current;
+    if (pending === null) return;
+    pendingTargetRef.current = null;
+    const targetZoom = pending.options?.zoom ?? getZoom();
+    setViewport({
+      x: viewportWidth / 2 - pending.flowX * targetZoom,
+      y: viewportHeight / 2 - pending.flowY * targetZoom,
+      zoom: targetZoom,
+    });
+  }, [viewportWidth, viewportHeight, getZoom, setViewport]);
 
   const smoothFitView = useCallback(
     (options?: FitViewOptions) => {
