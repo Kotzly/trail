@@ -16,6 +16,7 @@ import "../motion/hover.css";
 import "../motion/lifecycle.css";
 import "../pane.css";
 import type { TrailGraphProps, TrailNode as TrailNodeType, TrailNodeData } from "../types.js";
+import type { NavigationNodeJSON } from "@shared/types/node.js";
 import { TrailNode } from "./TrailNode.js";
 import { InlineRenameProvider } from "./inline-rename-context.js";
 import { buildTreeMaps, isValidDropTarget } from "../reparent.js";
@@ -89,7 +90,7 @@ function TrailGraphInner(props: TrailGraphProps) {
     children,
   } = props;
 
-  const { smoothCenter, smoothFitView } = useCameraControls();
+  const { smoothCenter } = useCameraControls();
   const { getZoom, getIntersectingNodes } = useReactFlow();
   const containerRef = useRef<HTMLDivElement>(null);
   const initialFitDone = useRef(false);
@@ -166,6 +167,26 @@ function TrailGraphInner(props: TrailGraphProps) {
   // `isValidDropTarget` check during a drag — same rules the backend
   // enforces, so the user gets instant valid/invalid ring feedback.
   const treeMaps = useMemo(() => buildTreeMaps(tree), [tree]);
+
+  // Initial-mount focus when there's no active tab (or its position
+  // hasn't landed yet): prefer the most-recently-visited node, fall back
+  // to root. Replaces the old "fitView the whole graph" default — that
+  // is now reserved for the explicit user action (GraphControls button).
+  const fallbackFocusId = useMemo<NodeId | null>(() => {
+    if (!tree?.root) return null;
+    let bestId: NodeId = tree.root.id;
+    let bestTs = 0;
+    const walk = (n: NavigationNodeJSON) => {
+      const ts = n.data.lastVisitedAt;
+      if (ts !== undefined && ts > bestTs) {
+        bestTs = ts;
+        bestId = n.id;
+      }
+      for (const c of n.children) walk(c);
+    };
+    walk(tree.root);
+    return bestId;
+  }, [tree]);
 
   const handleNodesChange = useCallback((changes: NodeChange[]) => {
     for (const change of changes) {
@@ -333,16 +354,26 @@ function TrailGraphInner(props: TrailGraphProps) {
   const targetX = targetPos?.x ?? null;
   const targetY = targetPos?.y ?? null;
 
+  // Position of the initial-mount fallback (last-visited or root). Looked
+  // up once per displayNodes/fallbackFocusId change so the centering
+  // effect can read primitive deps and not refire on every render.
+  const fallbackPos = useMemo(() => {
+    if (!fallbackFocusId) return null;
+    const node = displayNodes.find((n) => n.data.nodeId === fallbackFocusId);
+    return node?.position ?? null;
+  }, [displayNodes, fallbackFocusId]);
+  const fallbackX = fallbackPos?.x ?? null;
+  const fallbackY = fallbackPos?.y ?? null;
+
   // Mutable values the centering effect reads but must NOT re-fire on.
-  // `smoothCenter`/`smoothFitView` identities churn while a ReactFlow
-  // transition is in flight (useReactFlow returns a new object per RAF
-  // tick during the tween). Depending on them here would re-schedule the
-  // effect every frame → new smoothCenter call → new tween → infinite
-  // loop. Read the latest via a ref bundle and fire only when the
-  // user-visible trigger (`currentNodeId`, `targetX`/`targetY`) changes.
+  // `smoothCenter`'s identity churns while a ReactFlow transition is in
+  // flight (useReactFlow returns a new object per RAF tick during the
+  // tween). Depending on it here would re-schedule the effect every
+  // frame → new smoothCenter call → new tween → infinite loop. Read the
+  // latest via a ref bundle and fire only when the user-visible trigger
+  // (`currentNodeId`, `targetX`/`targetY`, fallback coords) changes.
   const latest = useLatest({
     smoothCenter,
-    smoothFitView,
     followClickEnabled,
   });
 
@@ -356,8 +387,11 @@ function TrailGraphInner(props: TrailGraphProps) {
   }, [settings.layout.mode]);
 
   // Camera centering policy:
-  //   1. Initial mount (sidepanel opens) — always center on the current
-  //      node, or fitView if there's no current node.
+  //   1. Initial mount (sidepanel opens) — center on the current node,
+  //      or on the fallback focus (last-visited, else root) when there's
+  //      no current tab or its position hasn't landed yet. Auto-fitView
+  //      was removed — full-graph framing is a user-only action via the
+  //      GraphControls button.
   //   2. Subsequent external navigation (browser-initiated: user clicks a
   //      link on a page, opens a new tab, or the tab navigates itself) —
   //      always center on the new current node.
@@ -375,16 +409,16 @@ function TrailGraphInner(props: TrailGraphProps) {
   // doesn't trigger repeated re-centers.
   useEffect(() => {
     if (!hasNodes) return;
-    const { smoothCenter, smoothFitView, followClickEnabled } = latest.current;
+    const { smoothCenter, followClickEnabled } = latest.current;
 
     if (!currentNodeId) {
       // User closed the current tab or we're between tabs. Clear the
       // "resolved" marker so if the user lands back on the same node id
       // later, we re-center instead of short-circuiting.
       resolvedForIdRef.current = null;
-      if (!initialFitDone.current) {
+      if (!initialFitDone.current && fallbackX !== null && fallbackY !== null) {
         initialFitDone.current = true;
-        smoothFitView();
+        smoothCenter(fallbackX + NODE_WIDTH / 2, fallbackY + NODE_HEIGHT / 2);
       }
       return;
     }
@@ -392,11 +426,13 @@ function TrailGraphInner(props: TrailGraphProps) {
     if (resolvedForIdRef.current === currentNodeId) return;
 
     if (targetX === null || targetY === null) {
-      // Position not computed yet. On first mount, show the whole graph
-      // while we wait so the viewport isn't stuck on an empty region.
-      if (!initialFitDone.current) {
+      // Current node's position isn't laid out yet. Park the camera on
+      // the fallback so the viewport isn't stuck at xyflow's (0,0)
+      // default; when the position lands, the effect re-fires and
+      // smoothCenter tweens to the actual current node.
+      if (!initialFitDone.current && fallbackX !== null && fallbackY !== null) {
         initialFitDone.current = true;
-        smoothFitView();
+        smoothCenter(fallbackX + NODE_WIDTH / 2, fallbackY + NODE_HEIGHT / 2);
       }
       return;
     }
@@ -412,7 +448,7 @@ function TrailGraphInner(props: TrailGraphProps) {
     if (shouldCenter) {
       smoothCenter(targetX + NODE_WIDTH / 2, targetY + NODE_HEIGHT / 2);
     }
-  }, [currentNodeId, hasNodes, targetX, targetY, latest]);
+  }, [currentNodeId, hasNodes, targetX, targetY, fallbackX, fallbackY, latest]);
 
   // ── Topology reshape (collapse / expand / chain-unfold) ───────────
   //

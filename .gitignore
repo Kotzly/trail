@@ -79,3 +79,4 @@ tasks/reports/
 extension/test-results/
 extension/playwright-report/
 .gstack/
+.vercel
