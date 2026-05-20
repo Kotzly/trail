@@ -144,24 +144,45 @@ function TrailGraphInner(props: TrailGraphProps) {
   const spotlightKind = spotlight?.kind ?? null;
 
   // ── Drag-to-reparent ─────────────────────────────────────────────
-  // `dragState` drives drop-target highlighting (source + hovered +
-  // valid?). Updates only on target-enter/exit — cheap.
+  // Two slices of state, deliberately separated by update frequency:
   //
-  // For the dragged node's visual position we DON'T round-trip
-  // through React state: in controlled mode xyflow doesn't move the
-  // node visually itself (it only fires `onNodesChange` with the
-  // new flow-coords and waits for the app to update `nodes`). A
-  // React-state-driven path adds ~30–50ms of debounce per cursor
-  // move. Instead, on every `onNodesChange` tick we write the new
-  // position into a CSS variable on the dragged node's DOM element;
-  // a `!important` rule in `pane.css` overrides the inline transform
-  // that xyflow renders from `node.position`. No React render in
-  // the drag loop; cursor-tight.
+  //   • `dragState` (source + hovered + valid?) drives the validity
+  //     ring on the source / hovered targets. Flips only on
+  //     target-enter/exit — once or twice per drag.
+  //
+  //   • `dragPosition` mirrors the dragged node's live cursor
+  //     position in flow-space. Updated on every `onNodesChange`
+  //     tick (60–120Hz). In xyflow v12 controlled mode the rendered
+  //     node position comes from the `nodes` prop — without a state
+  //     update, the dragged node would stay glued at its layout
+  //     position AND its incident edges would freeze (edge endpoints
+  //     resolve through xyflow's internal nodeInternals, which only
+  //     advances when the controlled `nodes` prop changes).
+  //
+  // The previous "imperative DOM via CSS variable" hack moved the
+  // node visually but left nodeInternals stale, so edges didn't
+  // follow. The earlier "round-trip through React state" attempt
+  // before that put `dragOverride` inside `displayNodes`'s deps —
+  // forcing a full-tree map + a `useNodeLifecycle` pass per cursor
+  // tick (~5000 × 2 iterations) — and that's where the 30–50ms
+  // perceived lag came from, not React state itself.
+  //
+  // Fix: keep `dragPosition` OUT of `displayNodes`/`lifecycleNodes`
+  // deps. Apply the override in a single downstream memo
+  // (`finalNodes`) — one O(N) pass per tick where only the dragged
+  // node gets a new object reference, everything else passes through
+  // by identity. xyflow's diff updates the dragged node's transform
+  // + recomputes incident edge `d` attributes; nothing else moves.
   const [dragState, setDragState] = useState<{
     sourceId: NodeId | null;
     hoveredTargetId: NodeId | null;
     isValidTarget: boolean;
   }>({ sourceId: null, hoveredTargetId: null, isValidTarget: false });
+  const [dragPosition, setDragPosition] = useState<{
+    id: string;
+    x: number;
+    y: number;
+  } | null>(null);
 
   // Parent / root lookup once per tree. Drives the per-frame
   // `isValidDropTarget` check during a drag — same rules the backend
@@ -191,20 +212,12 @@ function TrailGraphInner(props: TrailGraphProps) {
   const handleNodesChange = useCallback((changes: NodeChange[]) => {
     for (const change of changes) {
       if (change.type !== "position" || !change.dragging || !change.position) continue;
-      const el = document.querySelector<HTMLElement>(`.react-flow__node[data-id="${change.id}"]`);
-      if (!el) continue;
-      el.dataset.dragActive = "true";
-      el.style.setProperty("--drag-x", `${change.position.x}px`);
-      el.style.setProperty("--drag-y", `${change.position.y}px`);
+      const { id } = change;
+      const { x, y } = change.position;
+      setDragPosition((prev) =>
+        prev && prev.id === id && prev.x === x && prev.y === y ? prev : { id, x, y },
+      );
     }
-  }, []);
-
-  const clearDragTransform = useCallback((nodeId: string) => {
-    const el = document.querySelector<HTMLElement>(`.react-flow__node[data-id="${nodeId}"]`);
-    if (!el) return;
-    delete el.dataset.dragActive;
-    el.style.removeProperty("--drag-x");
-    el.style.removeProperty("--drag-y");
   }, []);
 
   const handleNodeDragStart: NodeMouseHandler = useCallback(
@@ -212,7 +225,7 @@ function TrailGraphInner(props: TrailGraphProps) {
       const sourceId = (node.data as TrailNodeData).nodeId;
       // Force single-node drag: clearing selection prevents xyflow from
       // moving every selected node together (we only track one
-      // `dragOverride` slot, and reparent only acts on the source).
+      // `dragPosition` slot, and reparent only acts on the source).
       if (selectedNodeIds.size > 0) onSelectionChange(new Set());
       setDragState({ sourceId, hoveredTargetId: null, isValidTarget: false });
     },
@@ -275,12 +288,12 @@ function TrailGraphInner(props: TrailGraphProps) {
       const target = dragState.hoveredTargetId;
       const valid = dragState.isValidTarget;
       setDragState({ sourceId: null, hoveredTargetId: null, isValidTarget: false });
-      clearDragTransform(node.id);
+      setDragPosition(null);
       if (target !== null && valid) {
         onReparentNode(sourceId, target);
       }
     },
-    [dragState, onReparentNode, clearDragTransform],
+    [dragState, onReparentNode],
   );
 
   const dragSourceId = dragState.sourceId;
@@ -339,7 +352,19 @@ function TrailGraphInner(props: TrailGraphProps) {
   const lifecycleEnabled = useNodeLifecycleEnabled();
   const lifecycleNodes = useNodeLifecycle(displayNodes, lifecycleEnabled);
 
-  const hasNodes = lifecycleNodes.length > 0;
+  // Apply the live drag position as the final layer — kept outside the
+  // upstream memos so a 60–120Hz pointermove tick triggers only this
+  // single O(N) pass. Only the dragged node gets a new object
+  // reference; every other node passes through by identity, so
+  // xyflow's internal diff updates the one moved node + recomputes
+  // only its incident edges.
+  const finalNodes = useMemo(() => {
+    if (!dragPosition) return lifecycleNodes;
+    const { id, x, y } = dragPosition;
+    return lifecycleNodes.map((n) => (n.id === id ? { ...n, position: { x, y } } : n));
+  }, [lifecycleNodes, dragPosition]);
+
+  const hasNodes = finalNodes.length > 0;
 
   // Target position for `currentNodeId` — null when the node hasn't
   // reached the layout yet (e.g. brand-new tab that arrives just before
@@ -763,7 +788,7 @@ function TrailGraphInner(props: TrailGraphProps) {
         onPointerUpCapture={handleContainerPointerUp}
       >
         <ReactFlow
-          nodes={lifecycleNodes}
+          nodes={finalNodes}
           edges={layout.edges}
           nodeTypes={nodeTypes}
           onNodeClick={handleNodeClick}
