@@ -23,6 +23,20 @@
   transition: transform 350ms var(--ease-in-out);
 }
 
+/*
+ * During drag, the node must jump to the cursor on every pointermove —
+ * NOT tween over 350ms toward it. xyflow adds the `dragging` class to
+ * the actively-dragged node (see useDrag in @xyflow/react); clearing
+ * the relayout transition on that class makes each React-state-driven
+ * transform write land in the same paint as the event, with no
+ * interpolation. Connected edges already have no `d` transition, so
+ * they snap to the new endpoints — once node and edges are both
+ * jumping (not tweening), the whole gesture reads as cursor-tight.
+ */
+.graph--relayout-animated .react-flow__node.dragging {
+  transition: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .graph--relayout-animated .react-flow__node {
     transition: none;
