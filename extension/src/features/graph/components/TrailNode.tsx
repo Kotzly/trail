@@ -1,6 +1,7 @@
 import { memo, useEffect, useRef, useState } from "react";
 import { Handle, Position, useUpdateNodeInternals } from "@xyflow/react";
 import type { TrailNodeData } from "../types.js";
+import { trailNodeDataEqual } from "../node-equality.js";
 import { cn } from "@ui/lib/utils";
 import { Icons } from "@ui/components/icons";
 import { Badge } from "@ui/components/ui/badge";
@@ -251,28 +252,7 @@ function TrailNodeComponent({
 
 export const TrailNode = memo(TrailNodeComponent, (prev, next) => {
   if (prev.selected !== next.selected) return false;
-  const a = prev.data;
-  const b = next.data;
-  return (
-    a.title === b.title &&
-    a.url === b.url &&
-    a.favicon === b.favicon &&
-    a.isCurrent === b.isCurrent &&
-    a.isOpen === b.isOpen &&
-    a.onActivePath === b.onActivePath &&
-    a.pinned === b.pinned &&
-    a.tabCount === b.tabCount &&
-    a.childCount === b.childCount &&
-    a.isCollapsed === b.isCollapsed &&
-    a.wasExpandedViaBadge === b.wasExpandedViaBadge &&
-    a.foldedAncestorCount === b.foldedAncestorCount &&
-    a.isChainUnfolded === b.isChainUnfolded &&
-    a.isRenaming === b.isRenaming &&
-    a.dragRole === b.dragRole &&
-    a.handles.length === b.handles.length &&
-    a.handles.every((h, i) => h === b.handles[i]) &&
-    a.spotlight === b.spotlight
-  );
+  return trailNodeDataEqual(prev.data, next.data);
 });
 
 /**

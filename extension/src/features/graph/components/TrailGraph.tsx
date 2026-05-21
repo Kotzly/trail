@@ -400,25 +400,19 @@ function TrailGraphInner(props: TrailGraphProps) {
 
   // Target position for `currentNodeId` — null when the node hasn't
   // reached the layout yet (e.g. brand-new tab that arrives just before
-  // the geometry memo recomputes). Primitive x/y deps below mean the
-  // centering effect refires exactly once when the position lands, not
-  // on every re-render.
-  const targetPos = useMemo(() => {
-    if (!currentNodeId) return null;
-    const node = displayNodes.find((n) => n.data.nodeId === currentNodeId);
-    return node?.position ?? null;
-  }, [displayNodes, currentNodeId]);
+  // the geometry memo recomputes). O(1) Map.get into the layout's
+  // position lookup; primitive x/y deps below mean the centering
+  // effect refires exactly once when the position lands, not on every
+  // re-render.
+  const targetPos =
+    currentNodeId !== null ? (layout.positions.get(String(currentNodeId)) ?? null) : null;
   const targetX = targetPos?.x ?? null;
   const targetY = targetPos?.y ?? null;
 
-  // Position of the initial-mount fallback (last-visited or root). Looked
-  // up once per displayNodes/fallbackFocusId change so the centering
-  // effect can read primitive deps and not refire on every render.
-  const fallbackPos = useMemo(() => {
-    if (!fallbackFocusId) return null;
-    const node = displayNodes.find((n) => n.data.nodeId === fallbackFocusId);
-    return node?.position ?? null;
-  }, [displayNodes, fallbackFocusId]);
+  // Position of the initial-mount fallback (last-visited or root). Same
+  // O(1) read from the layout's position map.
+  const fallbackPos =
+    fallbackFocusId !== null ? (layout.positions.get(String(fallbackFocusId)) ?? null) : null;
   const fallbackX = fallbackPos?.x ?? null;
   const fallbackY = fallbackPos?.y ?? null;
 

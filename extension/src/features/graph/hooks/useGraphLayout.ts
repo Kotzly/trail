@@ -1,12 +1,13 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import type { NodeId } from "@shared/types/ids.js";
 import type { NavigationTreeJSON } from "@shared/types/tree.js";
 import type { Settings } from "@shared/types/settings.js";
-import type { LayoutResult } from "../types.js";
+import type { LayoutResult, TrailNode } from "../types.js";
 import { applyNodeMetadata, computeGeometry, type LayoutMetadata } from "../layout.js";
 import { applyEdgeHighlight, computeActivePathIds } from "../transforms.js";
 import { compileCollapselist } from "@shared/lib/url-blocklist.js";
 import { computeChainFoldInfo, EMPTY_FOLD_INFO } from "../fold-chains.js";
+import { trailNodeEqual } from "../node-equality.js";
 
 type UseGraphLayoutInput = {
   tree: NavigationTreeJSON | null;
@@ -61,7 +62,7 @@ export function useGraphLayout(input: UseGraphLayoutInput): LayoutResult {
   );
 
   // Nodes: synchronous application of metadata onto cached geometry.
-  const nodes = useMemo(
+  const rawNodes = useMemo(
     () =>
       applyNodeMetadata(
         tree,
@@ -75,6 +76,50 @@ export function useGraphLayout(input: UseGraphLayoutInput): LayoutResult {
     [tree, settings, collapsedNodeIds, metadata, geometry, activePathIds, foldInfo],
   );
 
+  // Per-node identity stabilization. `applyNodeMetadata` allocates a
+  // fresh TrailNode + data object for every node on every metadata
+  // change — on a 5k-tree that's 5k allocations per tab-focus event.
+  // For the vast majority of those nodes, every field is structurally
+  // identical to the previous render. Comparing the new node against
+  // the cached one and reusing the cached ref when they match keeps
+  // xyflow's internal diff on the reference-equality fast path and
+  // lets downstream memos short-circuit by identity.
+  //
+  // Memo-as-cache pattern: the ref always holds the LAST-COMMITTED
+  // render's nodes (written from useEffect below). Reading it inside
+  // useMemo is a deterministic function of (rawNodes, last commit) —
+  // a discarded concurrent render sees the same pre-commit cache as
+  // the next attempt, so the cache never observes a tear.
+  const stableNodesCacheRef = useRef<Map<string, TrailNode>>(new Map());
+  /* eslint-disable react-hooks/refs -- memo-as-cache; ref always reflects
+     the last-committed render's nodes (written in useEffect below). A
+     discarded concurrent render reads the same pre-commit cache as the
+     next attempt, so the cache never observes a tear. */
+  const nodes = useMemo(() => {
+    const cache = stableNodesCacheRef.current;
+    if (cache.size === 0) return rawNodes;
+    return rawNodes.map((node) => {
+      const cached = cache.get(node.id);
+      return cached !== undefined && trailNodeEqual(cached, node) ? cached : node;
+    });
+  }, [rawNodes]);
+  /* eslint-enable react-hooks/refs */
+
+  useEffect(() => {
+    const next = new Map<string, TrailNode>();
+    for (const n of nodes) next.set(n.id, n);
+    stableNodesCacheRef.current = next;
+  }, [nodes]);
+
+  // Position lookup, built from the stable nodes so it shares their
+  // reference identity story — same memo, no extra allocations beyond
+  // the Map itself.
+  const positions = useMemo(() => {
+    const map = new Map<string, { x: number; y: number }>();
+    for (const n of nodes) map.set(n.id, n.position);
+    return map;
+  }, [nodes]);
+
   // Edges: base edges with active-path styling overlaid. New array only
   // when the active path changes — unchanged edges keep reference
   // identity, so ReactFlow's internal diff is cheap.
@@ -83,5 +128,5 @@ export function useGraphLayout(input: UseGraphLayoutInput): LayoutResult {
     [geometry.baseEdges, activePathIds],
   );
 
-  return { nodes, edges };
+  return { nodes, edges, positions };
 }

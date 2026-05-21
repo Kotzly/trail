@@ -142,4 +142,10 @@ export type TrailGraphProps = {
 export type LayoutResult = {
   nodes: TrailNode[];
   edges: TrailEdge[];
+  /**
+   * Per-node position lookup, built from the same nodes. O(1) reads
+   * for camera-centering paths that would otherwise scan the node
+   * array (`.find` × N nodes × M centering effects).
+   */
+  positions: Map<string, { x: number; y: number }>;
 };
