@@ -1,5 +1,5 @@
 import { memo, useEffect, useRef, useState } from "react";
-import { Handle, Position, useUpdateNodeInternals } from "@xyflow/react";
+import { Handle, Position } from "@xyflow/react";
 import type { TrailNodeData } from "../types.js";
 import { trailNodeDataEqual } from "../node-equality.js";
 import { cn } from "@ui/lib/utils";
@@ -33,15 +33,7 @@ const handleTypeMap: Record<string, "source" | "target"> = {
   "source-right": "source",
 };
 
-function TrailNodeComponent({
-  id,
-  data,
-  selected,
-}: {
-  id: string;
-  data: TrailNodeData;
-  selected?: boolean;
-}) {
+function TrailNodeComponent({ data, selected }: { data: TrailNodeData; selected?: boolean }) {
   const {
     nodeId,
     title,
@@ -71,26 +63,13 @@ function TrailNodeComponent({
   // full-Card variants. Pulling the subscription out keeps the DOM
   // static; CSS toggles visibility for free on the GPU.
 
-  // When handles change (e.g. first child added → parent gains
-  // `source-bottom`, or freshly mounted node registers `target-top`),
-  // React Flow must re-measure them so incident edges can be drawn.
-  // Without this, a new parent→child edge stays invisible until the
-  // viewport re-culls it (pan/zoom), which was the reported bug.
-  //
-  // Skip the call on initial mount: React Flow measures handles
-  // automatically during the first commit using the initial node
-  // data. On a big tree (5k+ nodes) the cascading per-node calls
-  // serialize across ~1 frame each and turn cold sidepanel open into
-  // an 8+ second rAF cascade. Only fire when handlesKey CHANGES
-  // post-mount.
-  const handlesKey = handles.join("|");
-  const updateNodeInternals = useUpdateNodeInternals();
-  const firstHandlesKeyRef = useRef(handlesKey);
-  useEffect(() => {
-    if (firstHandlesKeyRef.current === handlesKey) return;
-    firstHandlesKeyRef.current = handlesKey;
-    updateNodeInternals(id);
-  }, [id, handlesKey, updateNodeInternals]);
+  // Handle-change detection is hoisted to TrailGraph — the parent
+  // diffs the layout's handles map across renders and issues a single
+  // batched `updateNodeInternals([...changedIds])` call when needed.
+  // Doing it here per-node fanned out into N independent effects, and
+  // for events that touch many nodes at once (layout-mode switch) they
+  // all run in the same commit and the rAF-coalescing inside xyflow
+  // only partly hid the cost.
 
   const displayUrl = String(url)
     .replace(/^https?:\/\/(www\.)?/, "")
