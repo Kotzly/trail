@@ -211,6 +211,36 @@ function TrailGraphInner(props: TrailGraphProps) {
     return bestId;
   }, [tree]);
 
+  // Fully-controlled mode contract. `nodes` is owned by `useGraphLayout`
+  // and selection lives in parent state (`selectedNodeIds`), so xyflow
+  // is the renderer, not the source of truth. xyflow still emits
+  // NodeChange events for every internal mutation it considers — we
+  // intentionally apply only one of them, because that is the single
+  // change type xyflow cannot express through controlled props:
+  //
+  //   • position + dragging — live cursor position during a drag.
+  //     xyflow tracks this internally between mousedown and mouseup;
+  //     without mirroring it back into the controlled `nodes` array,
+  //     the dragged node would render glued at its layout position
+  //     and its incident edges would freeze. We mirror it into
+  //     `dragPosition`, which `finalNodes` overlays.
+  //
+  // Other change types are safely ignored:
+  //
+  //   • select — parent owns `selectedNodeIds`; xyflow reflects state
+  //     back via the controlled `selected` field on each node.
+  //   • add / remove — layout owns the node list. xyflow never adds
+  //     or removes a node out of band in this mode.
+  //   • dimensions — nodes ship pre-measured `measured` dims (set in
+  //     transforms.ts) so xyflow's first measurement matches what we
+  //     gave it and emits no further updates for unchanged geometry.
+  //   • replace — not produced under current xyflow usage; would only
+  //     fire if we adopted a feature like change-applied replacement.
+  //
+  // When upgrading @xyflow/react, audit the NodeChange union. If a new
+  // type becomes load-bearing for fully-controlled mode, switch to
+  // `applyNodeChanges` here and mirror the resulting list into parent
+  // state. The drag-position split is the minimum that works today.
   const handleNodesChange = useCallback((changes: NodeChange[]) => {
     for (const change of changes) {
       if (change.type !== "position" || !change.dragging || !change.position) continue;
