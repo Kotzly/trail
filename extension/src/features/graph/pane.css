@@ -169,3 +169,49 @@
   transform: none;
   box-shadow: none;
 }
+
+/*
+ * Far-zoom paint-cost reductions for large trees (500–1500 visible
+ * nodes). With titles now rendered at every LOD (so nodes stay
+ * identifiable), the per-frame paint at far zoom is dominated by
+ * line-clamp text layout and unbounded paint regions. The rules below
+ * only apply under `[data-lod="far"]`, so mid/near appearance is
+ * unchanged.
+ */
+
+/* Full paint containment per node at far zoom. The base rule on
+   `.react-flow__node` (above) deliberately excludes `paint` so hover
+   glow and the onboarding spotlight can extend outside the 160×60
+   box. At far zoom both are already suppressed (the rules right above
+   kill hover transform/shadow, and a 10px outer ring isn't
+   perceptible at zoom <0.15), so painting fully inside the node lets
+   the browser skip rect-intersection tests against ancestors during
+   pan. */
+[data-lod="far"] .react-flow__node {
+  contain: layout style paint;
+}
+
+/* Cheapest text-layout path for the title at far zoom. Tailwind's
+   `line-clamp-2` expands to `display: -webkit-box; -webkit-box-orient:
+   vertical; -webkit-line-clamp: 2; overflow: hidden` — the slowest
+   text-layout path (per-line baseline + multi-line ellipsis). At zoom
+   <0.15 the 12px font rasterizes to ≤1.8 effective px, so glyphs are
+   a smear regardless of clamp count; single-line nowrap is visually
+   indistinguishable and significantly cheaper. Mid/near keep the
+   original two-line clamp. */
+[data-lod="far"] [data-lod-title] > span {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  -webkit-line-clamp: unset;
+}
+
+/* Drop edge-path transitions at far zoom. At 1–2 screen-px edges the
+   80ms stroke crossfade on active-path highlight isn't perceptible,
+   and keeping the property live forces the SVG path through
+   style-recalc each frame during pan. `.graph--reshaping` opacity
+   still drops to 0.25 — only the transition is removed, not the
+   property change. */
+[data-lod="far"] .react-flow__edge-path {
+  transition: none;
+}
