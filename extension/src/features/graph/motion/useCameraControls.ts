@@ -14,7 +14,13 @@
  */
 
 import { useCallback, useLayoutEffect, useRef } from "react";
-import { useReactFlow, useStore, type FitViewOptions, type ReactFlowState } from "@xyflow/react";
+import {
+  useReactFlow,
+  useStore,
+  useStoreApi,
+  type FitViewOptions,
+  type ReactFlowState,
+} from "@xyflow/react";
 import { useMotionFlag } from "./store.js";
 import { useFpsTier } from "./fps-tier.js";
 import { useReducedMotion } from "./use-reduced-motion.js";
@@ -44,6 +50,15 @@ export function useCameraControls(): {
   smoothFitView: (options?: FitViewOptions) => void;
 } {
   const { fitView, getZoom, getViewport, setViewport } = useReactFlow();
+  // `useStoreApi` returns a memoized handle whose identity is stable for the
+  // lifetime of the ReactFlowProvider. Reading width/height/transform off
+  // `getState()` at CALL time (rather than via `useStore` subscription)
+  // keeps smoothCenter's identity from churning on every resize tick.
+  const storeApi = useStoreApi();
+  // Still subscribe to width/height for the deferred-target replay effect
+  // below — the effect MUST re-fire when xyflow's measured dimensions
+  // transition from 0 → real, otherwise a center scheduled before the
+  // measurement never lands.
   const viewportWidth = useStore(selectWidth);
   const viewportHeight = useStore(selectHeight);
   const centerEnabled = useMotionFlag("camera_smooth_center");
@@ -84,7 +99,8 @@ export function useCameraControls(): {
    */
   const smoothCenter = useCallback(
     (flowX: number, flowY: number, options?: SmoothCenterOptions) => {
-      if (viewportWidth === 0 || viewportHeight === 0) {
+      const { width, height } = storeApi.getState();
+      if (width === 0 || height === 0) {
         // Defer until xyflow measures the container. Last call wins —
         // matches the in-flight tween's universal-interrupt semantics.
         pendingTargetRef.current = { flowX, flowY, options };
@@ -98,8 +114,8 @@ export function useCameraControls(): {
       }
 
       const targetZoom = options?.zoom ?? getZoom();
-      const targetVpX = viewportWidth / 2 - flowX * targetZoom;
-      const targetVpY = viewportHeight / 2 - flowY * targetZoom;
+      const targetVpX = width / 2 - flowX * targetZoom;
+      const targetVpY = height / 2 - flowY * targetZoom;
 
       if (!allowSmoothCenter) {
         setViewport({ x: targetVpX, y: targetVpY, zoom: targetZoom });
@@ -131,7 +147,7 @@ export function useCameraControls(): {
       };
       tweenRafRef.current = requestAnimationFrame(step);
     },
-    [getZoom, getViewport, setViewport, viewportWidth, viewportHeight, allowSmoothCenter],
+    [storeApi, getZoom, getViewport, setViewport, allowSmoothCenter],
   );
 
   // Replay any deferred center as soon as xyflow finishes measuring.

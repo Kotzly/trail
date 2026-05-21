@@ -18,9 +18,22 @@
  * (e.g. expand of a folded chain), each subsequent one gets a 30ms
  * `animation-delay` so the cohort cascades rather than flashing
  * together. Single-event cohorts have zero delay.
+ *
+ * ## Architecture
+ *
+ * Diff bookkeeping lives in a single `useState` slot. Bookkeeping
+ * transitions happen inside a `useLayoutEffect` — running after the
+ * commit, before paint — so the resulting re-render (with annotation
+ * classes attached) flushes synchronously and the browser only ever
+ * paints the final state. Render itself is pure: it derives the
+ * output from `nodes` + `state.annotations` with no impurity.
+ *
+ * Pure helpers `composeOutput`, `computeNextDiffState`, and
+ * `retireExpired` make the state transitions testable in isolation
+ * and keep the React surface area minimal.
  */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import type { TrailNode } from "../types.js";
 import { useMotionFlag } from "./store.js";
 import { useFpsTier } from "./fps-tier.js";
@@ -33,6 +46,8 @@ const STAGGER_STEP_MS = 30;
 const STAGGER_THRESHOLD = 3;
 /** A node that disappears and reappears within this window is a "return". */
 const RETURN_WINDOW_MS = 1500;
+/** Worst-case animation lifetime — used as the expiry-sweep deadline. */
+const MAX_LIFETIME_MS = ENTER_DURATION_MS + STAGGER_STEP_MS * 4 + 32;
 
 type Annotation = {
   kind: "enter" | "exit" | "return";
@@ -40,6 +55,25 @@ type Annotation = {
   expiresAt: number;
   /** Snapshot held only for exits — we render this from the ghost list. */
   ghost?: TrailNode;
+};
+
+type DiffState = {
+  annotations: Map<string, Annotation>;
+  lastSnapshots: Map<string, TrailNode>;
+  recentlyDeparted: Map<string, number>;
+  prevIds: Set<string>;
+};
+
+const EMPTY_ANNOTATIONS: Map<string, Annotation> = new Map();
+const EMPTY_SNAPSHOTS: Map<string, TrailNode> = new Map();
+const EMPTY_RECENTLY_DEPARTED: Map<string, number> = new Map();
+const EMPTY_PREV_IDS: Set<string> = new Set();
+
+const INITIAL_STATE: DiffState = {
+  annotations: EMPTY_ANNOTATIONS,
+  lastSnapshots: EMPTY_SNAPSHOTS,
+  recentlyDeparted: EMPTY_RECENTLY_DEPARTED,
+  prevIds: EMPTY_PREV_IDS,
 };
 
 /**
@@ -57,162 +91,232 @@ export function useNodeLifecycleEnabled(): boolean {
 }
 
 export function useNodeLifecycle(nodes: readonly TrailNode[], enabled: boolean): TrailNode[] {
-  const annotationsRef = useRef<Map<string, Annotation>>(new Map());
-  const lastSnapshotRef = useRef<Map<string, TrailNode>>(new Map());
-  const recentlyDepartedRef = useRef<Map<string, number>>(new Map());
-  const prevIdsRef = useRef<Set<string>>(new Set());
-  const [, setTick] = useState(0);
+  const [state, setState] = useState<DiffState>(INITIAL_STATE);
 
-  const result = useMemo(() => {
+  // PURE: derive the rendered list from `nodes` + the cohort
+  // annotations. When the gate is off we short-circuit to the
+  // original array (same ref) so the no-op path has zero allocations.
+  const output = useMemo<TrailNode[]>(
+    () => (enabled ? composeOutput(nodes, state.annotations) : (nodes as TrailNode[])),
+    [nodes, state.annotations, enabled],
+  );
+
+  // SIDE-EFFECT: whenever `nodes` or `enabled` changes, diff against
+  // the previous render's snapshot and dispatch the next state. Using
+  // a layout effect (rather than a passive effect) makes the resulting
+  // re-render flush BEFORE paint, so animation classes always land
+  // same-frame-as-arrival.
+  //
+  // The lint rule prefers deriving state during render, but we can't
+  // do that here: ghost rendering carries the LAST-COMMITTED snapshot
+  // of departed nodes, and that snapshot is genuine state (the parent
+  // no longer exposes those nodes in `nodes`). The next-state pass
+  // is a pure function of (prev state, current nodes, monotonic now),
+  // which is exactly what useLayoutEffect + setState models.
+  /* eslint-disable react-hooks/set-state-in-effect -- pure diff-against-previous-commit */
+  useLayoutEffect(() => {
     if (!enabled) {
-      annotationsRef.current.clear();
-      lastSnapshotRef.current.clear();
-      recentlyDepartedRef.current.clear();
-      prevIdsRef.current = new Set(nodes.map((n) => n.id));
-      return nodes as TrailNode[];
+      setState((prev) => resetForDisabled(prev, nodes));
+      return;
     }
-
-    // Animation cohort timestamps need a monotonic clock read each render —
-    // the bookkeeping is intentionally time-dependent.
-    // eslint-disable-next-line react-hooks/purity
-    const now = performance.now();
-    const currentIds = new Set(nodes.map((n) => n.id));
-    const prevIds = prevIdsRef.current;
-
-    // Bootstrap paint: every node is "new" only because we just
-    // mounted. Treating the cohort as `entering` triggers 1 CSS
-    // animation per node + a style recalc/layout-tree cascade — on a
-    // 5k+ tree that adds ~5s of main-thread work for what is
-    // semantically not an entry event. Pass through unchanged on the
-    // very first render; seed prevIdsRef so subsequent diffs work.
-    if (prevIds.size === 0 && currentIds.size > 0) {
-      for (const node of nodes) lastSnapshotRef.current.set(node.id, node);
-      prevIdsRef.current = currentIds;
-      return nodes as TrailNode[];
-    }
-
-    // Classify newcomers — entering vs returning.
-    const enteringIds: string[] = [];
-    const returningIds: string[] = [];
-    for (const id of currentIds) {
-      if (prevIds.has(id)) continue;
-      const departedAt = recentlyDepartedRef.current.get(id);
-      if (departedAt !== undefined && now - departedAt < RETURN_WINDOW_MS) {
-        returningIds.push(id);
-        recentlyDepartedRef.current.delete(id);
-      } else {
-        enteringIds.push(id);
-      }
-      // An id that re-appears clears any stale exit annotation.
-      const stale = annotationsRef.current.get(id);
-      if (stale?.kind === "exit") annotationsRef.current.delete(id);
-    }
-
-    // Classify exiters — must have a snapshot to render their ghost.
-    const exitingIds: string[] = [];
-    for (const id of prevIds) {
-      if (currentIds.has(id)) continue;
-      const ghost = lastSnapshotRef.current.get(id);
-      if (!ghost) continue;
-      exitingIds.push(id);
-      recentlyDepartedRef.current.set(id, now);
-    }
-
-    // Apply stagger only when the cohort is dense enough to warrant it.
-    const enterStagger = enteringIds.length >= STAGGER_THRESHOLD ? STAGGER_STEP_MS : 0;
-    const returnStagger = returningIds.length >= STAGGER_THRESHOLD ? STAGGER_STEP_MS : 0;
-    const exitStagger = exitingIds.length >= STAGGER_THRESHOLD ? STAGGER_STEP_MS : 0;
-
-    enteringIds.forEach((id, index) => {
-      annotationsRef.current.set(id, {
-        kind: "enter",
-        delayMs: index * enterStagger,
-        expiresAt: now + index * enterStagger + ENTER_DURATION_MS + 16,
-      });
-    });
-    returningIds.forEach((id, index) => {
-      annotationsRef.current.set(id, {
-        kind: "return",
-        delayMs: index * returnStagger,
-        expiresAt: now + index * returnStagger + RETURN_DURATION_MS + 16,
-      });
-    });
-    exitingIds.forEach((id, index) => {
-      const ghost = lastSnapshotRef.current.get(id);
-      if (!ghost) return;
-      annotationsRef.current.set(id, {
-        kind: "exit",
-        delayMs: index * exitStagger,
-        expiresAt: now + index * exitStagger + EXIT_DURATION_MS + 16,
-        ghost,
-      });
-    });
-
-    // Refresh the snapshot cache for currently-visible nodes — these
-    // are what we'll render as ghosts on the next exit. Trim ids no
-    // longer present after the exit window so the map doesn't grow
-    // unbounded.
-    for (const node of nodes) lastSnapshotRef.current.set(node.id, node);
-    for (const id of lastSnapshotRef.current.keys()) {
-      if (!currentIds.has(id) && !annotationsRef.current.has(id)) {
-        lastSnapshotRef.current.delete(id);
-      }
-    }
-
-    // Trim trackers.
-    for (const [id, ts] of recentlyDepartedRef.current) {
-      if (now - ts > RETURN_WINDOW_MS) recentlyDepartedRef.current.delete(id);
-    }
-    for (const [id, ann] of annotationsRef.current) {
-      if (ann.expiresAt <= now) annotationsRef.current.delete(id);
-    }
-
-    // Compose output: live nodes (with optional entering/returning
-    // class) plus ghost nodes (with exiting class).
-    const out: TrailNode[] = [];
-    for (const node of nodes) {
-      const ann = annotationsRef.current.get(node.id);
-      if (!ann || ann.kind === "exit") {
-        out.push(node);
-      } else {
-        out.push({
-          ...node,
-          className: mergeClass(node.className, classFor(ann.kind)),
-          style: { ...(node.style ?? {}), animationDelay: `${ann.delayMs}ms` },
-        });
-      }
-    }
-    for (const [id, ann] of annotationsRef.current) {
-      if (ann.kind !== "exit") continue;
-      if (currentIds.has(id)) continue;
-      if (!ann.ghost) continue;
-      out.push({
-        ...ann.ghost,
-        className: mergeClass(ann.ghost.className, "graph-node--exiting"),
-        style: { ...(ann.ghost.style ?? {}), animationDelay: `${ann.delayMs}ms` },
-        selectable: false,
-        draggable: false,
-      });
-    }
-
-    prevIdsRef.current = currentIds;
-    return out;
+    setState((prev) => computeNextDiffState(prev, nodes, performance.now()));
   }, [nodes, enabled]);
 
-  // Schedule a re-render to retire expired annotations once the
-  // longest possible animation has played. Depend on annotation count
-  // so the effect re-arms whenever we add a fresh cohort.
-  const annotationCount = annotationsRef.current.size;
+  // Re-arm a single setTimeout that retires expired annotations. New
+  // cohort → new `state.annotations` reference → effect re-runs.
   useEffect(() => {
-    if (annotationCount === 0) return undefined;
+    if (state.annotations.size === 0) return undefined;
     const timer = window.setTimeout(
-      () => setTick((t) => t + 1),
-      ENTER_DURATION_MS + STAGGER_STEP_MS * 4 + 32,
+      () => setState((prev) => retireExpired(prev, performance.now())),
+      MAX_LIFETIME_MS,
     );
     return () => window.clearTimeout(timer);
-  }, [annotationCount]);
+  }, [state.annotations]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
-  return result;
+  return output;
+}
+
+// ── Pure helpers ─────────────────────────────────────────────────────
+
+function composeOutput(
+  nodes: readonly TrailNode[],
+  annotations: Map<string, Annotation>,
+): TrailNode[] {
+  if (annotations.size === 0) return nodes as TrailNode[];
+
+  const out: TrailNode[] = [];
+  const liveIds = new Set<string>();
+  for (const node of nodes) {
+    liveIds.add(node.id);
+    const ann = annotations.get(node.id);
+    if (!ann || ann.kind === "exit") {
+      out.push(node);
+    } else {
+      out.push({
+        ...node,
+        className: mergeClass(node.className, classFor(ann.kind)),
+        style: { ...(node.style ?? {}), animationDelay: `${ann.delayMs}ms` },
+      });
+    }
+  }
+  for (const [id, ann] of annotations) {
+    if (ann.kind !== "exit") continue;
+    if (liveIds.has(id)) continue;
+    if (!ann.ghost) continue;
+    out.push({
+      ...ann.ghost,
+      className: mergeClass(ann.ghost.className, "graph-node--exiting"),
+      style: { ...(ann.ghost.style ?? {}), animationDelay: `${ann.delayMs}ms` },
+      selectable: false,
+      draggable: false,
+    });
+  }
+  return out;
+}
+
+function computeNextDiffState(
+  prev: DiffState,
+  nodes: readonly TrailNode[],
+  now: number,
+): DiffState {
+  const currentIds = new Set<string>();
+  for (const n of nodes) currentIds.add(n.id);
+  const prevIds = prev.prevIds;
+
+  // Bootstrap paint: every node is "new" only because we just mounted.
+  // Treating the cohort as `entering` triggers 1 CSS animation per
+  // node + a style recalc/layout-tree cascade — on a 5k+ tree that's
+  // ~5s of main-thread work for what is semantically not an entry
+  // event. Pass through unchanged on the very first render; seed
+  // prevIds so subsequent diffs work.
+  if (prevIds.size === 0 && currentIds.size > 0) {
+    const lastSnapshots = new Map<string, TrailNode>();
+    for (const node of nodes) lastSnapshots.set(node.id, node);
+    return {
+      annotations: prev.annotations,
+      lastSnapshots,
+      recentlyDeparted: prev.recentlyDeparted,
+      prevIds: currentIds,
+    };
+  }
+
+  const annotations = new Map(prev.annotations);
+  const lastSnapshots = new Map(prev.lastSnapshots);
+  const recentlyDeparted = new Map(prev.recentlyDeparted);
+
+  // Classify newcomers — entering vs returning.
+  const enteringIds: string[] = [];
+  const returningIds: string[] = [];
+  for (const id of currentIds) {
+    if (prevIds.has(id)) continue;
+    const departedAt = recentlyDeparted.get(id);
+    if (departedAt !== undefined && now - departedAt < RETURN_WINDOW_MS) {
+      returningIds.push(id);
+      recentlyDeparted.delete(id);
+    } else {
+      enteringIds.push(id);
+    }
+    // An id that re-appears clears any stale exit annotation.
+    const stale = annotations.get(id);
+    if (stale?.kind === "exit") annotations.delete(id);
+  }
+
+  // Classify exiters — must have a snapshot to render their ghost.
+  const exitingIds: string[] = [];
+  for (const id of prevIds) {
+    if (currentIds.has(id)) continue;
+    const ghost = lastSnapshots.get(id);
+    if (!ghost) continue;
+    exitingIds.push(id);
+    recentlyDeparted.set(id, now);
+  }
+
+  // Stagger only when the cohort is dense enough to warrant it.
+  const enterStagger = enteringIds.length >= STAGGER_THRESHOLD ? STAGGER_STEP_MS : 0;
+  const returnStagger = returningIds.length >= STAGGER_THRESHOLD ? STAGGER_STEP_MS : 0;
+  const exitStagger = exitingIds.length >= STAGGER_THRESHOLD ? STAGGER_STEP_MS : 0;
+
+  enteringIds.forEach((id, index) => {
+    annotations.set(id, {
+      kind: "enter",
+      delayMs: index * enterStagger,
+      expiresAt: now + index * enterStagger + ENTER_DURATION_MS + 16,
+    });
+  });
+  returningIds.forEach((id, index) => {
+    annotations.set(id, {
+      kind: "return",
+      delayMs: index * returnStagger,
+      expiresAt: now + index * returnStagger + RETURN_DURATION_MS + 16,
+    });
+  });
+  exitingIds.forEach((id, index) => {
+    const ghost = lastSnapshots.get(id);
+    if (!ghost) return;
+    annotations.set(id, {
+      kind: "exit",
+      delayMs: index * exitStagger,
+      expiresAt: now + index * exitStagger + EXIT_DURATION_MS + 16,
+      ghost,
+    });
+  });
+
+  // Refresh the snapshot cache for currently-visible nodes — these
+  // are what we'll render as ghosts on the next exit. Trim ids no
+  // longer present after the exit window so the map doesn't grow
+  // unbounded.
+  for (const node of nodes) lastSnapshots.set(node.id, node);
+  for (const id of lastSnapshots.keys()) {
+    if (!currentIds.has(id) && !annotations.has(id)) {
+      lastSnapshots.delete(id);
+    }
+  }
+
+  for (const [id, ts] of recentlyDeparted) {
+    if (now - ts > RETURN_WINDOW_MS) recentlyDeparted.delete(id);
+  }
+  for (const [id, ann] of annotations) {
+    if (ann.expiresAt <= now) annotations.delete(id);
+  }
+
+  return { annotations, lastSnapshots, recentlyDeparted, prevIds: currentIds };
+}
+
+function retireExpired(prev: DiffState, now: number): DiffState {
+  if (prev.annotations.size === 0) return prev;
+  let nextAnnotations: Map<string, Annotation> | null = null;
+  for (const [id, ann] of prev.annotations) {
+    if (ann.expiresAt <= now) {
+      if (nextAnnotations === null) nextAnnotations = new Map(prev.annotations);
+      nextAnnotations.delete(id);
+    }
+  }
+  if (nextAnnotations === null) return prev;
+  return { ...prev, annotations: nextAnnotations };
+}
+
+function resetForDisabled(prev: DiffState, nodes: readonly TrailNode[]): DiffState {
+  if (prev.annotations.size === 0 && nodes.length === prev.prevIds.size) {
+    let allMatch = true;
+    for (const n of nodes) {
+      if (!prev.prevIds.has(n.id)) {
+        allMatch = false;
+        break;
+      }
+    }
+    if (allMatch && prev.lastSnapshots.size === 0 && prev.recentlyDeparted.size === 0) {
+      return prev;
+    }
+  }
+  const prevIds = new Set<string>();
+  for (const n of nodes) prevIds.add(n.id);
+  return {
+    annotations: EMPTY_ANNOTATIONS,
+    lastSnapshots: EMPTY_SNAPSHOTS,
+    recentlyDeparted: EMPTY_RECENTLY_DEPARTED,
+    prevIds,
+  };
 }
 
 function classFor(kind: Annotation["kind"]): string {

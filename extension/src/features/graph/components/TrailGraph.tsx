@@ -7,6 +7,8 @@ import {
   SelectionMode,
   useReactFlow,
   useStore,
+  useUpdateNodeInternals,
+  type Node,
   type NodeChange,
   type NodeMouseHandler,
 } from "@xyflow/react";
@@ -47,6 +49,8 @@ const defaultEdgeOptions = {
     strokeWidth: 1.5,
   },
 } as const;
+
+const proOptions = { hideAttribution: true } as const;
 
 /**
  * Isolated Background subscriber. Keeping the `useStore` read inside a
@@ -209,6 +213,36 @@ function TrailGraphInner(props: TrailGraphProps) {
     return bestId;
   }, [tree]);
 
+  // Fully-controlled mode contract. `nodes` is owned by `useGraphLayout`
+  // and selection lives in parent state (`selectedNodeIds`), so xyflow
+  // is the renderer, not the source of truth. xyflow still emits
+  // NodeChange events for every internal mutation it considers — we
+  // intentionally apply only one of them, because that is the single
+  // change type xyflow cannot express through controlled props:
+  //
+  //   • position + dragging — live cursor position during a drag.
+  //     xyflow tracks this internally between mousedown and mouseup;
+  //     without mirroring it back into the controlled `nodes` array,
+  //     the dragged node would render glued at its layout position
+  //     and its incident edges would freeze. We mirror it into
+  //     `dragPosition`, which `finalNodes` overlays.
+  //
+  // Other change types are safely ignored:
+  //
+  //   • select — parent owns `selectedNodeIds`; xyflow reflects state
+  //     back via the controlled `selected` field on each node.
+  //   • add / remove — layout owns the node list. xyflow never adds
+  //     or removes a node out of band in this mode.
+  //   • dimensions — nodes ship pre-measured `measured` dims (set in
+  //     transforms.ts) so xyflow's first measurement matches what we
+  //     gave it and emits no further updates for unchanged geometry.
+  //   • replace — not produced under current xyflow usage; would only
+  //     fire if we adopted a feature like change-applied replacement.
+  //
+  // When upgrading @xyflow/react, audit the NodeChange union. If a new
+  // type becomes load-bearing for fully-controlled mode, switch to
+  // `applyNodeChanges` here and mirror the resulting list into parent
+  // state. The drag-position split is the minimum that works today.
   const handleNodesChange = useCallback((changes: NodeChange[]) => {
     for (const change of changes) {
       if (change.type !== "position" || !change.dragging || !change.position) continue;
@@ -232,58 +266,82 @@ function TrailGraphInner(props: TrailGraphProps) {
     [selectedNodeIds, onSelectionChange],
   );
 
+  // Drag-target detection is the dominant per-pointermove cost
+  // (xyflow's `getIntersectingNodes` does a linear scan across the
+  // node list, ~120Hz on a fast pointing device). One rAF tick is
+  // visually indistinguishable from per-event and caps the workload
+  // at 60Hz on a maxed-out monitor.
+  const dragRafRef = useRef<number | null>(null);
+  const dragLatestNodeRef = useRef<Node | null>(null);
+
   const handleNodeDrag: NodeMouseHandler = useCallback(
     (_event, node) => {
-      const sourceId = (node.data as TrailNodeData).nodeId;
-      // `partial=true` — accept any overlap, not just full containment.
-      // With nodes the same size, a dragged node almost never sits
-      // entirely *inside* another one, so `false` would mean "no target
-      // ever lights up." When several nodes overlap, prefer the one
-      // whose center is closest to the dragged node's center (all coords
-      // in flow-space, so the comparison is consistent).
-      const intersecting = getIntersectingNodes(node, true).filter((n) => n.id !== node.id);
-      if (intersecting.length === 0) {
-        setDragState((prev) =>
-          prev.hoveredTargetId === null && prev.sourceId === sourceId
-            ? prev
-            : { sourceId, hoveredTargetId: null, isValidTarget: false },
-        );
-        return;
-      }
-      const sourceW = node.measured?.width ?? node.width ?? NODE_WIDTH;
-      const sourceH = node.measured?.height ?? node.height ?? NODE_HEIGHT;
-      const sourceCx = node.position.x + sourceW / 2;
-      const sourceCy = node.position.y + sourceH / 2;
-      let best = intersecting[0]!;
-      let bestDist = Infinity;
-      for (const n of intersecting) {
-        const w = n.measured?.width ?? n.width ?? NODE_WIDTH;
-        const h = n.measured?.height ?? n.height ?? NODE_HEIGHT;
-        const cx = n.position.x + w / 2;
-        const cy = n.position.y + h / 2;
-        const dx = cx - sourceCx;
-        const dy = cy - sourceCy;
-        const dist = dx * dx + dy * dy;
-        if (dist < bestDist) {
-          bestDist = dist;
-          best = n;
+      dragLatestNodeRef.current = node;
+      if (dragRafRef.current !== null) return;
+      dragRafRef.current = requestAnimationFrame(() => {
+        dragRafRef.current = null;
+        const current = dragLatestNodeRef.current;
+        if (current === null) return;
+        const sourceId = (current.data as TrailNodeData).nodeId;
+        // `partial=true` — accept any overlap, not just full containment.
+        // With nodes the same size, a dragged node almost never sits
+        // entirely *inside* another one, so `false` would mean "no target
+        // ever lights up." When several nodes overlap, prefer the one
+        // whose center is closest to the dragged node's center (all coords
+        // in flow-space, so the comparison is consistent).
+        const intersecting = getIntersectingNodes(current, true).filter((n) => n.id !== current.id);
+        if (intersecting.length === 0) {
+          setDragState((prev) =>
+            prev.hoveredTargetId === null && prev.sourceId === sourceId
+              ? prev
+              : { sourceId, hoveredTargetId: null, isValidTarget: false },
+          );
+          return;
         }
-      }
-      const candidateId = (best.data as TrailNodeData).nodeId;
-      const valid = isValidDropTarget(treeMaps, sourceId, candidateId);
-      setDragState((prev) =>
-        prev.sourceId === sourceId &&
-        prev.hoveredTargetId === candidateId &&
-        prev.isValidTarget === valid
-          ? prev
-          : { sourceId, hoveredTargetId: candidateId, isValidTarget: valid },
-      );
+        const sourceW = current.measured?.width ?? current.width ?? NODE_WIDTH;
+        const sourceH = current.measured?.height ?? current.height ?? NODE_HEIGHT;
+        const sourceCx = current.position.x + sourceW / 2;
+        const sourceCy = current.position.y + sourceH / 2;
+        let best = intersecting[0]!;
+        let bestDist = Infinity;
+        for (const n of intersecting) {
+          const w = n.measured?.width ?? n.width ?? NODE_WIDTH;
+          const h = n.measured?.height ?? n.height ?? NODE_HEIGHT;
+          const cx = n.position.x + w / 2;
+          const cy = n.position.y + h / 2;
+          const dx = cx - sourceCx;
+          const dy = cy - sourceCy;
+          const dist = dx * dx + dy * dy;
+          if (dist < bestDist) {
+            bestDist = dist;
+            best = n;
+          }
+        }
+        const candidateId = (best.data as TrailNodeData).nodeId;
+        const valid = isValidDropTarget(treeMaps, sourceId, candidateId);
+        setDragState((prev) =>
+          prev.sourceId === sourceId &&
+          prev.hoveredTargetId === candidateId &&
+          prev.isValidTarget === valid
+            ? prev
+            : { sourceId, hoveredTargetId: candidateId, isValidTarget: valid },
+        );
+      });
     },
     [getIntersectingNodes, treeMaps],
   );
 
   const handleNodeDragStop: NodeMouseHandler = useCallback(
     (_event, node) => {
+      // Cancel any pending intersect-check rAF — its setDragState would
+      // race the drop and either restore a hover state or fire after we
+      // already cleared it.
+      if (dragRafRef.current !== null) {
+        cancelAnimationFrame(dragRafRef.current);
+        dragRafRef.current = null;
+      }
+      dragLatestNodeRef.current = null;
+
       const sourceId = (node.data as TrailNodeData).nodeId;
       const target = dragState.hoveredTargetId;
       const valid = dragState.isValidTarget;
@@ -352,6 +410,40 @@ function TrailGraphInner(props: TrailGraphProps) {
   const lifecycleEnabled = useNodeLifecycleEnabled();
   const lifecycleNodes = useNodeLifecycle(displayNodes, lifecycleEnabled);
 
+  // Batched handle-change detection. When the layout reshuffles
+  // handles (e.g. layout-mode flip tree ↔ mindmap, or a first child
+  // landing under a leaf that thereby gains a source handle), xyflow
+  // must re-measure handles so incident edges land at the right
+  // endpoints. The per-node version of this effect — each TrailNode
+  // owning its own useEffect + ref + updateNodeInternals call — fired
+  // N independent store mutations in the same commit when a layout-
+  // mode change touched many nodes. v12's `updateNodeInternals`
+  // accepts an array and coalesces into a single store mutation, so
+  // diff handles at the parent and issue one batched call.
+  //
+  // Mount-skip: a node absent from `prev` is brand new. xyflow
+  // measures its handles on the first commit using the initial
+  // node data, so we must NOT call updateNodeInternals for it.
+  const updateNodeInternals = useUpdateNodeInternals();
+  const prevHandlesByIdRef = useRef<Map<string, string>>(new Map());
+  useEffect(() => {
+    const prev = prevHandlesByIdRef.current;
+    const next = new Map<string, string>();
+    const changed: string[] = [];
+    for (const n of layout.nodes) {
+      const key = n.data.handles.join("|");
+      next.set(n.id, key);
+      const prevKey = prev.get(n.id);
+      if (prevKey !== undefined && prevKey !== key) {
+        changed.push(n.id);
+      }
+    }
+    prevHandlesByIdRef.current = next;
+    if (changed.length > 0) {
+      updateNodeInternals(changed);
+    }
+  }, [layout.nodes, updateNodeInternals]);
+
   // Apply the live drag position as the final layer — kept outside the
   // upstream memos so a 60–120Hz pointermove tick triggers only this
   // single O(N) pass. Only the dragged node gets a new object
@@ -368,25 +460,19 @@ function TrailGraphInner(props: TrailGraphProps) {
 
   // Target position for `currentNodeId` — null when the node hasn't
   // reached the layout yet (e.g. brand-new tab that arrives just before
-  // the geometry memo recomputes). Primitive x/y deps below mean the
-  // centering effect refires exactly once when the position lands, not
-  // on every re-render.
-  const targetPos = useMemo(() => {
-    if (!currentNodeId) return null;
-    const node = displayNodes.find((n) => n.data.nodeId === currentNodeId);
-    return node?.position ?? null;
-  }, [displayNodes, currentNodeId]);
+  // the geometry memo recomputes). O(1) Map.get into the layout's
+  // position lookup; primitive x/y deps below mean the centering
+  // effect refires exactly once when the position lands, not on every
+  // re-render.
+  const targetPos =
+    currentNodeId !== null ? (layout.positions.get(String(currentNodeId)) ?? null) : null;
   const targetX = targetPos?.x ?? null;
   const targetY = targetPos?.y ?? null;
 
-  // Position of the initial-mount fallback (last-visited or root). Looked
-  // up once per displayNodes/fallbackFocusId change so the centering
-  // effect can read primitive deps and not refire on every render.
-  const fallbackPos = useMemo(() => {
-    if (!fallbackFocusId) return null;
-    const node = displayNodes.find((n) => n.data.nodeId === fallbackFocusId);
-    return node?.position ?? null;
-  }, [displayNodes, fallbackFocusId]);
+  // Position of the initial-mount fallback (last-visited or root). Same
+  // O(1) read from the layout's position map.
+  const fallbackPos =
+    fallbackFocusId !== null ? (layout.positions.get(String(fallbackFocusId)) ?? null) : null;
   const fallbackX = fallbackPos?.x ?? null;
   const fallbackY = fallbackPos?.y ?? null;
 
@@ -560,9 +646,10 @@ function TrailGraphInner(props: TrailGraphProps) {
   }, []);
 
   // Mirror displayNodes into a ref so the rAF callback above always
-  // reads the latest geometry without retriggering the effect.
-  const displayNodesRef = useRef(displayNodes);
-  displayNodesRef.current = displayNodes;
+  // reads the latest geometry without retriggering the effect. `useLatest`
+  // writes the ref in a layout effect (i.e. AFTER commit) instead of
+  // during render — render bodies must be pure.
+  const displayNodesRef = useLatest(displayNodes);
 
   // Explicit "center on current node" action from the toolbar. Unlike
   // auto-centering on navigation, this preserves the user's current
@@ -847,7 +934,7 @@ function TrailGraphInner(props: TrailGraphProps) {
           fitView={false}
           minZoom={0.05}
           maxZoom={3}
-          proOptions={{ hideAttribution: true }}
+          proOptions={proOptions}
           defaultEdgeOptions={defaultEdgeOptions}
         >
           <GraphBackground />

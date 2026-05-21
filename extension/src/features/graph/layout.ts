@@ -218,7 +218,7 @@ export async function computeLayout(
   precomputedPositions?: Record<string, { x: number; y: number }> | null | undefined,
   foldInfo: ChainFoldInfo = EMPTY_FOLD_INFO,
 ): Promise<LayoutResult> {
-  if (!tree?.root) return { nodes: [], edges: [] };
+  if (!tree?.root) return { nodes: [], edges: [], positions: new Map() };
 
   const geometry = computeGeometry(
     tree,
@@ -238,6 +238,8 @@ export async function computeLayout(
     foldInfo,
   );
   const edges = applyEdgeHighlight(geometry.baseEdges, activePathIds);
+  const positions = new Map<string, { x: number; y: number }>();
+  for (const n of nodes) positions.set(n.id, n.position);
 
-  return { nodes, edges };
+  return { nodes, edges, positions };
 }
