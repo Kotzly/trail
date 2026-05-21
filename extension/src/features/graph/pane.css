@@ -171,24 +171,32 @@
 }
 
 /*
- * Far-zoom paint-cost reductions for large trees (500–1500 visible
- * nodes). With titles now rendered at every LOD (so nodes stay
- * identifiable), the per-frame paint at far zoom is dominated by
- * line-clamp text layout and unbounded paint regions. The rules below
- * only apply under `[data-lod="far"]`, so mid/near appearance is
+ * Far-zoom cost reductions for large trees (500–1500 visible nodes).
+ * With titles now rendered at every LOD (so nodes stay
+ * identifiable), the per-frame cost at far zoom is dominated by
+ * HitTest churn over hundreds of tiny nodes, line-clamp text
+ * layout, and edge style-recalc. The rules below only apply under
+ * `[data-lod="far"]`, so mid/near appearance and interactivity are
  * unchanged.
  */
 
-/* Full paint containment per node at far zoom. The base rule on
-   `.react-flow__node` (above) deliberately excludes `paint` so hover
-   glow and the onboarding spotlight can extend outside the 160×60
-   box. At far zoom both are already suppressed (the rules right above
-   kill hover transform/shadow, and a 10px outer ring isn't
-   perceptible at zoom <0.15), so painting fully inside the node lets
-   the browser skip rect-intersection tests against ancestors during
-   pan. */
-[data-lod="far"] .react-flow__node {
-  contain: layout style paint;
+/* Kill hit-testing across the entire nodes layer at far zoom. Mirrors
+   the existing `graph--panning .react-flow__nodes` rule
+   (motion/hover.css), but extends it to "any time the camera is at
+   far": individual nodes at zoom <0.15 are 8–24 screen px wide, the
+   user cannot precisely target them anyway, and every pointermove
+   currently HitTests against each visible node — measured at ~803ms
+   self-time over a 10s pan trace on the 1808-node baseline. Pan,
+   zoom, and marquee still work because xyflow's pointer handlers
+   live on the pane underneath. Programmatic camera moves
+   (zoom-to-fit, zoom-to-node) are unaffected.
+
+   This replaces an earlier `contain: layout style paint` rule that
+   reduced HitTest similarly but caused a 10× explosion in Paint
+   event count (per-node PaintLayers). `pointer-events: none` lands
+   the same HitTest win without the Paint collateral. */
+[data-lod="far"] .react-flow__nodes {
+  pointer-events: none;
 }
 
 /* Cheapest text-layout path for the title at far zoom. Tailwind's
