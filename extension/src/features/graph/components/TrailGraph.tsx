@@ -48,6 +48,8 @@ const defaultEdgeOptions = {
   },
 } as const;
 
+const proOptions = { hideAttribution: true } as const;
+
 /**
  * Isolated Background subscriber. Keeping the `useStore` read inside a
  * leaf component means the parent `TrailGraphInner` doesn't re-render
@@ -560,9 +562,10 @@ function TrailGraphInner(props: TrailGraphProps) {
   }, []);
 
   // Mirror displayNodes into a ref so the rAF callback above always
-  // reads the latest geometry without retriggering the effect.
-  const displayNodesRef = useRef(displayNodes);
-  displayNodesRef.current = displayNodes;
+  // reads the latest geometry without retriggering the effect. `useLatest`
+  // writes the ref in a layout effect (i.e. AFTER commit) instead of
+  // during render — render bodies must be pure.
+  const displayNodesRef = useLatest(displayNodes);
 
   // Explicit "center on current node" action from the toolbar. Unlike
   // auto-centering on navigation, this preserves the user's current
@@ -847,7 +850,7 @@ function TrailGraphInner(props: TrailGraphProps) {
           fitView={false}
           minZoom={0.05}
           maxZoom={3}
-          proOptions={{ hideAttribution: true }}
+          proOptions={proOptions}
           defaultEdgeOptions={defaultEdgeOptions}
         >
           <GraphBackground />
