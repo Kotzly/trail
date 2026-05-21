@@ -7,6 +7,7 @@ import {
   SelectionMode,
   useReactFlow,
   useStore,
+  type Node,
   type NodeChange,
   type NodeMouseHandler,
 } from "@xyflow/react";
@@ -264,58 +265,82 @@ function TrailGraphInner(props: TrailGraphProps) {
     [selectedNodeIds, onSelectionChange],
   );
 
+  // Drag-target detection is the dominant per-pointermove cost
+  // (xyflow's `getIntersectingNodes` does a linear scan across the
+  // node list, ~120Hz on a fast pointing device). One rAF tick is
+  // visually indistinguishable from per-event and caps the workload
+  // at 60Hz on a maxed-out monitor.
+  const dragRafRef = useRef<number | null>(null);
+  const dragLatestNodeRef = useRef<Node | null>(null);
+
   const handleNodeDrag: NodeMouseHandler = useCallback(
     (_event, node) => {
-      const sourceId = (node.data as TrailNodeData).nodeId;
-      // `partial=true` — accept any overlap, not just full containment.
-      // With nodes the same size, a dragged node almost never sits
-      // entirely *inside* another one, so `false` would mean "no target
-      // ever lights up." When several nodes overlap, prefer the one
-      // whose center is closest to the dragged node's center (all coords
-      // in flow-space, so the comparison is consistent).
-      const intersecting = getIntersectingNodes(node, true).filter((n) => n.id !== node.id);
-      if (intersecting.length === 0) {
-        setDragState((prev) =>
-          prev.hoveredTargetId === null && prev.sourceId === sourceId
-            ? prev
-            : { sourceId, hoveredTargetId: null, isValidTarget: false },
-        );
-        return;
-      }
-      const sourceW = node.measured?.width ?? node.width ?? NODE_WIDTH;
-      const sourceH = node.measured?.height ?? node.height ?? NODE_HEIGHT;
-      const sourceCx = node.position.x + sourceW / 2;
-      const sourceCy = node.position.y + sourceH / 2;
-      let best = intersecting[0]!;
-      let bestDist = Infinity;
-      for (const n of intersecting) {
-        const w = n.measured?.width ?? n.width ?? NODE_WIDTH;
-        const h = n.measured?.height ?? n.height ?? NODE_HEIGHT;
-        const cx = n.position.x + w / 2;
-        const cy = n.position.y + h / 2;
-        const dx = cx - sourceCx;
-        const dy = cy - sourceCy;
-        const dist = dx * dx + dy * dy;
-        if (dist < bestDist) {
-          bestDist = dist;
-          best = n;
+      dragLatestNodeRef.current = node;
+      if (dragRafRef.current !== null) return;
+      dragRafRef.current = requestAnimationFrame(() => {
+        dragRafRef.current = null;
+        const current = dragLatestNodeRef.current;
+        if (current === null) return;
+        const sourceId = (current.data as TrailNodeData).nodeId;
+        // `partial=true` — accept any overlap, not just full containment.
+        // With nodes the same size, a dragged node almost never sits
+        // entirely *inside* another one, so `false` would mean "no target
+        // ever lights up." When several nodes overlap, prefer the one
+        // whose center is closest to the dragged node's center (all coords
+        // in flow-space, so the comparison is consistent).
+        const intersecting = getIntersectingNodes(current, true).filter((n) => n.id !== current.id);
+        if (intersecting.length === 0) {
+          setDragState((prev) =>
+            prev.hoveredTargetId === null && prev.sourceId === sourceId
+              ? prev
+              : { sourceId, hoveredTargetId: null, isValidTarget: false },
+          );
+          return;
         }
-      }
-      const candidateId = (best.data as TrailNodeData).nodeId;
-      const valid = isValidDropTarget(treeMaps, sourceId, candidateId);
-      setDragState((prev) =>
-        prev.sourceId === sourceId &&
-        prev.hoveredTargetId === candidateId &&
-        prev.isValidTarget === valid
-          ? prev
-          : { sourceId, hoveredTargetId: candidateId, isValidTarget: valid },
-      );
+        const sourceW = current.measured?.width ?? current.width ?? NODE_WIDTH;
+        const sourceH = current.measured?.height ?? current.height ?? NODE_HEIGHT;
+        const sourceCx = current.position.x + sourceW / 2;
+        const sourceCy = current.position.y + sourceH / 2;
+        let best = intersecting[0]!;
+        let bestDist = Infinity;
+        for (const n of intersecting) {
+          const w = n.measured?.width ?? n.width ?? NODE_WIDTH;
+          const h = n.measured?.height ?? n.height ?? NODE_HEIGHT;
+          const cx = n.position.x + w / 2;
+          const cy = n.position.y + h / 2;
+          const dx = cx - sourceCx;
+          const dy = cy - sourceCy;
+          const dist = dx * dx + dy * dy;
+          if (dist < bestDist) {
+            bestDist = dist;
+            best = n;
+          }
+        }
+        const candidateId = (best.data as TrailNodeData).nodeId;
+        const valid = isValidDropTarget(treeMaps, sourceId, candidateId);
+        setDragState((prev) =>
+          prev.sourceId === sourceId &&
+          prev.hoveredTargetId === candidateId &&
+          prev.isValidTarget === valid
+            ? prev
+            : { sourceId, hoveredTargetId: candidateId, isValidTarget: valid },
+        );
+      });
     },
     [getIntersectingNodes, treeMaps],
   );
 
   const handleNodeDragStop: NodeMouseHandler = useCallback(
     (_event, node) => {
+      // Cancel any pending intersect-check rAF — its setDragState would
+      // race the drop and either restore a hover state or fire after we
+      // already cleared it.
+      if (dragRafRef.current !== null) {
+        cancelAnimationFrame(dragRafRef.current);
+        dragRafRef.current = null;
+      }
+      dragLatestNodeRef.current = null;
+
       const sourceId = (node.data as TrailNodeData).nodeId;
       const target = dragState.hoveredTargetId;
       const valid = dragState.isValidTarget;
