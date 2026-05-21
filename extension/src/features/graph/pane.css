@@ -146,14 +146,14 @@
  * once per `data-lod` change on the parent — GPU-only.
  *
  * Tiers:
- *   far  — viewport zoomed out (<0.15): only the Card frame is
- *          visible, no inner text or chrome. The node still has hit
- *          area but reads as a colored rectangle.
+ *   far  — viewport zoomed out (<0.15): Card frame + title. Same as
+ *          mid: hide URL, favicon, and badges, but keep the title so
+ *          the node remains identifiable at any zoom.
  *   mid  — moderate zoom (<0.4): Card frame + title. Hide URL,
  *          favicon, and badges.
  *   near — default: everything visible.
  */
-[data-lod="far"] [data-trail-card] > *,
+[data-lod="far"] [data-trail-card] [data-lod-detail],
 [data-lod="mid"] [data-trail-card] [data-lod-detail] {
   display: none;
 }
