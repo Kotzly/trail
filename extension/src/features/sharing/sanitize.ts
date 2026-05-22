@@ -23,11 +23,20 @@ import type { NavigationNodeJSON, NodeData } from "@shared/types/node.js";
  * to identify a page for browsing-history context. A future v2 may
  * relax this for an allowlist of hosts where query is meaningful (e.g.
  * Google search pages).
+ *
+ * Also enforces a strict scheme allow-list: only `http:` and `https:`
+ * survive. Anything else (`javascript:`, `data:`, `vbscript:`,
+ * `chrome:`, `chrome-extension:`, `about:`, `file:`, `blob:`,
+ * `view-source:`, …) is rejected — stored-XSS prevention for the
+ * share-viewer, which renders sanitized URLs as clickable links.
  */
+const ALLOWED_SCHEMES = new Set(["http:", "https:"]);
+
 export function sanitizeUrl(input: string): string {
   if (!input) return "";
   try {
     const url = new URL(input);
+    if (!ALLOWED_SCHEMES.has(url.protocol)) return "";
     url.hash = "";
     url.search = "";
     return url.toString();
@@ -37,13 +46,20 @@ export function sanitizeUrl(input: string): string {
 }
 
 /**
- * Strip unicode bidirectional-override codepoints (U+202A–U+202E,
- * U+2066–U+2069). These are the classic vector for "title appears as
- * `safe.txt` but is actually `txt.exe.bat`". React's JSX escaping
- * doesn't help here — the codepoints are valid text. Truncate to 256
- * characters to bound the size and prevent UI blowouts on the viewer.
+ * Strip unicode bidirectional-override and directional-mark codepoints.
+ * These are the classic vector for "title appears as `safe.txt` but is
+ * actually `txt.exe.bat`". React's JSX escaping doesn't help here — the
+ * codepoints are valid text. Truncate to 256 characters to bound the
+ * size and prevent UI blowouts on the viewer.
+ *
+ * Coverage:
+ *   U+061C        ALM   Arabic Letter Mark
+ *   U+200E        LRM   Left-to-Right Mark
+ *   U+200F        RLM   Right-to-Left Mark
+ *   U+202A–U+202E LRE/RLE/PDF/LRO/RLO (embed/override + pop)
+ *   U+2066–U+2069 LRI/RLI/FSI/PDI    (isolate + pop)
  */
-const BIDI_OVERRIDES = /[‪-‮⁦-⁩]/g;
+const BIDI_OVERRIDES = /[؜‎‏‪-‮⁦-⁩]/g;
 const MAX_TITLE_LENGTH = 256;
 
 export function sanitizeTitle(input: string): string {
