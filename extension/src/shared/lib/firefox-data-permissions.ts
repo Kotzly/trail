@@ -13,11 +13,25 @@
  *   3. Watch for revocation from `about:addons` so a mid-session revoke
  *      tears down the running clients (`onTelemetryPermissionRemoved`).
  *
- * All three are no-ops on non-Firefox builds (tree-shaken via
- * `import.meta.env.FIREFOX`) and on Firefox <140 where the
- * `data_collection` array shape isn't recognized — there the AMO
- * disclosure is the only contract and Trail's internal consent gates
- * telemetry on its own.
+ * On non-Firefox builds these are no-ops that return `true` (tree-shaken
+ * via `import.meta.env.FIREFOX`) — Chrome doesn't have AMO's
+ * data-collection scheme. On Firefox <140 where the `data_collection`
+ * array shape isn't recognized — and where the underlying `permissions`
+ * API or its `contains`/`request` methods may be absent — we treat that
+ * structural absence as "Trail's internal consent toggle is the only
+ * contract" and return `true`.
+ *
+ * Fail-closed contract: when the API IS present but the underlying
+ * `contains` / `request` call REJECTS (transient WebExtension error,
+ * unexpected shape, etc.), the helpers return `false` — i.e. "permission
+ * not granted". A privacy gate must never grant telemetry on the
+ * strength of an error.
+ *
+ * Observability is imported dynamically inside the catch path so the
+ * module loads cleanly under `node --import tsx` (the unit-test runtime
+ * doesn't polyfill the Vite virtual modules `observability.ts` pulls
+ * in). It also keeps `observability.ts` → `firefox-data-permissions.ts`
+ * cycle one-way at module-init time.
  */
 import { browser } from "@shared/platform/webext.js";
 
@@ -39,26 +53,71 @@ function getPermissionsAPI(): PermissionsAPI | null {
   return api ?? null;
 }
 
+/**
+ * Report a permission-check failure to observability without forcing a
+ * static dependency on `observability.ts` (which transitively pulls in
+ * Vite virtual modules unavailable in the unit-test runtime). Any
+ * failure inside the report path is swallowed — the privacy decision is
+ * already made by the caller's fail-closed return.
+ */
+async function reportPermissionError(err: unknown, op: "contains" | "request"): Promise<void> {
+  try {
+    const obs = await import("@shared/lib/observability.js");
+    obs.captureError(err, { tag: "firefox-data-permissions", op });
+  } catch {
+    // Reporting itself failed — nothing more to do; the caller already
+    // returned `false` so the gate is closed regardless.
+  }
+}
+
+/**
+ * Inner helper: call `permissions.contains` with fail-closed semantics.
+ * Returns `false` (not granted) on any rejection and reports the error
+ * to observability. Exported so unit tests can exercise the fail-closed
+ * contract directly — the public `hasTelemetryPermission` short-circuits
+ * on non-Firefox builds via `import.meta.env.FIREFOX`, which isn't set
+ * in the unit-test runtime.
+ */
+export async function probeTelemetryPermission(
+  contains: (perms: DataCollectionPermissions) => Promise<boolean>,
+): Promise<boolean> {
+  try {
+    return await contains({ data_collection: [TELEMETRY_PERMISSION] });
+  } catch (err) {
+    await reportPermissionError(err, "contains");
+    return false;
+  }
+}
+
+/**
+ * Inner helper: call `permissions.request` with fail-closed semantics.
+ * Returns `false` (not granted) on any rejection and reports the error
+ * to observability. Exported for the same reason as
+ * `probeTelemetryPermission`.
+ */
+export async function askForTelemetryPermission(
+  request: (perms: DataCollectionPermissions) => Promise<boolean>,
+): Promise<boolean> {
+  try {
+    return await request({ data_collection: [TELEMETRY_PERMISSION] });
+  } catch (err) {
+    await reportPermissionError(err, "request");
+    return false;
+  }
+}
+
 export async function hasTelemetryPermission(): Promise<boolean> {
   if (!import.meta.env.FIREFOX) return true;
   const api = getPermissionsAPI();
   if (!api?.contains) return true;
-  try {
-    return await api.contains({ data_collection: [TELEMETRY_PERMISSION] });
-  } catch {
-    return true;
-  }
+  return probeTelemetryPermission(api.contains.bind(api));
 }
 
 export async function requestTelemetryPermission(): Promise<boolean> {
   if (!import.meta.env.FIREFOX) return true;
   const api = getPermissionsAPI();
   if (!api?.request) return true;
-  try {
-    return await api.request({ data_collection: [TELEMETRY_PERMISSION] });
-  } catch {
-    return true;
-  }
+  return askForTelemetryPermission(api.request.bind(api));
 }
 
 export function onTelemetryPermissionRemoved(cb: () => void): () => void {
