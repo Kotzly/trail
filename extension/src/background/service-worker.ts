@@ -8,7 +8,7 @@ import { warmLayoutPositions } from "./services/layout-precompute.js";
 import { registerProxyServices } from "./transport/register-proxy-services.js";
 import { registerExtensionMessaging } from "./transport/register-extension-messaging.js";
 import { captureError, captureEvent, initObservability } from "@shared/lib/observability.js";
-import { initAuth, subscribeAuthState, getAuthState } from "@shared/auth/auth-orchestrator.js";
+import { initAuth, subscribeAuthState, getAuthState } from "@shared/auth/index.js";
 import {
   handlePullAlarm,
   periodicPull,

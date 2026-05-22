@@ -1,10 +1,6 @@
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
-import {
-  getAuthState,
-  subscribeAuthState,
-  type AuthState,
-} from "@shared/auth/auth-orchestrator.js";
+import { getAuthState, subscribeAuthState, type AuthState } from "@shared/auth/index.js";
 
 /**
  * Fires a sonner toast when auth transitions from signed-out to signed-in

@@ -330,3 +330,55 @@ export const localDeleteTombstonesItem = storage.defineItem<Record<string, Local
   "local:trail_local_delete_tombstones",
   { fallback: {} },
 );
+
+// ── Storage scope registry ──────────────────────────────────────────
+//
+// Single source of truth for "which storage items must be wiped when the
+// signed-in user changes on this browser." The auth wipe path iterates
+// this registry and calls `.setValue(<reset>)` on each, so adding a new
+// user-scoped key requires only adding its `defineItem` here — there is
+// no separate hand-maintained allow-list to forget.
+//
+// Scopes:
+//   - "user":   tied to a single auth.uid(). Wiped on user switch AND
+//               sign-out is allowed to leave them (account-switch wipe
+//               is the authoritative point). Survives same-user sign-in.
+//   - "device": tied to this physical browser install. Survives user
+//               switches. Includes onboarding, settings, telemetry,
+//               flags state.
+//   - "global": app-level config (e.g. flag definitions).
+//   - "auth-meta": carries the wipe trigger itself (lastSignedInUserIdItem)
+//               or auth bookkeeping not bound to a specific user
+//               (provisionedUsersItem). MUST NOT be wiped on user switch
+//               or `runUserChangeWipeIfNeeded` becomes its own footgun.
+//
+// `treeStorage.clearAllTrees()` handles dynamic per-tree blob keys and
+// is NOT registered here — keep it as an explicit call in the wipe
+// alongside this iteration.
+
+/** A persisted item that may be wiped on user switch. */
+export type UserScopedStorageItem = {
+  /** Human label used in wipe error logging. */
+  label: string;
+  /** Reset the item to its empty / safe-default value. */
+  reset: () => Promise<void>;
+};
+
+export const USER_SCOPED_STORAGE_ITEMS: readonly UserScopedStorageItem[] = [
+  { label: "syncState", reset: () => syncStateItem.setValue({}) },
+  { label: "pendingSyncOps", reset: () => pendingSyncOpsItem.setValue([]) },
+  { label: "localDeleteTombstones", reset: () => localDeleteTombstonesItem.setValue({}) },
+  { label: "cleanupTombstones", reset: () => cleanupTombstonesItem.setValue([]) },
+  { label: "openTabs", reset: () => openTabsItem.setValue({}) },
+  { label: "undoHistory", reset: () => undoHistoryItem.setValue(null) },
+  { label: "conflictPicks", reset: () => conflictPicksItem.setValue({}) },
+  { label: "layoutPositions", reset: () => layoutPositionsCacheItem.setValue({}) },
+  // Drop any pending share-import code queued under the previous viewer —
+  // three-actor cross-tenant trap from premortem #5 + lesson 2026-04-27
+  // on account-switch wipe completeness.
+  { label: "pendingShareImport", reset: () => pendingShareImportItem.setValue(null) },
+  // Rotate the device id so `ensureDeviceRegistered` inserts a fresh
+  // `devices` row instead of upserting on top of the previous user's row
+  // (which silently fails RLS USING and leaves an orphan).
+  { label: "deviceId", reset: () => deviceIdItem.setValue(null) },
+] as const;

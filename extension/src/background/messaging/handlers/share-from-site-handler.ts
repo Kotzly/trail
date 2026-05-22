@@ -1,6 +1,6 @@
 import { createLogger } from "@shared/lib/logger.js";
 import { captureEvent } from "@shared/lib/observability.js";
-import { getAuthState } from "@shared/auth/auth-orchestrator.js";
+import { getAuthState } from "@shared/auth/index.js";
 import { pendingShareImportItem } from "@shared/config/storage-items.js";
 import { browser, openSidebarForTab } from "@shared/platform/webext.js";
 import type {
