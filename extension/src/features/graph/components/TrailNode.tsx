@@ -1,6 +1,6 @@
 import { memo, useEffect, useRef, useState } from "react";
-import { Handle, Position } from "@xyflow/react";
-import type { TrailNodeData } from "../types.js";
+import { Handle, Position, type NodeProps } from "@xyflow/react";
+import type { TrailNode as TrailNodeType } from "../types.js";
 import { trailNodeDataEqual } from "../node-equality.js";
 import { cn } from "@ui/lib/utils";
 import { Icons } from "@ui/components/icons";
@@ -33,7 +33,7 @@ const handleTypeMap: Record<string, "source" | "target"> = {
   "source-right": "source",
 };
 
-function TrailNodeComponent({ data, selected }: { data: TrailNodeData; selected?: boolean }) {
+function TrailNodeComponent({ data, selected }: NodeProps<TrailNodeType>) {
   const {
     nodeId,
     title,
