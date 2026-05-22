@@ -12,6 +12,7 @@ import {
   getActiveLayoutCacheContext,
   getCachedPositions,
   persistComputedPositions,
+  positionsCoverTree,
   precompute,
   type LayoutPositions,
 } from "../services/layout-precompute.js";
@@ -115,25 +116,6 @@ async function loadCachedPositionsForActiveTree(): Promise<LayoutPositions | nul
     });
     return null;
   }
-}
-
-/**
- * True when every node in `tree` has a corresponding entry in `positions`.
- * Used to skip stale cached positions after a mutation — savedAt only bumps
- * on the debounced save (~1.5s), so just-added nodes would otherwise ship
- * with no position and render at (0, 0) until the next snapshot arrives.
- */
-function positionsCoverTree(tree: NavigationTreeJSON, positions: LayoutPositions): boolean {
-  if (!tree.root) return true;
-  const stack = [tree.root];
-  while (stack.length > 0) {
-    const node = stack.pop()!;
-    if (!Object.prototype.hasOwnProperty.call(positions, String(node.id))) {
-      return false;
-    }
-    for (const child of node.children) stack.push(child);
-  }
-  return true;
 }
 
 export function requestLayoutRefinement(treeJSON: NavigationTreeJSON): void {
