@@ -23,6 +23,14 @@ import type { TrailNode, TrailNodeData } from "./types.js";
  * True iff `a` and `b` are structurally identical at every field
  * `TrailNode`'s render reads. New fields on `TrailNodeData` must be
  * added here.
+ *
+ * `nodeId` is intentionally omitted: both consumers compare data only
+ * after identity has been pinned by the outer node id — `trailNodeEqual`
+ * gates this call behind `a.id === b.id`, and `TrailNode`'s `React.memo`
+ * comparator only ever receives prev/next from the same component
+ * instance. `data.nodeId` always equals `node.id` by construction
+ * (see `transforms.ts`), so including it here would be a redundant
+ * check.
  */
 export function trailNodeDataEqual(a: TrailNodeData, b: TrailNodeData): boolean {
   if (a === b) return true;

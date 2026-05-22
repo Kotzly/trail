@@ -3,9 +3,9 @@
  *
  * ReactFlow's `setCenter` and `fitView` accept a `duration` option —
  * when it's > 0 the transition is tweened, when 0 the camera jumps.
- * The hook combines our motion platform signals (PostHog flag, FPS
- * tier, prefers-reduced-motion) to decide whether a given call animates
- * or snaps. Duration and zoom defaults live here so every call site is
+ * The hook combines our motion platform signals (PostHog flag and
+ * prefers-reduced-motion) to decide whether a given call animates or
+ * snaps. Duration and zoom defaults live here so every call site is
  * consistent.
  *
  * Transitions are interruptible for free: ReactFlow cancels the in-flight
@@ -22,7 +22,6 @@ import {
   type ReactFlowState,
 } from "@xyflow/react";
 import { useMotionFlag } from "./store.js";
-import { useFpsTier } from "./fps-tier.js";
 import { useReducedMotion } from "./use-reduced-motion.js";
 
 const SMOOTH_DURATION_MS = 350;
@@ -63,11 +62,10 @@ export function useCameraControls(): {
   const viewportHeight = useStore(selectHeight);
   const centerEnabled = useMotionFlag("camera_smooth_center");
   const fitEnabled = useMotionFlag("camera_fit_to_view");
-  const tier = useFpsTier();
   const reduced = useReducedMotion();
 
-  const allowSmoothCenter = centerEnabled && tier !== "low" && !reduced;
-  const allowSmoothFit = fitEnabled && tier !== "low" && !reduced;
+  const allowSmoothCenter = centerEnabled && !reduced;
+  const allowSmoothFit = fitEnabled && !reduced;
 
   const tweenRafRef = useRef<number | null>(null);
   // Deferred-center queue. On initial mount xyflow's `width`/`height`

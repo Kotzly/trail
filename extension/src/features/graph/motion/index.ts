@@ -1,9 +1,7 @@
 export { MotionPlatformProvider } from "./MotionPlatformProvider.js";
 export { MotionFlagsProvider } from "./MotionFlagsProvider.js";
-export { FpsMonitorProvider } from "./FpsMonitorProvider.js";
 
 export { useMotionFlag, getMotionSnapshot } from "./store.js";
-export { useFpsTier, getFpsTier, type FpsTier } from "./fps-tier.js";
 export { useReducedMotion } from "./use-reduced-motion.js";
 export { useRelayoutEnabled } from "./useRelayoutEnabled.js";
 export { useHoverHighlightEnabled } from "./useHoverHighlightEnabled.js";
@@ -24,10 +22,4 @@ export {
   type BatcherOptions,
 } from "./lifecycle-batcher.js";
 
-export {
-  trackHover,
-  recordFrameDrop,
-  markMotionDegraded,
-  markAmbientActive,
-  flushSessionSummary,
-} from "./telemetry.js";
+export { trackHover, markAmbientActive, flushSessionSummary } from "./telemetry.js";

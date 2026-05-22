@@ -11,8 +11,8 @@
  * exiting class, then drop them once the animation has played.
  *
  * The hook is cheap by default: when the gate is off (flag, reduced
- * motion, low FPS tier), nodes pass through untouched and no diff or
- * timer work happens.
+ * motion), nodes pass through untouched and no diff or timer work
+ * happens.
  *
  * Stagger: when several nodes enter or exit in the same React frame
  * (e.g. expand of a folded chain), each subsequent one gets a 30ms
@@ -21,11 +21,16 @@
  *
  * ## Architecture
  *
- * Diff bookkeeping lives in a single `useState` slot. Bookkeeping
- * transitions happen inside a `useLayoutEffect` — running after the
- * commit, before paint — so the resulting re-render (with annotation
- * classes attached) flushes synchronously and the browser only ever
- * paints the final state. Render itself is pure: it derives the
+ * Diff bookkeeping lives in a single `useState` slot. Diff transitions
+ * are driven from the render pass via the "derive-state-during-render"
+ * pattern (React docs § "Storing information from previous renders"):
+ * we compare the incoming `nodes` against the last-processed reference
+ * tracked in a sibling state slot, and when they differ we call
+ * `setState` inside render. React discards the current render result
+ * and re-renders with the new state synchronously — so the browser
+ * only ever paints the final state, and there is no second commit /
+ * second paint cycle (the previous `useLayoutEffect`-then-`setState`
+ * implementation incurred). Render itself is pure: it derives the
  * output from `nodes` + `state.annotations` with no impurity.
  *
  * Pure helpers `composeOutput`, `computeNextDiffState`, and
@@ -33,10 +38,9 @@
  * and keep the React surface area minimal.
  */
 
-import { useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { TrailNode } from "../types.js";
 import { useMotionFlag } from "./store.js";
-import { useFpsTier } from "./fps-tier.js";
 import { useReducedMotion } from "./use-reduced-motion.js";
 
 const ENTER_DURATION_MS = 280;
@@ -78,20 +82,48 @@ const INITIAL_STATE: DiffState = {
 
 /**
  * Combined gate: lifecycle animations only fire when at least one of
- * the lifecycle flags is on, FPS tier is decent, and the user hasn't
- * requested reduced motion. The `low` tier bails — entry/exit on a
- * struggling device just compounds jank.
+ * the lifecycle flags is on and the user hasn't requested reduced
+ * motion.
  */
 export function useNodeLifecycleEnabled(): boolean {
   const enterFlag = useMotionFlag("lifecycle_node_enter");
   const exitFlag = useMotionFlag("lifecycle_node_exit");
-  const tier = useFpsTier();
   const reduced = useReducedMotion();
-  return (enterFlag || exitFlag) && tier !== "low" && !reduced;
+  return (enterFlag || exitFlag) && !reduced;
 }
 
 export function useNodeLifecycle(nodes: readonly TrailNode[], enabled: boolean): TrailNode[] {
   const [state, setState] = useState<DiffState>(INITIAL_STATE);
+  // Sentinel for the derive-state-during-render pattern: stores the
+  // (nodes, enabled) pair the diff state was last computed against.
+  // Initialised to `null` so the FIRST render also processes — the
+  // bootstrap pass needs to seed `prevIds` from the initial nodes so
+  // the next render's diff sees the right baseline.
+  // React docs § "Storing information from previous renders":
+  // when setState is called during render, React discards this render
+  // and re-runs with the new state, all before the commit phase — so
+  // there is no second-paint cycle.
+  const [lastProcessed, setLastProcessed] = useState<{
+    nodes: readonly TrailNode[];
+    enabled: boolean;
+  } | null>(null);
+
+  if (
+    lastProcessed === null ||
+    lastProcessed.nodes !== nodes ||
+    lastProcessed.enabled !== enabled
+  ) {
+    setLastProcessed({ nodes, enabled });
+    // `performance.now()` runs inside the updater (state-transition
+    // closure), so the impurity-rule isn't triggered for render itself.
+    // The discarded render reads stale `state` and produces output that
+    // React throws away; the re-run uses the committed new state.
+    setState((prev) =>
+      enabled
+        ? computeNextDiffState(prev, nodes, performance.now())
+        : resetForDisabled(prev, nodes),
+    );
+  }
 
   // PURE: derive the rendered list from `nodes` + the cohort
   // annotations. When the gate is off we short-circuit to the
@@ -100,27 +132,6 @@ export function useNodeLifecycle(nodes: readonly TrailNode[], enabled: boolean):
     () => (enabled ? composeOutput(nodes, state.annotations) : (nodes as TrailNode[])),
     [nodes, state.annotations, enabled],
   );
-
-  // SIDE-EFFECT: whenever `nodes` or `enabled` changes, diff against
-  // the previous render's snapshot and dispatch the next state. Using
-  // a layout effect (rather than a passive effect) makes the resulting
-  // re-render flush BEFORE paint, so animation classes always land
-  // same-frame-as-arrival.
-  //
-  // The lint rule prefers deriving state during render, but we can't
-  // do that here: ghost rendering carries the LAST-COMMITTED snapshot
-  // of departed nodes, and that snapshot is genuine state (the parent
-  // no longer exposes those nodes in `nodes`). The next-state pass
-  // is a pure function of (prev state, current nodes, monotonic now),
-  // which is exactly what useLayoutEffect + setState models.
-  /* eslint-disable react-hooks/set-state-in-effect -- pure diff-against-previous-commit */
-  useLayoutEffect(() => {
-    if (!enabled) {
-      setState((prev) => resetForDisabled(prev, nodes));
-      return;
-    }
-    setState((prev) => computeNextDiffState(prev, nodes, performance.now()));
-  }, [nodes, enabled]);
 
   // Re-arm a single setTimeout that retires expired annotations. New
   // cohort → new `state.annotations` reference → effect re-runs.
@@ -132,7 +143,6 @@ export function useNodeLifecycle(nodes: readonly TrailNode[], enabled: boolean):
     );
     return () => window.clearTimeout(timer);
   }, [state.annotations]);
-  /* eslint-enable react-hooks/set-state-in-effect */
 
   return output;
 }

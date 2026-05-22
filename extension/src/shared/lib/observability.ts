@@ -109,8 +109,6 @@ export type AnalyticsEvent =
   | "telemetry_opted_in"
   // Motion platform (§0.5) — anonymous perf/behavior signal only
   | "graph.hover"
-  | "graph.frame_drop"
-  | "graph.motion_degraded"
   | "graph.ambient_session"
   // Trail sharing
   | "share_create_succeeded"
