@@ -19,16 +19,18 @@ import { captureError } from "@shared/lib/observability.js";
 import { storage } from "wxt/utils/storage";
 import {
   activeTreeItem,
+  onboardingStateItem,
   treeIndexItem,
   undoHistoryItem,
   layoutPositionsCacheItem,
 } from "../../shared/config/storage-items.js";
 import { isTreeStub } from "@shared/types/tree.js";
 import { rementIdsInTreeJSON } from "./migrations-rement.js";
+import { cleanOnboardingState, hasOnboardingOrphans } from "./migrations-onboarding.js";
 
 const log = createLogger("migrations");
 
-export const CURRENT_SCHEMA_VERSION = 3 as const;
+export const CURRENT_SCHEMA_VERSION = 4 as const;
 
 /** Legacy chrome.storage.local keys from the pre-Supabase (0.9.x) era. */
 const LEGACY_LOCAL_KEYS = ["trail_auth_session", "trail_v3_sync"] as const;
@@ -154,6 +156,33 @@ const MIGRATIONS: Migration[] = [
         await chrome.storage.local.remove([...LEGACY_LOCAL_KEYS]);
       } catch (error) {
         log.warn("cleanup_legacy_keys: remove failed", {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    },
+  },
+  {
+    from: 3,
+    to: 4,
+    name: "drop_onboarding_orphans",
+    async run() {
+      // Strip the six tour-era fields (tourStep, tourTreeId,
+      // tourFirstResultChildId, tourBranchParentId, priorActiveTreeId,
+      // softCtaDismissed) from any persisted OnboardingState. They
+      // were removed from the type in commit 7e118e8e but the
+      // merge-style `saveOnboardingState` path keeps copying them
+      // forward on every write, so users who installed before that
+      // commit still carry them in `local:trail_onboarding`.
+      //
+      // Skip the write when storage is already clean to avoid
+      // perturbing downstream watchers on fresh installs.
+      try {
+        const raw = await onboardingStateItem.getValue();
+        if (!hasOnboardingOrphans(raw)) return;
+        const cleaned = cleanOnboardingState(raw);
+        await onboardingStateItem.setValue(cleaned);
+      } catch (error) {
+        log.warn("drop_onboarding_orphans: clean failed", {
           error: error instanceof Error ? error.message : String(error),
         });
       }
