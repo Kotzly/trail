@@ -23,13 +23,15 @@ import {
   telemetryConsentItem,
   type TelemetryConsent,
 } from "../config/storage-items.js";
+import { applyConsent, type ObservabilityHooks } from "./observability/consent-runtime.js";
+import type { ObservabilitySurface } from "./observability/types.js";
 import {
   hasTelemetryPermission,
   onTelemetryPermissionRemoved,
   requestTelemetryPermission,
 } from "./firefox-data-permissions.js";
 
-export type ObservabilitySurface = "sidepanel" | "settings" | "background" | "content" | "login";
+export type { ObservabilitySurface };
 
 export type BugReport = {
   message: string;
@@ -132,6 +134,20 @@ let sentryEnabled = false;
 let posthogClient: PostHog | null = null;
 let cachedConsent: TelemetryConsent | null = null;
 let currentSurface: ObservabilitySurface = "sidepanel";
+let unwatchConsent: (() => void) | null = null;
+
+// Side-effectful start/stop helpers, kept in an object so the consent
+// orchestration in `consent-runtime.ts` can route through them without
+// caring how Sentry or PostHog actually work. The impls below are
+// idempotent — they check `sentryEnabled` / `posthogClient` and
+// short-circuit when the requested state already holds, which is what
+// keeps repeated `applyConsent(...)` calls safe.
+const defaultHooks: ObservabilityHooks = {
+  startSentry: (surface) => startSentryImpl(surface),
+  stopSentry: () => stopSentryImpl(),
+  startPostHog: (surface) => startPostHogImpl(surface),
+  stopPostHog: () => stopPostHogImpl(),
+};
 
 async function ensureAnonId(): Promise<string> {
   const existing = await telemetryAnonIdItem.getValue();
@@ -189,6 +205,90 @@ function installGlobalErrorHandlers(surface: ObservabilitySurface): void {
 }
 
 /**
+ * Real Sentry start. Idempotent: short-circuits if already enabled or
+ * the DSN is missing.
+ */
+function startSentryImpl(surface: ObservabilitySurface): void {
+  if (sentryEnabled) return;
+  if (!SENTRY_DSN) return;
+  try {
+    // Default integrations include BrowserApiErrors, Breadcrumbs, and
+    // GlobalHandlers — each of which touches `window`/`document`. In a
+    // MV3 service worker `document` is undefined, so letting the default
+    // set load causes Sentry to silently disable itself and drop real
+    // SW errors on the floor (closes P1.14).
+    //
+    // For UI surfaces (sidepanel, settings, login) we also opt out: the
+    // Breadcrumbs integration wraps addEventListener for context capture
+    // and measured ~4% main-thread overhead during pan/zoom in a profile
+    // of the graph view (sentryWrapped 376ms inclusive over a 9.5s
+    // trace). `installGlobalErrorHandlers` already wires the window-level
+    // error + unhandledrejection listeners we actually need, so the
+    // default wrapping is redundant.
+    //
+    // Manual `captureException` / `captureError` calls are unaffected —
+    // they go straight to the transport and don't depend on
+    // integrations.
+    Sentry.init({
+      dsn: SENTRY_DSN,
+      release: RELEASE,
+      environment: ENVIRONMENT,
+      initialScope: { tags: { surface } },
+      tracesSampleRate: 0,
+      sendDefaultPii: false,
+      beforeSend: scrubSentryEvent,
+      integrations: [],
+      defaultIntegrations: false,
+    });
+    sentryEnabled = true;
+  } catch (error) {
+    console.warn("[observability] Sentry init failed:", error);
+  }
+}
+
+async function stopSentryImpl(): Promise<void> {
+  if (!sentryEnabled) return;
+  try {
+    await Sentry.close();
+  } catch (error) {
+    console.warn("[observability] Sentry close failed:", error);
+  }
+  sentryEnabled = false;
+}
+
+/**
+ * Real PostHog start. Idempotent: short-circuits if already running, the
+ * key is missing, or the surface is `background` (PostHog has no role
+ * there and we don't want the ~110 KB library landing in the SW chunk).
+ */
+async function startPostHogImpl(surface: ObservabilitySurface): Promise<void> {
+  if (posthogClient) return;
+  if (!POSTHOG_KEY) return;
+  if (surface === "background") return;
+  try {
+    // Dynamic import so the ~110 KB library never lands in the background
+    // service-worker chunk (closes P2.16).
+    const { default: PostHogLite } = await import("posthog-js-lite");
+    // Concurrent callers may have created a client while we awaited the
+    // import. Drop ours rather than double-instrumenting.
+    if (posthogClient) return;
+    const anonId = await ensureAnonId();
+    const ph = new PostHogLite(POSTHOG_KEY, { host: POSTHOG_HOST });
+    ph.identify(anonId);
+    ph.register({ surface, release: RELEASE, environment: ENVIRONMENT });
+    posthogClient = ph;
+  } catch (error) {
+    console.warn("[observability] PostHog init failed:", error);
+  }
+}
+
+function stopPostHogImpl(): void {
+  if (!posthogClient) return;
+  posthogClient.optOut();
+  posthogClient = null;
+}
+
+/**
  * Initialize observability for a given surface. Safe to call multiple
  * times — only the first call with a given surface wins.
  */
@@ -223,64 +323,32 @@ export async function initObservability(surface: ObservabilitySurface): Promise<
     });
   }
 
-  // Sentry ——————————————————————————————
-  if (SENTRY_DSN && cachedConsent.errors) {
-    try {
-      // Default integrations include BrowserApiErrors, Breadcrumbs, and
-      // GlobalHandlers — each of which touches `window`/`document`. In a
-      // MV3 service worker `document` is undefined, so letting the default
-      // set load causes Sentry to silently disable itself and drop real
-      // SW errors on the floor (closes P1.14).
-      //
-      // For UI surfaces (sidepanel, settings, login) we also opt out: the
-      // Breadcrumbs integration wraps addEventListener for context capture
-      // and measured ~4% main-thread overhead during pan/zoom in a profile
-      // of the graph view (sentryWrapped 376ms inclusive over a 9.5s
-      // trace). `installGlobalErrorHandlers` below already wires the
-      // window-level error + unhandledrejection listeners we actually
-      // need, so the default wrapping is redundant.
-      //
-      // Manual `captureException` / `captureError` calls are unaffected —
-      // they go straight to the transport and don't depend on
-      // integrations.
-      Sentry.init({
-        dsn: SENTRY_DSN,
-        release: RELEASE,
-        environment: ENVIRONMENT,
-        initialScope: { tags: { surface } },
-        tracesSampleRate: 0,
-        sendDefaultPii: false,
-        beforeSend: scrubSentryEvent,
-        integrations: [],
-        defaultIntegrations: false,
-      });
-      sentryEnabled = true;
-    } catch (error) {
-      console.warn("[observability] Sentry init failed:", error);
-    }
-  }
+  await applyConsent(cachedConsent, surface, defaultHooks);
 
   if (surface !== "background") {
     installGlobalErrorHandlers(surface);
   }
 
-  // PostHog ————————————————————————————
-  // Dynamic import so the ~110 KB library never lands in the background
-  // service-worker chunk (closes P2.16). PostHog has no function there:
-  // `surface !== "background"` guards the init, but a static top-level
-  // import bundles it regardless.
-  if (POSTHOG_KEY && cachedConsent.analytics && surface !== "background") {
-    try {
-      const { default: PostHogLite } = await import("posthog-js-lite");
-      const anonId = await ensureAnonId();
-      const ph = new PostHogLite(POSTHOG_KEY, { host: POSTHOG_HOST });
-      ph.identify(anonId);
-      ph.register({ surface, release: RELEASE, environment: ENVIRONMENT });
-      posthogClient = ph;
-    } catch (error) {
-      console.warn("[observability] PostHog init failed:", error);
+  // Cross-surface consent toggles (e.g. the user flips the switch on the
+  // settings page while the sidepanel is open) reach us via storage.
+  // Re-apply on every change so a false → true re-grant brings clients
+  // back online without a surface reload.
+  unwatchConsent?.();
+  unwatchConsent = telemetryConsentItem.watch((next) => {
+    if (!next) return;
+    // Skip work when nothing actually changed — `.watch()` fires for the
+    // same-context write inside `setTelemetryConsent` too, which already
+    // applied the change synchronously.
+    if (
+      cachedConsent &&
+      cachedConsent.errors === next.errors &&
+      cachedConsent.analytics === next.analytics
+    ) {
+      return;
     }
-  }
+    cachedConsent = next;
+    void applyConsent(next, currentSurface, defaultHooks);
+  });
 }
 
 /**
@@ -345,7 +413,9 @@ export function captureBugReport(report: BugReport): string | null {
 }
 
 /**
- * Update consent. If consent is revoked, we tear down and stop sending.
+ * Update consent. Starts or stops the Sentry / PostHog clients to match
+ * the new consent, including the false → true re-grant path. No surface
+ * reload is required.
  */
 export async function setTelemetryConsent(next: Partial<TelemetryConsent>): Promise<void> {
   // Firefox: enabling either signal requires the AMO-declared optional
@@ -376,19 +446,12 @@ export async function setTelemetryConsent(next: Partial<TelemetryConsent>): Prom
     ...effective,
     decidedAt: Date.now(),
   };
-  await telemetryConsentItem.setValue(merged);
+  // Update the cache before the write so the watch listener — which fires
+  // for same-context writes too — sees no diff and skips a duplicate
+  // `applyConsent` call.
   cachedConsent = merged;
-
-  // Disable clients if consent was revoked. We don't re-enable mid-session
-  // (requires surface reload); the toggle in Settings reloads on change.
-  if (!merged.errors && sentryEnabled) {
-    await Sentry.close();
-    sentryEnabled = false;
-  }
-  if (!merged.analytics && posthogClient) {
-    posthogClient.optOut();
-    posthogClient = null;
-  }
+  await telemetryConsentItem.setValue(merged);
+  await applyConsent(merged, currentSurface, defaultHooks);
 }
 
 export async function getTelemetryConsent(): Promise<TelemetryConsent> {
