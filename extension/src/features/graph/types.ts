@@ -97,7 +97,7 @@ export type TrailGraphProps = {
    * smooth camera follow (PowerPoint-Morph-style) when the topology
    * changes substantially.
    */
-  collapseAction?: { kind: "collapse" | "expand"; nodeIds: Set<NodeId> } | null;
+  collapseAction?: { kind: "collapse" | "expand"; nodeId: NodeId } | null;
   /**
    * Optional onboarding spotlight: single node highlighted with a pulse
    * or target ring. Layout doesn't re-run when this changes — only the

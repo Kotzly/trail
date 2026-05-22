@@ -108,7 +108,14 @@ type StoreState = {
     collapsedNodeIds: Set<NodeId>;
     collapsedByTree: Map<NodeId, Set<NodeId>>;
     collapseVersion: number;
-    collapseAction: { kind: "collapse" | "expand"; nodeIds: Set<NodeId> } | null;
+    /**
+     * Most recent collapse / expand action. Holds a single node id —
+     * for bulk-selection collapse/expand from the context menu, the
+     * camera follows only the first node in the batch (the UI affords
+     * no clean "frame all of them" gesture). Reference identity changes
+     * per commit so consumers can detect new actions.
+     */
+    collapseAction: { kind: "collapse" | "expand"; nodeId: NodeId } | null;
     /**
      * Tip node IDs the user has manually unfolded for chain-fold
      * (collapselist patterns). The fold transform skips these chains,
@@ -454,7 +461,7 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
         autoExpandIds.length > 0 ? state.graph.collapseVersion + 1 : state.graph.collapseVersion;
       const collapseAction =
         autoExpandIds.length > 0
-          ? ({ kind: "expand", nodeIds: new Set<NodeId>(autoExpandIds) } as const)
+          ? ({ kind: "expand", nodeId: autoExpandIds[0]! } as const)
           : state.graph.collapseAction;
       if (autoExpandIds.length > 0) {
         autoExpandIds.forEach((id) => nextCollapsedNodeIds.delete(id));
@@ -737,9 +744,13 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
           badgeExpandedIds: nextBadge,
           collapseVersion:
             changed.length > 0 ? state.graph.collapseVersion + 1 : state.graph.collapseVersion,
+          // Camera-follow target: for a bulk-collapse there's no clean
+          // "frame the lot" gesture; pick the first changed id and let
+          // the consumer center on that. Identity changes per commit
+          // even when the id is the same — that's the trigger.
           collapseAction:
             changed.length > 0
-              ? { kind: "collapse", nodeIds: new Set(changed) }
+              ? { kind: "collapse", nodeId: changed[0]! }
               : state.graph.collapseAction,
         },
       };
@@ -768,9 +779,11 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
           badgeExpandedIds: nextBadge,
           collapseVersion:
             changed.length > 0 ? state.graph.collapseVersion + 1 : state.graph.collapseVersion,
+          // See `collapseNodes` above — same first-id policy for the
+          // camera follow on bulk expand.
           collapseAction:
             changed.length > 0
-              ? { kind: "expand", nodeIds: new Set(changed) }
+              ? { kind: "expand", nodeId: changed[0]! }
               : state.graph.collapseAction,
         },
       };
@@ -813,7 +826,7 @@ export const useStore = create<StoreState & StoreActions>((set, _get) => ({
           collapsedNodeIds: collapsed,
           badgeExpandedIds: badge,
           collapseVersion: state.graph.collapseVersion + 1,
-          collapseAction: { kind, nodeIds: new Set([nodeId]) },
+          collapseAction: { kind, nodeId },
         },
       };
     }),
