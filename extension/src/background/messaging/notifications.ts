@@ -68,7 +68,12 @@ const IMMEDIATE_REASONS: Set<string> = new Set([
   "sync",
 ]);
 
-const STRUCTURAL_REASONS: Set<TreeUpdateReason> = new Set([
+// Reasons that invalidate any cached layout positions for the active tree:
+// the tree shape changed (navigate/delete/undo/reparent/duplicate),
+// the active tree itself changed (tree-switch/tree-reset), or the layout
+// settings changed (layout). In all of these we must recompute positions
+// rather than reuse what's on disk.
+const LAYOUT_CACHE_INVALIDATING_REASONS: Set<TreeUpdateReason> = new Set([
   "navigate",
   "tree-switch",
   "tree-reset",
@@ -196,7 +201,9 @@ async function sendTreeNotification(
   if (options.positions !== undefined) {
     positions = options.positions;
   } else {
-    const cached = STRUCTURAL_REASONS.has(reason) ? null : await loadCachedPositionsForActiveTree();
+    const cached = LAYOUT_CACHE_INVALIDATING_REASONS.has(reason)
+      ? null
+      : await loadCachedPositionsForActiveTree();
     if (cached && positionsCoverTree(treeJSON, cached)) {
       positions = cached;
     } else if (treeJSON.root) {
@@ -228,7 +235,7 @@ async function sendTreeNotification(
   }
 
   // Opportunistic sync push — no-op when signed out or sync not configured.
-  if (!STRUCTURAL_ONLY_REASONS.has(reason)) {
+  if (!LOCAL_ONLY_REASONS.has(reason)) {
     // Lazy-require to avoid importing the full sync engine at module init
     // time (service worker cold-start can take longer with extra work).
     void import("../sync/sync-engine.js")
@@ -245,10 +252,11 @@ async function sendTreeNotification(
   }
 }
 
-// Reasons that don't produce a new tree content state that's worth syncing.
-// Layout-only updates shouldn't trip a push — the server payload is still the
-// same tree; client-local positions are not synced.
-const STRUCTURAL_ONLY_REASONS = new Set<TreeUpdateReason>(["layout", "temp-selection"]);
+// Reasons whose effects stay on the client and are never pushed to the server:
+// `layout` is purely client-local positioning and `temp-selection` is an
+// ephemeral UI hint. Neither changes the synced tree content, so a sync push
+// would carry the same payload and just waste a round-trip.
+const LOCAL_ONLY_REASONS = new Set<TreeUpdateReason>(["layout", "temp-selection"]);
 
 export async function notifyTreeUpdate(
   tree: NavigationTree,
