@@ -107,7 +107,16 @@ function testPruneLayoutCacheEntriesReplacesSameLayoutFamily(): void {
 
 function testBackgroundUsesTreeLayoutAndInlineCompute(): void {
   const precomputeSource = readSource("src/background/services/layout-precompute.ts");
-  const treeHandlersSource = readSource("src/background/messaging/handlers/tree-handlers.ts");
+  // `tree-handlers.ts` was split — the snapshot path moved into
+  // `snapshots.ts` and the lifecycle handlers consume it from there.
+  const snapshotsSource = readSource("src/background/messaging/handlers/snapshots.ts");
+  const lifecycleSource = readSource(
+    "src/background/messaging/handlers/tree-lifecycle-handlers.ts",
+  );
+  const deleteSource = readSource("src/background/messaging/handlers/node-delete-handlers.ts");
+  const layoutHandlersSource = readSource(
+    "src/background/messaging/handlers/node-layout-handlers.ts",
+  );
   const notificationsSource = readSource("src/background/messaging/notifications.ts");
 
   assert.match(precomputeSource, /computeTreePositionsRecord/);
@@ -120,14 +129,17 @@ function testBackgroundUsesTreeLayoutAndInlineCompute(): void {
   // mutation — ~90ms × N nodes of repeated React-Flow diff. Trace
   // evidence: post-fix navigation/new-tab no longer triggers
   // back-to-back long-tasks at +X / +X+82ms in the timeline.
-  assert.match(treeHandlersSource, /computePositions\(treeJSON, settings\)/);
-  assert.match(treeHandlersSource, /persistComputedPositions/);
+  assert.match(snapshotsSource, /computePositions\(treeJSON, settings\)/);
+  assert.match(snapshotsSource, /persistComputedPositions/);
   assert.match(notificationsSource, /computePositions\(treeJSON, settings\)/);
   assert.match(notificationsSource, /persistInlinePositions/);
   // `requestLayoutRefinement` still exists for the settings-change /
   // cache-warm callers; it must no longer fire from the hot
   // mutation/snapshot paths.
-  assert.doesNotMatch(treeHandlersSource, /requestLayoutRefinement\(/);
+  assert.doesNotMatch(snapshotsSource, /requestLayoutRefinement\(/);
+  assert.doesNotMatch(lifecycleSource, /requestLayoutRefinement\(/);
+  assert.doesNotMatch(deleteSource, /requestLayoutRefinement\(/);
+  assert.doesNotMatch(layoutHandlersSource, /requestLayoutRefinement\(/);
   assert.doesNotMatch(notificationsSource, /skipPrecompute/);
 
   console.log("  d3-hierarchy + inline-compute snapshot: OK");
