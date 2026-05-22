@@ -1,6 +1,9 @@
 import { strict as assert } from "node:assert";
 import { describe, it } from "node:test";
-import { compileBlocklist } from "../src/shared/lib/url-blocklist.js";
+import {
+  __getUrlMemoSizeForTests,
+  compileBlocklist,
+} from "../src/shared/lib/url-blocklist.js";
 
 function matches(pattern: string, url: string): boolean {
   return compileBlocklist([pattern])(url);
@@ -228,5 +231,55 @@ describe("url-pattern: practical collapselist scenarios", () => {
     assert.equal(pred("https://maps.google.ru/"), true);
     assert.equal(pred("https://maps.google.co.uk/"), true);
     assert.equal(pred("https://google.com/maps"), false); // google.com, not maps.google
+  });
+});
+
+// ── Cache bounds (URL memo LRU) ────────────────────────────────────
+
+describe("url-pattern: per-predicate URL memo stays bounded", () => {
+  it("URL memo size stays ≤ 200 under heavy load (1000 distinct URLs)", () => {
+    const pred = compileBlocklist(["*blocked*"]);
+    for (let i = 0; i < 1000; i++) {
+      pred(`https://example-${i}.com/path-${i}`);
+    }
+    const size = __getUrlMemoSizeForTests(pred);
+    assert.ok(
+      size > 0 && size <= 200,
+      `expected memo size in (0, 200], got ${size}`,
+    );
+  });
+
+  it("LRU evicts oldest entry on overflow and keeps recent ones", () => {
+    // Fresh predicate (unique pattern key) so no other test has primed it.
+    const pred = compileBlocklist(["*lru-bound-probe-unique*"]);
+    // Fill exactly to the cap.
+    for (let i = 0; i < 200; i++) {
+      pred(`https://probe-${i}.test/`);
+    }
+    assert.equal(__getUrlMemoSizeForTests(pred), 200);
+
+    // One more push evicts the oldest; size remains bounded.
+    pred("https://probe-overflow.test/");
+    assert.equal(__getUrlMemoSizeForTests(pred), 200);
+
+    // Stays bounded across many more inserts.
+    for (let i = 0; i < 500; i++) {
+      pred(`https://flush-${i}.test/`);
+    }
+    assert.equal(__getUrlMemoSizeForTests(pred), 200);
+  });
+
+  it("predicate still returns correct results after eviction", () => {
+    const pred = compileBlocklist(["*evict-probe*"]);
+    // First URL — should match.
+    assert.equal(pred("https://evict-probe.test/"), true);
+    // Flood the cache so the first URL is evicted.
+    for (let i = 0; i < 300; i++) {
+      pred(`https://filler-${i}.test/`);
+    }
+    // Re-querying the original URL must still return the correct answer.
+    assert.equal(pred("https://evict-probe.test/"), true);
+    // And a known non-match remains a non-match.
+    assert.equal(pred("https://unrelated.test/"), false);
   });
 });

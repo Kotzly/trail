@@ -150,6 +150,40 @@ function urlToSegments(url: string): readonly string[] | null {
 }
 
 /**
+ * Insertion-ordered LRU. On `get`, the entry is re-inserted to mark
+ * it as most-recently-used. On `set` overflow, the oldest entry
+ * (the first key returned by `Map.prototype.keys()`) is evicted.
+ */
+class LRU<K, V> {
+  private readonly map = new Map<K, V>();
+  constructor(private readonly max: number) {}
+  get(key: K): V | undefined {
+    const v = this.map.get(key);
+    if (v !== undefined) {
+      this.map.delete(key);
+      this.map.set(key, v);
+    }
+    return v;
+  }
+  set(key: K, value: V): void {
+    if (this.map.has(key)) {
+      this.map.delete(key);
+    } else if (this.map.size >= this.max) {
+      const firstKey = this.map.keys().next().value as K | undefined;
+      if (firstKey !== undefined) this.map.delete(firstKey);
+    }
+    this.map.set(key, value);
+  }
+  get size(): number {
+    return this.map.size;
+  }
+}
+
+/** Test-only inspection hook attached to predicates returned by
+ * `compileBlocklist`. Reads the per-predicate URL→bool memo size. */
+const MEMO_SIZE_SYMBOL: unique symbol = Symbol("urlMemoSize");
+
+/**
  * Predicate-level cache, keyed by the joined pattern list. Without
  * it, every `useGraphLayout` recompute (one per `TREE_UPDATED` —
  * dozens per minute of normal use) builds a fresh matcher closure
@@ -160,12 +194,26 @@ function urlToSegments(url: string): readonly string[] | null {
  * short-lived allocations per render → 50ms of V8.GC_SCAVENGER per
  * 80–100ms reconcile task, traced in DevTools.
  *
- * Caching the predicate by `patterns.join("|")` returns the same
+ * Caching the predicate by `patterns.join("\n")` returns the same
  * closure (and its inner URL→bool map) every time the user's
  * collapselist content is unchanged, even when React passes a new
- * array reference.
+ * array reference. `\n` is just a cache-key separator — it isn't
+ * part of the matcher syntax and never appears in trimmed patterns.
+ *
+ * Bounded: each entry holds a closure + a URL memo, so a runaway
+ * caller (e.g. ad-hoc programmatic compilation of many distinct
+ * pattern lists) cannot accumulate unboundedly in the long-lived
+ * background context. 50 entries is plenty — one per unique
+ * blocklist version in flight.
  */
-const predicateCache = new Map<string, UrlPredicate>();
+const PREDICATE_CACHE_MAX = 50;
+const predicateCache = new LRU<string, UrlPredicate>(PREDICATE_CACHE_MAX);
+
+/** Per-predicate URL→bool memo cap. The extension matches every
+ * navigation, so without a bound this would grow forever in the
+ * background. 200 entries comfortably covers the working set of
+ * recently-visited URLs while keeping the predicate cheap. */
+const URL_MEMO_MAX = 200;
 
 /**
  * Compile a list of patterns into a single URL predicate.
@@ -185,6 +233,7 @@ export function compileBlocklist(patterns: readonly string[]): UrlPredicate {
   }
 
   let predicate: UrlPredicate;
+  let urlMemo: LRU<string, boolean> | null = null;
   if (matchers.length === 0) {
     predicate = () => false;
   } else {
@@ -193,19 +242,34 @@ export function compileBlocklist(patterns: readonly string[]): UrlPredicate {
     // tree with N nodes but K unique URLs (K ≪ N typically — multiple
     // node visits share a URL), this collapses ~N work per render
     // into K work on the very first render and 0 work thereafter.
-    const urlMemo = new Map<string, boolean>();
+    // Bounded LRU — see `URL_MEMO_MAX`.
+    urlMemo = new LRU<string, boolean>(URL_MEMO_MAX);
+    const memo = urlMemo;
     predicate = (url: string) => {
-      const memoed = urlMemo.get(url);
+      const memoed = memo.get(url);
       if (memoed !== undefined) return memoed;
       const segments = urlToSegments(url);
       const result = segments !== null && matchers.some((m) => m(segments));
-      urlMemo.set(url, result);
+      memo.set(url, result);
       return result;
     };
   }
 
+  // Non-enumerable test-only hook for asserting cache bounds.
+  Object.defineProperty(predicate, MEMO_SIZE_SYMBOL, {
+    value: () => urlMemo?.size ?? 0,
+    enumerable: false,
+  });
+
   predicateCache.set(cacheKey, predicate);
   return predicate;
+}
+
+/** Test-only: read the URL→bool memo size for a predicate returned
+ * by `compileBlocklist`. Returns 0 for predicates with no matchers. */
+export function __getUrlMemoSizeForTests(predicate: UrlPredicate): number {
+  const sizer = (predicate as unknown as Record<symbol, () => number>)[MEMO_SIZE_SYMBOL];
+  return typeof sizer === "function" ? sizer() : 0;
 }
 
 /**
