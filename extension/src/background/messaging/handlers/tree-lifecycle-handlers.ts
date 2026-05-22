@@ -17,7 +17,7 @@ import {
   periodicPull,
   scheduleDelete,
 } from "../../sync/sync-engine.js";
-import { authReady, getAuthState } from "@shared/auth/auth-orchestrator.js";
+import { authReady, getAuthState } from "@shared/auth/index.js";
 import { isTreeStub, type NavigationTreeJSON, type TreeMeta } from "@shared/types/tree.js";
 import { EXPORT_SCHEMA, type TrailExportBundle } from "@shared/types/export.js";
 import { settingsManager } from "../../services/settings.js";

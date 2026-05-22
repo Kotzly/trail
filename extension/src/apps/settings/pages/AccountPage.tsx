@@ -42,7 +42,7 @@ import {
   updatePassword,
   validatePassword,
   type AuthState,
-} from "@shared/auth/auth-orchestrator.js";
+} from "@shared/auth/index.js";
 import { getSupabaseClient, isSupabaseConfigured } from "@shared/lib/supabase.js";
 import { captureError, captureEvent } from "@shared/lib/observability.js";
 import { browser } from "@shared/platform/webext.js";

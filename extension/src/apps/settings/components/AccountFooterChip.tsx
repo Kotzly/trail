@@ -12,12 +12,7 @@ import {
 import { SidebarMenuButton, useSidebar } from "@ui/components/ui/sidebar";
 import { Icons } from "@ui/components/icons";
 import { useLockFn } from "@ui/hooks/use-lock-fn";
-import {
-  initAuth,
-  signOut,
-  subscribeAuthState,
-  type AuthState,
-} from "@shared/auth/auth-orchestrator.js";
+import { initAuth, signOut, subscribeAuthState, type AuthState } from "@shared/auth/index.js";
 import { toast } from "sonner";
 
 type Props = {

@@ -35,7 +35,7 @@ import {
   verifyEmailOtp,
   type AuthState,
   type EmailOtpType,
-} from "@shared/auth/auth-orchestrator.js";
+} from "@shared/auth/index.js";
 import { isSupabaseConfigured } from "@shared/lib/supabase.js";
 import { captureError } from "@shared/lib/observability.js";
 import { VerifyForm } from "./VerifyForm.js";

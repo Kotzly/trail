@@ -20,7 +20,7 @@ type PageStatus =
  * Password-reset landing page. The email link from Supabase points
  * here with `?code=<recovery>`; the browser client exchanges the code
  * for a short-lived recovery session, then `updateUser({ password })`
- * persists the new password. See `extension/src/shared/auth/auth-orchestrator.ts`
+ * persists the new password. See `extension/src/shared/auth/orchestrator/recovery.ts`
  * for the matching `resetPasswordForEmail` call that mints the email.
  */
 export default function ResetPasswordPage() {

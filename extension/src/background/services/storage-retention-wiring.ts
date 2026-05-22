@@ -1,5 +1,5 @@
 import { createLogger } from "@shared/lib/logger.js";
-import { getAuthState } from "@shared/auth/auth-orchestrator.js";
+import { getAuthState } from "@shared/auth/index.js";
 import { ensureStoredTreePushed } from "../sync/sync-engine.js";
 import { notifyTreesUpdate } from "../messaging/notifications.js";
 import { treeStorage } from "./tree-storage.js";

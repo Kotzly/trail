@@ -34,11 +34,7 @@
 import type { PostgrestError } from "@supabase/supabase-js";
 import pDebounce from "p-debounce";
 import { getSupabaseClient } from "@shared/lib/supabase.js";
-import {
-  getAuthState,
-  subscribeAuthState,
-  subscribeAuthTransition,
-} from "@shared/auth/auth-orchestrator.js";
+import { getAuthState, subscribeAuthState, subscribeAuthTransition } from "@shared/auth/index.js";
 import {
   deviceIdItem,
   localDeleteTombstonesItem,
