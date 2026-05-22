@@ -144,8 +144,9 @@ function buildTree(
       log.warn("persisted currentNodeId not found — falling back to root", {
         currentNodeId: persistedCurrent,
       });
-      if (tree.getRoot()) {
-        tree.setCurrent(tree.getRoot()!);
+      const root = tree.getRoot();
+      if (root) {
+        tree.setCurrent(root);
       }
     }
   }

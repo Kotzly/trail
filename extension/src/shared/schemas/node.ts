@@ -1,5 +1,8 @@
 import { z } from "zod";
 import type { NavigationNodeJSON, NodeData } from "@shared/types/node.js";
+import { createLogger } from "@shared/lib/logger.js";
+
+const log = createLogger("node-schema");
 
 const finiteNumber = z.number().refine(Number.isFinite);
 
@@ -62,6 +65,12 @@ export function validateNodeData(raw: unknown): NodeData {
 
   if (candidate && typeof candidate === "object") {
     const rest: Record<string, unknown> = { ...(candidate as Record<string, unknown>) };
+    if ("visitCount" in rest) {
+      log.warn("validateNodeData: stripping invalid visitCount and retrying", {
+        field: "visitCount",
+        sampleValue: rest.visitCount,
+      });
+    }
     delete rest.visitCount;
     const retry = nodeDataSchema.safeParse(rest);
     if (retry.success) return retry.data;
