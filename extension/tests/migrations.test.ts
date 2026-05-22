@@ -38,7 +38,7 @@ if (!versionMatch) {
 const currentSchemaVersion = Number(versionMatch[1]);
 assert.equal(
   currentSchemaVersion,
-  3,
+  4,
   "CURRENT_SCHEMA_VERSION drifted — update the registry coverage check below in the same commit.",
 );
 
@@ -66,6 +66,14 @@ assert.ok(
 assert.ok(
   /trail_v3_sync/.test(SRC),
   "cleanup_legacy_keys must reference 'trail_v3_sync' (the 0.9.x sync-engine cursor).",
+);
+
+// The v3→v4 onboarding-orphan cleanup must be registered by name so
+// the runner picks it up after the legacy-keys step. Behavioural
+// coverage lives in migrations-onboarding.test.ts (pure helper).
+assert.ok(
+  /name:\s*"drop_onboarding_orphans"/.test(SRC),
+  "MIGRATIONS must contain a step named 'drop_onboarding_orphans' (v3→v4 cleanup of tour-era OnboardingState fields).",
 );
 
 // ---------------------------------------------------------------------------
