@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { after } from "next/server";
 import Link from "next/link";
-import { fetchSharedTrail } from "@/lib/shared-trail-api";
+import {
+  bumpSharedTrailViewCount,
+  fetchSharedTrail,
+} from "@/lib/shared-trail-api";
 import { Button } from "@/app/components/ui/button";
 import { INSTALL_URL } from "@/lib/install-url";
 import { ImportTrailButton } from "./import-button";
@@ -50,6 +54,10 @@ export default async function SharedTrailPage({
   const { code } = await params;
   const detail = await fetchSharedTrail(code);
   if (!detail) notFound();
+  // Record the view AFTER the response is sent so TTFB stays fast.
+  // The bump is rate-limited server-side (one bump per code per hour)
+  // and swallows its own errors — analytics-grade, not critical path.
+  after(() => bumpSharedTrailViewCount(code));
   return (
     <SharedTrailView detail={detail} importEnabled={SHARE_IMPORT_ENABLED} />
   );

@@ -10,6 +10,12 @@ import type {
  * `null` when the code is missing, revoked, or any error occurred —
  * the page renders the same 404 surface for all three to avoid
  * leaking existence vs. revocation status.
+ *
+ * Side-effect free: as of migration 021 the RPC no longer bumps
+ * `view_count` (an anon UPDATE every call was a write-contention DoS
+ * vector). Callers that want to record a view should call
+ * `bumpSharedTrailViewCount` after the fetch — it is rate-limited
+ * server-side and best-effort.
  */
 export async function fetchSharedTrail(
   code: string,
@@ -41,4 +47,19 @@ export async function fetchSharedTrail(
     createdAt: row.created_at,
     viewCount: row.view_count,
   };
+}
+
+/**
+ * Best-effort view-count bump for a share. Rate-limited server-side to
+ * one bump per (code, hour) bucket regardless of read volume — see
+ * `bump_share_view_count` in migration 021. Swallows errors so a bump
+ * failure never breaks page rendering.
+ */
+export async function bumpSharedTrailViewCount(code: string): Promise<void> {
+  try {
+    const supabase = await createSupabaseServerClient();
+    await supabase.rpc("bump_share_view_count", { p_code: code });
+  } catch {
+    // best-effort; analytics-grade signal, not a critical path
+  }
 }

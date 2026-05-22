@@ -120,6 +120,12 @@ export async function revokeShareLink(code: string): Promise<boolean> {
  * Pull a shared trail's snapshot anonymously (no auth required, the
  * RPC is granted to `anon`). Returns null on revoked/missing codes.
  *
+ * Side-effect free: as of migration 021 the RPC no longer bumps
+ * `view_count` (the anon UPDATE-per-call was a write-contention DoS
+ * vector). Callers that want to record a view should call
+ * `bumpSharedTrailViewCount` after the fetch — it is rate-limited
+ * server-side and best-effort.
+ *
  * Mostly used by the marketing share-viewer page; included here for
  * completeness so callers from the extension can also fetch by code.
  */
@@ -161,6 +167,22 @@ export async function fetchSharedTrail(code: string): Promise<{
     createdAt: row.created_at,
     viewCount: row.view_count,
   };
+}
+
+/**
+ * Best-effort view-count bump for a share. Rate-limited server-side to
+ * one bump per (code, hour) bucket regardless of read volume — see
+ * `bump_share_view_count` in migration 021. Swallows errors so a bump
+ * failure never breaks the consumer flow.
+ */
+export async function bumpSharedTrailViewCount(code: string): Promise<void> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return;
+  try {
+    await supabase.rpc("bump_share_view_count", { p_code: code });
+  } catch {
+    // best-effort: analytics-grade signal, not a critical path
+  }
 }
 
 function mapImportError(messageRaw: string | null | undefined): ImportShareErrorCode {
