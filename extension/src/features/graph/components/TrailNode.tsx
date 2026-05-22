@@ -109,8 +109,9 @@ function TrailNodeComponent({ data, selected }: { data: TrailNodeData; selected?
         )}
       >
         {/* `data-lod-detail` markers let pane.css hide non-essential
-            chrome at mid-zoom and everything but the Card frame at
-            far-zoom — no per-node React subscription required. */}
+            chrome (favicon, URL, badges) at mid- and far-zoom. The
+            title stays at every LOD so nodes are always identifiable
+            — no per-node React subscription required. */}
         <span data-lod-detail className="flex size-4 shrink-0 items-center justify-center">
           {favicon ? (
             <img

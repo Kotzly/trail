@@ -899,27 +899,26 @@ function TrailGraphInner(props: TrailGraphProps) {
           // callback, swallowing the event before tinykeys sees it. Disable
           // entirely so our keyboard handler in useShortcuts owns delete.
           deleteKeyCode={null}
-          // `onlyRenderVisibleElements` ON. Previously OFF because the
-          // viewport-cull mounted/unmounted nodes at the edge and each
-          // mount fired TrailNode's `useUpdateNodeInternals` → xyflow
-          // store set({}) → woke every useStore subscriber, amplifying
-          // pan to N×bail-out work.
+          // Cull is OFF (xyflow default). Earlier this was ON to avoid
+          // always-mounted DOM cost on huge trees, but a 2026-05-22
+          // far-LOD pan trace (Trace-20260522T214936.json.gz, 345
+          // wheels) showed the cull was the per-frame bottleneck:
+          // each wheel cost ~11.7 `commitHostMount` and ~14.8
+          // `setAttribute` samples because nodes at the viewport
+          // edge mounted/unmounted on every tick. Each mount paid
+          // for xyflow's ResizeObserver firing `updateNodeInternals`
+          // + a store `set({})` waking every subscriber, plus three
+          // forced layouts (`getBoundingClientRect`,
+          // `getComputedStyle`, `getDimensions`).
           //
-          // That cascade is now defanged at the source:
-          //   - `TrailNode.tsx:firstHandlesKeyRef` skips the call on
-          //     initial mount (each remount during pan is a "fresh"
-          //     instance, so the ref initializes to the current
-          //     handlesKey and the effect short-circuits — confirmed
-          //     in Trace-20260519T025639.json.gz, ~50 cascade events
-          //     vs the 1808 the old behaviour produced).
-          //   - `url-blocklist.ts:predicateCache` caches per-URL
-          //     match results so `computeChainFoldInfo` walks no
-          //     longer thrash GC on each TREE_UPDATED (commit 3ff723f0).
-          //
-          // With cull ON, only ~50–100 visible TrailNodes run their
-          // memo comparator + useStore(selectLod) per render instead
-          // of all 1808. Per-frame work drops ~20×; React commit cost
-          // scales with viewport size, not tree size.
+          // Off-viewport nodes always-mounted are cheap during pure
+          // pan: xyflow gives them `visibility: hidden` so paint
+          // skips them, `useStore` subscriptions shallow-bail
+          // because `internals.positionAbsolute` doesn't change on
+          // pan (only the viewport transform mutates), and per-node
+          // `contain: layout style` (pane.css) caps style-recalc
+          // scope. Layout/style cost is bounded; mount-churn cost
+          // is not.
           onlyRenderVisibleElements
           nodesDraggable
           nodeDragThreshold={5}

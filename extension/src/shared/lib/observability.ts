@@ -233,8 +233,18 @@ export async function initObservability(surface: ObservabilitySurface): Promise<
       // MV3 service worker `document` is undefined, so letting the default
       // set load causes Sentry to silently disable itself and drop real
       // SW errors on the floor (closes P1.14).
-      const integrations = surface === "background" ? [] : undefined;
-      const defaultIntegrations = surface === "background" ? false : undefined;
+      //
+      // For UI surfaces (sidepanel, settings, login) we also opt out: the
+      // Breadcrumbs integration wraps addEventListener for context capture
+      // and measured ~4% main-thread overhead during pan/zoom in a profile
+      // of the graph view (sentryWrapped 376ms inclusive over a 9.5s
+      // trace). `installGlobalErrorHandlers` below already wires the
+      // window-level error + unhandledrejection listeners we actually
+      // need, so the default wrapping is redundant.
+      //
+      // Manual `captureException` / `captureError` calls are unaffected —
+      // they go straight to the transport and don't depend on
+      // integrations.
       Sentry.init({
         dsn: SENTRY_DSN,
         release: RELEASE,
@@ -243,8 +253,8 @@ export async function initObservability(surface: ObservabilitySurface): Promise<
         tracesSampleRate: 0,
         sendDefaultPii: false,
         beforeSend: scrubSentryEvent,
-        ...(integrations ? { integrations } : {}),
-        ...(defaultIntegrations === false ? { defaultIntegrations } : {}),
+        integrations: [],
+        defaultIntegrations: false,
       });
       sentryEnabled = true;
     } catch (error) {
