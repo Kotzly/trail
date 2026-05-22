@@ -1,5 +1,6 @@
 import { getSupabaseClient } from "@shared/lib/supabase.js";
 import { captureError } from "@shared/lib/observability.js";
+import { MARKETING_ORIGIN } from "@shared/config/marketing-urls.js";
 import type { NavigationTreeJSON } from "@shared/types/tree.js";
 import { sanitizeTreeForShare } from "./sanitize.js";
 
@@ -45,14 +46,12 @@ export type ImportShareError = {
 export type ImportShareResult = ImportShareSuccess | ImportShareError;
 
 /**
- * Build the public share URL the user copies. Single source of truth
- * for the host so an environment switch (e.g. staging) lives in one
- * place. Currently hard-coded to production — staging only needs the
- * extension to write to a different Supabase project, not a different
- * marketing host.
+ * Build the public share URL the user copies. The host comes from
+ * `MARKETING_ORIGIN` so any environment switch (e.g. staging) lives in
+ * one place — see `extension/src/shared/config/marketing-urls.ts`.
  */
 export function buildShareUrl(code: string): string {
-  return `https://gettrail.net/s/${code}`;
+  return `${MARKETING_ORIGIN}/s/${code}`;
 }
 
 /**

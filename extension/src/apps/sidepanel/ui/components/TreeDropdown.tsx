@@ -13,7 +13,6 @@ import { useStore } from "../state/store.js";
 import { useOverlayEffects } from "../state/overlay-effects.js";
 import { cn } from "@ui/lib/utils";
 import { Icons } from "./Icon.js";
-import { isShareCreateEnabled } from "@features/sharing/flags.js";
 import { ShareDialog } from "./ShareDialog.js";
 
 import type { FaviconUrl, Title, Url } from "@shared/types/ids.js";
@@ -227,7 +226,6 @@ export default function TreeDropdown() {
   }, []);
 
   const [shareTarget, setShareTarget] = useState<{ id: string; label: string } | null>(null);
-  const shareEnabled = isShareCreateEnabled();
   const handleShare = useCallback((treeId: string, treeLabel: string) => {
     setShareTarget({ id: treeId, label: treeLabel });
   }, []);
@@ -376,7 +374,6 @@ export default function TreeDropdown() {
                       loading={loadingTreeId === tree.id}
                       unavailable={unavailableTreeIds.has(tree.id)}
                       deleting={deletePending === tree.id}
-                      shareEnabled={shareEnabled}
                       onStartEdit={handleStartEdit}
                       onCommitRename={handleCommitRename}
                       onCancelEdit={handleCancelEdit}
@@ -432,7 +429,6 @@ type TreeRowProps = {
   loading: boolean;
   unavailable: boolean;
   deleting: boolean;
-  shareEnabled: boolean;
   onStartEdit: (id: string) => void;
   onCommitRename: (id: string, nextLabel: string) => void | Promise<void>;
   onCancelEdit: () => void;
@@ -449,7 +445,6 @@ const TreeRow = memo(function TreeRow({
   loading,
   unavailable,
   deleting,
-  shareEnabled,
   onStartEdit,
   onCommitRename,
   onCancelEdit,
@@ -541,7 +536,7 @@ const TreeRow = memo(function TreeRow({
                 onClick={() => onExport(tree.active ? undefined : tree.id)}
               />
             )}
-            {shareEnabled && !tree.stub && (
+            {!tree.stub && (
               <IconAction
                 label="Share trail"
                 icon={<Icons.Share2 />}

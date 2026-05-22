@@ -1,4 +1,4 @@
-const MARKETING_ORIGIN = "https://gettrail.net";
+export const MARKETING_ORIGIN = "https://gettrail.net";
 
 export const MARKETING_URLS = {
   homepage: MARKETING_ORIGIN,
