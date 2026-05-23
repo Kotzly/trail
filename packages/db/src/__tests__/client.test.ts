@@ -1,4 +1,9 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
+
+// Mock server-only to allow importing in test environment.
+// In production builds (webpack/turbopack), this guard turns a client-side
+// import of @trail/db into a build-time error.
+vi.mock("server-only", () => ({}));
 
 describe("@trail/db client", () => {
   it("exposes createDb() that produces a typed client", async () => {
