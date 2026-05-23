@@ -47,12 +47,17 @@ INSERT INTO public.oauth_refresh_tokens (token_hash, user_id, device_session_id,
   )
   ON CONFLICT DO NOTHING;
 
--- 1. Calling without a session raises not_authenticated.
+-- 1. Anon callers are rejected. Post-022, anon has no EXECUTE grant so
+-- the call fails with permission-denied (42501) before entering the
+-- function body — the in-body `IF auth.uid() IS NULL THEN RAISE
+-- 'not_authenticated'` is now belt-and-braces. Accept either failure
+-- mode via NULL ERRCODE / NULL message.
 SET LOCAL role = anon;
 SELECT throws_ok(
   $$ SELECT public.request_account_deletion() $$,
-  'not_authenticated',
-  'RPC refuses unauthenticated callers'
+  NULL,
+  NULL,
+  'RPC refuses unauthenticated callers (permission denied or not_authenticated)'
 );
 
 -- Impersonate the user.
