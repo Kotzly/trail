@@ -207,7 +207,7 @@ function TrailGraphInner(props: TrailGraphProps) {
   const hasNodes = finalNodes.length > 0;
 
   // Camera centering — initial-mount fallback + per-navigation follow.
-  const { centerCurrent, canCenterCurrent, markExtensionClick } = useCameraCentering({
+  const { focusCurrentOrFallback, canFocus, markExtensionClick } = useCameraCentering({
     tree,
     currentNodeId,
     positions: layout.positions,
@@ -416,7 +416,7 @@ function TrailGraphInner(props: TrailGraphProps) {
         >
           <GraphBackground />
           <LodController targetRef={containerRef} />
-          <GraphControls onCenterCurrent={centerCurrent} canCenterCurrent={canCenterCurrent} />
+          <GraphControls onFocusCurrentOrFallback={focusCurrentOrFallback} canFocus={canFocus} />
           {children}
         </ReactFlow>
       </div>

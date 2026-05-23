@@ -2,17 +2,19 @@ import { useReactFlow } from "@xyflow/react";
 import { Icons } from "@ui/components/icons";
 import { Button } from "@ui/components/ui/button";
 import { ButtonTooltip } from "@ui/components/button-tooltip";
-import { useCameraControls } from "../motion/useCameraControls.js";
 
 type GraphControlsProps = {
-  /** Center camera on the current tab's node. Disabled when no such node. */
-  onCenterCurrent: () => void;
-  canCenterCurrent: boolean;
+  /**
+   * Focus the current node, falling back to the last-visited node (or
+   * root) when no tab is active. Disabled only when neither has landed
+   * in the layout yet.
+   */
+  onFocusCurrentOrFallback: () => void;
+  canFocus: boolean;
 };
 
-export function GraphControls({ onCenterCurrent, canCenterCurrent }: GraphControlsProps) {
+export function GraphControls({ onFocusCurrentOrFallback, canFocus }: GraphControlsProps) {
   const { zoomIn, zoomOut } = useReactFlow();
-  const { smoothFitView } = useCameraControls();
 
   return (
     <div className="absolute right-3 bottom-3 z-10 flex flex-col gap-1.5">
@@ -36,25 +38,15 @@ export function GraphControls({ onCenterCurrent, canCenterCurrent }: GraphContro
           <Icons.Minus />
         </Button>
       </ButtonTooltip>
-      <ButtonTooltip label="Center on current tab" side="left">
+      <ButtonTooltip label="Focus current node" side="left">
         <Button
           variant="outline"
           size="icon"
-          aria-label="Center on current tab"
-          disabled={!canCenterCurrent}
-          onClick={onCenterCurrent}
+          aria-label="Focus current node"
+          disabled={!canFocus}
+          onClick={onFocusCurrentOrFallback}
         >
           <Icons.LocateFixed />
-        </Button>
-      </ButtonTooltip>
-      <ButtonTooltip label="Fit whole graph" side="left">
-        <Button
-          variant="outline"
-          size="icon"
-          aria-label="Fit whole graph"
-          onClick={() => smoothFitView()}
-        >
-          <Icons.Maximize />
         </Button>
       </ButtonTooltip>
     </div>

@@ -13,6 +13,7 @@ import { loadTree } from "../../services/tree-loader.js";
 import {
   cancelPendingDelete,
   ensureStoredTreePushed,
+  ensureTreePushed,
   fetchRemoteTreePayload,
   periodicPull,
   scheduleDelete,
@@ -488,6 +489,10 @@ export const treeLifecycleHandlers = defineRpcHandlers({
     return Boolean(record);
   },
 
+  async [RPC_METHOD.ENSURE_TREE_PUSHED](message) {
+    return ensureTreePushed(message.treeId);
+  },
+
   async [RPC_METHOD.RENAME_TREE](message) {
     await treeStorage.renameTree(message.treeId, message.label);
     await notifyTreesUpdate(await buildTreesSnapshot());
@@ -617,26 +622,34 @@ export const treeLifecycleHandlers = defineRpcHandlers({
   },
 
   async [RPC_METHOD.EXPORT_TREE](message) {
+    const activeMeta = await treeStorage.getActiveMeta();
     let treeJSON: NavigationTreeJSON;
     let label: string;
+    let sourceTreeId: string;
 
-    if (message.treeId) {
+    // The active tree's data lives in activeTreeItem, not under a
+    // per-tree blob. Route to the in-memory active tree when the
+    // caller targets it (either by passing its id or by omitting
+    // treeId) so sharing/exporting the current trail doesn't fail
+    // with "Tree not found".
+    if (message.treeId && message.treeId !== activeMeta.id) {
       const record = await treeStorage.getFullStoredRecord(message.treeId);
       if (!record) throw new Error("Tree not found");
       treeJSON = record.tree;
       label = record.label;
+      sourceTreeId = message.treeId;
     } else {
       const tree = await treeStorage.getOrCreateTree();
-      const meta = await treeStorage.getActiveMeta();
       treeJSON = NavigationTreeMapper.toJSON(tree);
-      label = meta.label;
+      label = activeMeta.label;
+      sourceTreeId = activeMeta.id;
     }
 
     const bundle: TrailExportBundle = {
       schema: EXPORT_SCHEMA,
       exportedAt: Date.now(),
       source: {
-        treeId: message.treeId ?? (await treeStorage.getActiveMeta()).id,
+        treeId: sourceTreeId,
         treeLabel: label,
         origin: "extension",
       },

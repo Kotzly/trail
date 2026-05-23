@@ -47,6 +47,14 @@ import {
   type SyncStateMeta,
   type PendingSyncOp,
 } from "@shared/config/storage-items.js";
+import { ShareDialog } from "@features/sharing/ui/ShareDialog.js";
+import {
+  buildShareUrl,
+  listMyShareLinks,
+  revokeShareLink,
+  type ShareLinkRow,
+} from "@features/sharing/share-api.js";
+import { useAuthState } from "@shared/auth/use-auth-state.js";
 
 export function TreesPage() {
   const {
@@ -68,6 +76,17 @@ export function TreesPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const syncMap = useTreeSyncMap();
+  const authState = useAuthState();
+  const canShare = authState.status === "signed-in";
+  const [shareTarget, setShareTarget] = useState<{ id: string; label: string } | null>(null);
+  const sharesQuery = useShareLinksQuery(canShare);
+
+  const handleShare = useCallback((id: string, label: string) => {
+    setShareTarget({ id, label });
+  }, []);
+  const handleSharesChanged = useCallback(() => {
+    sharesQuery.refresh();
+  }, [sharesQuery]);
 
   const handleDownload = useCallback(
     async (id: string) => {
@@ -183,6 +202,18 @@ export function TreesPage() {
                 onDownload={handleDownload}
                 onUnload={handleUnload}
               />
+              {canShare && (
+                <ButtonTooltip label="Share trail">
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label="Share trail"
+                    onClick={() => handleShare(trees.active.id, trees.active.label)}
+                  >
+                    <Icons.Share2 />
+                  </Button>
+                </ButtonTooltip>
+              )}
               <ButtonTooltip label={i18n.t("trees.actions.exportTree")}>
                 <Button
                   variant="ghost"
@@ -209,6 +240,7 @@ export function TreesPage() {
                 isEditing={editingId === tree.id}
                 syncState={syncMap.get(tree.id)}
                 busy={(downloadPending || unloadPending) && busyId === tree.id}
+                canShare={canShare}
                 onStartEdit={handleStartEdit}
                 onCancelEdit={handleCancelEdit}
                 onCommitRename={handleCommitRename}
@@ -217,10 +249,27 @@ export function TreesPage() {
                 onDelete={deleteTree}
                 onDownload={handleDownload}
                 onUnload={handleUnload}
+                onShare={handleShare}
               />
             ))}
           </ItemGroup>
         </section>
+      )}
+
+      {canShare && (
+        <SharedTrailsSection query={sharesQuery} onSharesChanged={handleSharesChanged} />
+      )}
+
+      {shareTarget && (
+        <ShareDialog
+          open={shareTarget !== null}
+          onOpenChange={(next) => {
+            if (!next) setShareTarget(null);
+          }}
+          treeId={shareTarget.id}
+          treeLabel={shareTarget.label}
+          onSharesChanged={handleSharesChanged}
+        />
       )}
     </div>
   );
@@ -505,6 +554,7 @@ type OtherTreeRowProps = {
   isEditing: boolean;
   syncState: TreeSyncState | undefined;
   busy: boolean;
+  canShare: boolean;
   onStartEdit: (id: string) => void;
   onCancelEdit: () => void;
   onCommitRename: (id: string, nextLabel: string) => void | Promise<void>;
@@ -513,6 +563,7 @@ type OtherTreeRowProps = {
   onDelete: (id: string) => void | Promise<void>;
   onDownload: (id: string) => void | Promise<void>;
   onUnload: (id: string) => void | Promise<void>;
+  onShare: (id: string, label: string) => void;
 };
 
 const OtherTreeRow = memo(function OtherTreeRow({
@@ -520,6 +571,7 @@ const OtherTreeRow = memo(function OtherTreeRow({
   isEditing,
   syncState,
   busy,
+  canShare,
   onStartEdit,
   onCancelEdit,
   onCommitRename,
@@ -528,6 +580,7 @@ const OtherTreeRow = memo(function OtherTreeRow({
   onDelete,
   onDownload,
   onUnload,
+  onShare,
 }: OtherTreeRowProps) {
   const stub = isTreeStub(tree);
   return (
@@ -574,6 +627,18 @@ const OtherTreeRow = memo(function OtherTreeRow({
               <Icons.Pencil />
             </Button>
           </ButtonTooltip>
+          {!stub && canShare && (
+            <ButtonTooltip label="Share trail">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Share trail"
+                onClick={() => onShare(tree.id, tree.label)}
+              >
+                <Icons.Share2 />
+              </Button>
+            </ButtonTooltip>
+          )}
           {!stub && (
             <ButtonTooltip label={i18n.t("trees.actions.export")}>
               <Button
@@ -649,5 +714,193 @@ function RenameField({
       onFocus={(e) => e.currentTarget.select()}
       className="h-7 max-w-sm"
     />
+  );
+}
+
+/* ─── Shared trails section ──────────────────────────────────── */
+
+type ShareLinksQueryState =
+  | { kind: "idle" }
+  | { kind: "loading" }
+  | { kind: "ready"; rows: ShareLinkRow[] }
+  | { kind: "error"; message: string };
+
+type ShareLinksQuery = {
+  state: ShareLinksQueryState;
+  refresh: () => void;
+};
+
+/**
+ * Loads the caller's active share-link rows. Skips the RPC when
+ * signed-out so an authenticated-only function never gets called as
+ * `anon` (which would return "permission denied"). Refresh is exposed
+ * so the dialog can re-pull after a create/revoke.
+ *
+ * The parent gates rendering on `enabled`, so when sign-out flips the
+ * gate the section unmounts entirely — we don't need to transition
+ * stale state to "idle" inside the effect.
+ */
+function useShareLinksQuery(enabled: boolean): ShareLinksQuery {
+  const [state, setState] = useState<ShareLinksQueryState>(() =>
+    enabled ? { kind: "loading" } : { kind: "idle" },
+  );
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    if (!enabled) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const rows = await listMyShareLinks();
+        if (cancelled) return;
+        setState({
+          kind: "ready",
+          rows: rows.filter((r) => r.revoked_at === null),
+        });
+      } catch (err) {
+        if (cancelled) return;
+        setState({
+          kind: "error",
+          message: err instanceof Error ? err.message : "Failed to load shares",
+        });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled, tick]);
+
+  return {
+    state,
+    refresh: () => setTick((n) => n + 1),
+  };
+}
+
+function SharedTrailsSection({
+  query,
+  onSharesChanged,
+}: {
+  query: ShareLinksQuery;
+  onSharesChanged: () => void;
+}) {
+  const [revokingCode, setRevokingCode] = useState<string | null>(null);
+  const [confirmCode, setConfirmCode] = useState<string | null>(null);
+
+  const handleCopy = useCallback(async (code: string) => {
+    try {
+      await navigator.clipboard.writeText(buildShareUrl(code));
+      toast.success("Link copied");
+    } catch {
+      toast.error("Failed to copy link");
+    }
+  }, []);
+
+  const handleRevoke = useCallback(
+    async (code: string) => {
+      setRevokingCode(code);
+      try {
+        await revokeShareLink(code);
+        toast.success("Share link revoked");
+        onSharesChanged();
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Failed to revoke share link");
+      } finally {
+        setRevokingCode(null);
+        setConfirmCode(null);
+      }
+    },
+    [onSharesChanged],
+  );
+
+  return (
+    <section className="flex flex-col gap-3">
+      <SectionHeader
+        eyebrow="Shared trails"
+        description="Active public links you minted. Revoking a link blocks new viewers; people who already imported keep their copy."
+      />
+
+      {query.state.kind === "loading" ? (
+        <div className="text-muted-foreground flex items-center gap-2 text-sm">
+          <Spinner className="size-4" />
+          Loading shares…
+        </div>
+      ) : query.state.kind === "error" ? (
+        <p className="text-destructive text-sm">{query.state.message}</p>
+      ) : query.state.kind === "ready" && query.state.rows.length === 0 ? (
+        <p className="text-muted-foreground text-sm">No active share links yet.</p>
+      ) : query.state.kind === "ready" ? (
+        <ItemGroup>
+          {query.state.rows.map((row) => (
+            <Item key={row.code} variant="outline" size="sm">
+              <ItemMedia variant="icon">
+                <Icons.Share2 className="text-muted-foreground" />
+              </ItemMedia>
+              <ItemContent>
+                <ItemTitle>{row.label}</ItemTitle>
+                <ItemDescription className="flex items-center gap-2 font-mono text-[11px]">
+                  <span className="truncate">{buildShareUrl(row.code)}</span>
+                </ItemDescription>
+                <ItemDescription className="text-[11px]">
+                  {row.view_count} {row.view_count === 1 ? "view" : "views"} · {row.node_count}{" "}
+                  {row.node_count === 1 ? "node" : "nodes"} · {formatRelative(row.created_at)}
+                </ItemDescription>
+              </ItemContent>
+              <ItemActions>
+                <ButtonTooltip label="Copy link">
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label="Copy share link"
+                    onClick={() => void handleCopy(row.code)}
+                  >
+                    <Icons.Link />
+                  </Button>
+                </ButtonTooltip>
+                <ButtonTooltip label="Stop sharing">
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label="Stop sharing"
+                    disabled={revokingCode === row.code}
+                    onClick={() => setConfirmCode(row.code)}
+                  >
+                    {revokingCode === row.code ? <Spinner /> : <Icons.Trash2 />}
+                  </Button>
+                </ButtonTooltip>
+              </ItemActions>
+            </Item>
+          ))}
+        </ItemGroup>
+      ) : null}
+
+      <AlertDialog
+        open={confirmCode !== null}
+        onOpenChange={(next) => {
+          if (revokingCode !== null) return;
+          if (!next) setConfirmCode(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Stop sharing this trail?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Anyone with the link loses access. People who already imported keep their copy.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={revokingCode !== null}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              disabled={revokingCode !== null}
+              onClick={() => {
+                if (confirmCode) void handleRevoke(confirmCode);
+              }}
+            >
+              Stop sharing
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </section>
   );
 }

@@ -101,6 +101,11 @@ const treeService: TreeService = {
       type: RPC_METHOD.ENSURE_TREE_LOADED,
       ...input,
     }),
+  ensureTreePushed: (input) =>
+    call(treeHandlers[RPC_METHOD.ENSURE_TREE_PUSHED], {
+      type: RPC_METHOD.ENSURE_TREE_PUSHED,
+      ...input,
+    }),
   renameTree: (input) =>
     call(treeHandlers[RPC_METHOD.RENAME_TREE], { type: RPC_METHOD.RENAME_TREE, ...input }),
   deleteTree: (input) =>

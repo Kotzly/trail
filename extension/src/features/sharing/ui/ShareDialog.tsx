@@ -13,27 +13,64 @@ import { Switch } from "@ui/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@ui/components/ui/tooltip";
 import { Spinner } from "@ui/components/ui/spinner";
 import { toast } from "sonner";
-import { Icons } from "./Icon.js";
+import { Icons } from "@ui/components/icons";
+import { treeService } from "@shared/transport/proxy-clients.js";
+import { useAuthState } from "@shared/auth/use-auth-state.js";
 import {
   buildShareUrl,
   createShareLink,
   listMyShareLinks,
   revokeShareLink,
   type ShareLinkRow,
-} from "@features/sharing/share-api.js";
-import { exportTree } from "../../api/tree.js";
+} from "../share-api.js";
 
 type ShareDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   treeId: string;
   treeLabel: string;
+  /**
+   * Called after a successful create or revoke. Lets surfaces with a
+   * cross-trail share list refresh themselves without reaching into the
+   * dialog's state.
+   */
+  onSharesChanged?: () => void;
 };
 
 type DialogStatus =
   | { kind: "loading" }
   | { kind: "ready"; share: ShareLinkRow | null }
   | { kind: "error"; message: string };
+
+/**
+ * Map an `ensureTreePushed` outcome to a user-facing error message.
+ * Returns null for outcomes the caller should treat as "proceed".
+ *
+ * The dialog gates the call on `signedIn`, so when `"skipped"` reaches
+ * us the user IS signed in — it actually means the active tree is
+ * empty or a conflict merge is in flight (see `doPushActive` /
+ * `doPushStored` for the underlying branches). Don't claim "sign in"
+ * here; surface a truthful "couldn't prepare" message instead.
+ */
+function describePushFailure(outcome: string): string | null {
+  switch (outcome) {
+    case "ok":
+      return null;
+    case "skipped":
+      // Empty trail (no root) or merge in flight. The dialog already
+      // gates on `signedIn`, so the auth-skipped branch in
+      // `doPushActive` is unreachable here.
+      return "This trail can't be shared yet — add at least one page, or wait for an ongoing sync to finish.";
+    case "offline":
+      return "You're offline. Reconnect and try again.";
+    case "conflict":
+      return "Another device edited this trail. Resolve the conflict before sharing.";
+    case "rate_limited":
+      return "Too many syncs just now. Wait about a minute and try again.";
+    default:
+      return "Couldn't sync this trail to the cloud. Check your connection and try again.";
+  }
+}
 
 /**
  * Share dialog for the trail-link feature. Shows the toggle "Available
@@ -45,15 +82,35 @@ type DialogStatus =
  * Source of truth for the toggle: the existence of a non-revoked row
  * in `shared_trail_links` for this trail. The dialog reloads the
  * server state on open so multi-device users see a consistent picture.
+ *
+ * Surface-agnostic: talks to `treeService` directly so both the sidepanel
+ * and the Settings → Trees page can mount the same component.
  */
-export function ShareDialog({ open, onOpenChange, treeId, treeLabel }: ShareDialogProps) {
+export function ShareDialog({
+  open,
+  onOpenChange,
+  treeId,
+  treeLabel,
+  onSharesChanged,
+}: ShareDialogProps) {
+  const authState = useAuthState();
+  const signedIn = authState.status === "signed-in";
   const [status, setStatus] = useState<DialogStatus>({ kind: "loading" });
   const [busy, setBusy] = useState(false);
   const [confirmRevoke, setConfirmRevoke] = useState(false);
 
   // Reload share state every time the dialog opens for this trail.
+  // Defers the RPC until the user is known to be signed in — calling
+  // list_my_share_links as `anon` fails with "permission denied".
   useEffect(() => {
     if (!open) return;
+    if (!signedIn) {
+      setStatus({
+        kind: "error",
+        message: "Sign in to share trails.",
+      });
+      return;
+    }
     setStatus({ kind: "loading" });
     setConfirmRevoke(false);
     let cancelled = false;
@@ -74,12 +131,22 @@ export function ShareDialog({ open, onOpenChange, treeId, treeLabel }: ShareDial
     return () => {
       cancelled = true;
     };
-  }, [open, treeId]);
+  }, [open, treeId, signedIn]);
 
   const handleEnableShare = useCallback(async () => {
     setBusy(true);
     try {
-      const bundle = await exportTree(treeId);
+      // Ensure the trail row exists server-side before minting the
+      // share. Without this, brand-new local trails fail the RPC's
+      // owner check with `share_create_not_owner` ("tree doesn't
+      // exist" from the caller's perspective).
+      const pushOutcome = await treeService.ensureTreePushed({ treeId });
+      const pushError = describePushFailure(pushOutcome);
+      if (pushError) {
+        toast.error(pushError);
+        return;
+      }
+      const bundle = await treeService.exportTree({ treeId });
       const result = await createShareLink(treeId, bundle.tree);
       const row: ShareLinkRow = {
         code: result.code,
@@ -93,27 +160,32 @@ export function ShareDialog({ open, onOpenChange, treeId, treeLabel }: ShareDial
         view_count: 0,
       };
       setStatus({ kind: "ready", share: row });
+      onSharesChanged?.();
       toast.success("Trail is now shared");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to create share link");
     } finally {
       setBusy(false);
     }
-  }, [treeId]);
+  }, [treeId, onSharesChanged]);
 
-  const handleRevokeShare = useCallback(async (code: string) => {
-    setBusy(true);
-    try {
-      await revokeShareLink(code);
-      setStatus({ kind: "ready", share: null });
-      setConfirmRevoke(false);
-      toast.success("Share link revoked");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to revoke share link");
-    } finally {
-      setBusy(false);
-    }
-  }, []);
+  const handleRevokeShare = useCallback(
+    async (code: string) => {
+      setBusy(true);
+      try {
+        await revokeShareLink(code);
+        setStatus({ kind: "ready", share: null });
+        setConfirmRevoke(false);
+        onSharesChanged?.();
+        toast.success("Share link revoked");
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Failed to revoke share link");
+      } finally {
+        setBusy(false);
+      }
+    },
+    [onSharesChanged],
+  );
 
   const handleToggle = useCallback(
     (next: boolean) => {

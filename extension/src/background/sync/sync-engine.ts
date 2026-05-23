@@ -483,6 +483,20 @@ export async function ensureStoredTreePushed(treeId: string): Promise<PushOutcom
   return doPushStored(treeId);
 }
 
+/**
+ * Force-push the named tree (active or stored) and wait for it to land
+ * server-side. Used by flows that immediately depend on the trail row
+ * existing in Supabase — share-link creation, for instance, where the
+ * RPC will throw `share_create_not_owner` if the local tree was never
+ * synced. Skips the `lastSyncedAt` short-circuit so a freshly-mutated
+ * active tree is re-pushed even when a previous push succeeded.
+ */
+export async function ensureTreePushed(treeId: string): Promise<PushOutcome> {
+  const auth = getAuthState();
+  if (auth.status !== "signed-in") return "skipped";
+  return doPushTree(treeId);
+}
+
 function isOfflineError(error: PostgrestError): boolean {
   // PostgrestError without a code means the request never reached
   // PostgREST — network failure, DNS failure, timeout, or hard offline.

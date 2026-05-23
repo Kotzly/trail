@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import { useReactFlow } from "@xyflow/react";
 import { useLatest } from "@ui/hooks/use-latest";
 import type { NodeId } from "@shared/types/ids.js";
 import type { NavigationTreeJSON } from "@shared/types/tree.js";
@@ -20,10 +19,16 @@ type UseCameraCenteringInput = {
 };
 
 type UseCameraCenteringResult = {
-  /** Toolbar-button callback: pan to current node, preserve zoom. */
-  centerCurrent: () => void;
-  /** True iff the current node has a computed layout position. */
-  canCenterCurrent: boolean;
+  /**
+   * Toolbar-button callback: pan to the current node when there is one,
+   * otherwise pan to the fallback focus (last-visited node, else root).
+   * Preserves current zoom. Backs the "Focus current node" button which
+   * always has a useful target — degrading gracefully when no tab is
+   * active or its layout position hasn't landed yet.
+   */
+  focusCurrentOrFallback: () => void;
+  /** True iff either the current node or the fallback has a layout position. */
+  canFocus: boolean;
   /**
    * Marker for distinguishing extension-initiated clicks from external
    * navigation. The click handler calls this BEFORE invoking the
@@ -61,7 +66,6 @@ type UseCameraCenteringResult = {
 export function useCameraCentering(input: UseCameraCenteringInput): UseCameraCenteringResult {
   const { tree, currentNodeId, positions, layoutMode, hasNodes } = input;
   const { smoothCenter } = useCameraControls();
-  const { getZoom } = useReactFlow();
   const followClickEnabled = useMotionFlag("camera_follow_click");
 
   const initialFitDone = useRef(false);
@@ -176,21 +180,26 @@ export function useCameraCentering(input: UseCameraCenteringInput): UseCameraCen
     }
   }, [currentNodeId, hasNodes, targetX, targetY, fallbackX, fallbackY, latest]);
 
-  // Explicit "center on current node" action from the toolbar. Unlike
-  // auto-centering on navigation, this preserves the user's current
-  // zoom — they explicitly asked "pan to my tab", not "reset my view".
-  const centerCurrent = useCallback(() => {
-    if (targetX === null || targetY === null) return;
-    smoothCenter(targetX + NODE_WIDTH / 2, targetY + NODE_HEIGHT / 2, {
-      zoom: getZoom(),
-    });
-  }, [targetX, targetY, smoothCenter, getZoom]);
+  // Explicit "focus" action from the toolbar. Pans to the current node
+  // and resets zoom to 1× — a known, readable reading level regardless
+  // of where the user wandered. Falls back to the last-visited / root
+  // node when no current tab is laid out yet.
+  const focusCurrentOrFallback = useCallback(() => {
+    if (targetX !== null && targetY !== null) {
+      smoothCenter(targetX + NODE_WIDTH / 2, targetY + NODE_HEIGHT / 2, { zoom: 1 });
+      return;
+    }
+    if (fallbackX !== null && fallbackY !== null) {
+      smoothCenter(fallbackX + NODE_WIDTH / 2, fallbackY + NODE_HEIGHT / 2, { zoom: 1 });
+    }
+  }, [targetX, targetY, fallbackX, fallbackY, smoothCenter]);
 
-  const canCenterCurrent = targetX !== null && targetY !== null;
+  const canFocus =
+    (targetX !== null && targetY !== null) || (fallbackX !== null && fallbackY !== null);
 
   const markExtensionClick = useCallback((nodeId: NodeId) => {
     expectedClickNodeId.current = nodeId;
   }, []);
 
-  return { centerCurrent, canCenterCurrent, markExtensionClick };
+  return { focusCurrentOrFallback, canFocus, markExtensionClick };
 }

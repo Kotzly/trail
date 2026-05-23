@@ -3,6 +3,7 @@ import type {
   BeginTempSelectionInput,
   CommandState,
   DeleteTreeResponse,
+  EnsureTreePushedOutcome,
   NodeLayoutInput,
   RestorableTreeSnapshot,
   TempSelectionSessionId,
@@ -50,6 +51,7 @@ export interface TreeService {
   createNewTree(input: { label: string; origin?: TreeSwitchOrigin }): Promise<void>;
   openTree(input: { treeId: string; origin?: TreeSwitchOrigin }): Promise<void>;
   ensureTreeLoaded(input: { treeId: string }): Promise<boolean>;
+  ensureTreePushed(input: { treeId: string }): Promise<EnsureTreePushedOutcome>;
   renameTree(input: { treeId: string; label: string }): Promise<void>;
   deleteTree(input: { treeId: string }): Promise<DeleteTreeResponse>;
   restoreTree(input: { snapshot: RestorableTreeSnapshot }): Promise<void>;

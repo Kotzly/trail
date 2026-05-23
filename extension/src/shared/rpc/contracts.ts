@@ -72,6 +72,7 @@ export const RPC_METHOD = {
   APPLY_CONFLICT_MERGE: "APPLY_CONFLICT_MERGE",
   FORK_TREE_FROM_CONFLICT: "FORK_TREE_FROM_CONFLICT",
   GET_PENDING_CONFLICTS: "GET_PENDING_CONFLICTS",
+  ENSURE_TREE_PUSHED: "ENSURE_TREE_PUSHED",
 } as const;
 
 export type RequestType = (typeof RPC_METHOD)[keyof typeof RPC_METHOD];
@@ -174,6 +175,22 @@ export type UnloadTreeToCloudMessage = RequestMessageBase<
   typeof RPC_METHOD.UNLOAD_TREE_TO_CLOUD,
   { treeId: string }
 >;
+export type EnsureTreePushedMessage = RequestMessageBase<
+  typeof RPC_METHOD.ENSURE_TREE_PUSHED,
+  { treeId: string }
+>;
+
+/**
+ * Outcome of a force-push attempt. Mirrors the sync engine's `PushOutcome`
+ * so callers can branch on the same enum the engine produces.
+ */
+export type EnsureTreePushedOutcome =
+  | "ok"
+  | "skipped"
+  | "conflict"
+  | "offline"
+  | "error"
+  | "rate_limited";
 
 /**
  * Origin hint for tree-switching commands. Determines browser-focus
@@ -443,7 +460,8 @@ export type RequestMessage =
   | GetStoredTreeForConflictMessage
   | ApplyConflictMergeMessage
   | ForkTreeFromConflictMessage
-  | GetPendingConflictsMessage;
+  | GetPendingConflictsMessage
+  | EnsureTreePushedMessage;
 
 // ==== Responses ====
 
@@ -506,6 +524,7 @@ export type ResponseDataByType = {
   [RPC_METHOD.APPLY_CONFLICT_MERGE]: ApplyConflictMergeResponse;
   [RPC_METHOD.FORK_TREE_FROM_CONFLICT]: ForkTreeFromConflictResponse;
   [RPC_METHOD.GET_PENDING_CONFLICTS]: GetPendingConflictsResponse;
+  [RPC_METHOD.ENSURE_TREE_PUSHED]: EnsureTreePushedOutcome;
 };
 
 export type MessageByType<T extends RequestType> = Extract<RequestMessage, { type: T }>;

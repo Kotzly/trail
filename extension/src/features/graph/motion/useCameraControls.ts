@@ -14,18 +14,11 @@
  */
 
 import { useCallback, useLayoutEffect, useRef } from "react";
-import {
-  useReactFlow,
-  useStore,
-  useStoreApi,
-  type FitViewOptions,
-  type ReactFlowState,
-} from "@xyflow/react";
+import { useReactFlow, useStore, useStoreApi, type ReactFlowState } from "@xyflow/react";
 import { useMotionFlag } from "./store.js";
 import { useReducedMotion } from "./use-reduced-motion.js";
 
 const SMOOTH_DURATION_MS = 350;
-const DEFAULT_FIT_PADDING = 0.2;
 
 const selectWidth = (s: ReactFlowState) => s.width;
 const selectHeight = (s: ReactFlowState) => s.height;
@@ -46,9 +39,8 @@ export type SmoothCenterOptions = {
 
 export function useCameraControls(): {
   smoothCenter: (x: number, y: number, options?: SmoothCenterOptions) => void;
-  smoothFitView: (options?: FitViewOptions) => void;
 } {
-  const { fitView, getZoom, getViewport, setViewport } = useReactFlow();
+  const { getZoom, getViewport, setViewport } = useReactFlow();
   // `useStoreApi` returns a memoized handle whose identity is stable for the
   // lifetime of the ReactFlowProvider. Reading width/height/transform off
   // `getState()` at CALL time (rather than via `useStore` subscription)
@@ -61,11 +53,9 @@ export function useCameraControls(): {
   const viewportWidth = useStore(selectWidth);
   const viewportHeight = useStore(selectHeight);
   const centerEnabled = useMotionFlag("camera_smooth_center");
-  const fitEnabled = useMotionFlag("camera_fit_to_view");
   const reduced = useReducedMotion();
 
   const allowSmoothCenter = centerEnabled && !reduced;
-  const allowSmoothFit = fitEnabled && !reduced;
 
   const tweenRafRef = useRef<number | null>(null);
   // Deferred-center queue. On initial mount xyflow's `width`/`height`
@@ -168,16 +158,5 @@ export function useCameraControls(): {
     });
   }, [viewportWidth, viewportHeight, getZoom, setViewport]);
 
-  const smoothFitView = useCallback(
-    (options?: FitViewOptions) => {
-      fitView({
-        padding: DEFAULT_FIT_PADDING,
-        ...options,
-        duration: allowSmoothFit ? SMOOTH_DURATION_MS : 0,
-      });
-    },
-    [fitView, allowSmoothFit],
-  );
-
-  return { smoothCenter, smoothFitView };
+  return { smoothCenter };
 }

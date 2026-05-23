@@ -13,7 +13,8 @@ import { useStore } from "../state/store.js";
 import { useOverlayEffects } from "../state/overlay-effects.js";
 import { cn } from "@ui/lib/utils";
 import { Icons } from "./Icon.js";
-import { ShareDialog } from "./ShareDialog.js";
+import { ShareDialog } from "@features/sharing/ui/ShareDialog.js";
+import { useAuthState } from "@shared/auth/use-auth-state.js";
 
 import type { FaviconUrl, Title, Url } from "@shared/types/ids.js";
 import { getFaviconUrl } from "@shared/utils/favicon.js";
@@ -105,6 +106,8 @@ export default function TreeDropdown() {
   const confirmNewTree = useStore((state) => state.settings?.confirmNewTree ?? true);
   const nodeCount = useStore((state) => state.nodeCount);
   const lastSyncedAt: string | null = null;
+  const authState = useAuthState();
+  const canShare = authState.status === "signed-in";
 
   useOverlayEffects(treesOpen, { kind: "dropdown" });
 
@@ -374,6 +377,7 @@ export default function TreeDropdown() {
                       loading={loadingTreeId === tree.id}
                       unavailable={unavailableTreeIds.has(tree.id)}
                       deleting={deletePending === tree.id}
+                      canShare={canShare}
                       onStartEdit={handleStartEdit}
                       onCommitRename={handleCommitRename}
                       onCancelEdit={handleCancelEdit}
@@ -429,6 +433,7 @@ type TreeRowProps = {
   loading: boolean;
   unavailable: boolean;
   deleting: boolean;
+  canShare: boolean;
   onStartEdit: (id: string) => void;
   onCommitRename: (id: string, nextLabel: string) => void | Promise<void>;
   onCancelEdit: () => void;
@@ -445,6 +450,7 @@ const TreeRow = memo(function TreeRow({
   loading,
   unavailable,
   deleting,
+  canShare,
   onStartEdit,
   onCommitRename,
   onCancelEdit,
@@ -536,7 +542,7 @@ const TreeRow = memo(function TreeRow({
                 onClick={() => onExport(tree.active ? undefined : tree.id)}
               />
             )}
-            {!tree.stub && (
+            {!tree.stub && canShare && (
               <IconAction
                 label="Share trail"
                 icon={<Icons.Share2 />}
