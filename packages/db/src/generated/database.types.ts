@@ -440,6 +440,89 @@ export type Database = {
         };
         Relationships: [];
       };
+      share_view_log: {
+        Row: {
+          code: string;
+          hour_bucket: string;
+        };
+        Insert: {
+          code: string;
+          hour_bucket: string;
+        };
+        Update: {
+          code?: string;
+          hour_bucket?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "share_view_log_code_fkey";
+            columns: ["code"];
+            isOneToOne: false;
+            referencedRelation: "shared_trail_links";
+            referencedColumns: ["code"];
+          },
+        ];
+      };
+      shared_trail_links: {
+        Row: {
+          code: string;
+          created_at: string;
+          label: string;
+          node_count: number;
+          owner_id: string;
+          revoked_at: string | null;
+          root_title: string | null;
+          root_url: string | null;
+          snapshot: Json;
+          snapshot_version: number;
+          trail_id: string;
+          view_count: number;
+        };
+        Insert: {
+          code: string;
+          created_at?: string;
+          label: string;
+          node_count: number;
+          owner_id: string;
+          revoked_at?: string | null;
+          root_title?: string | null;
+          root_url?: string | null;
+          snapshot: Json;
+          snapshot_version?: number;
+          trail_id: string;
+          view_count?: number;
+        };
+        Update: {
+          code?: string;
+          created_at?: string;
+          label?: string;
+          node_count?: number;
+          owner_id?: string;
+          revoked_at?: string | null;
+          root_title?: string | null;
+          root_url?: string | null;
+          snapshot?: Json;
+          snapshot_version?: number;
+          trail_id?: string;
+          view_count?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "shared_trail_links_owner_id_fkey";
+            columns: ["owner_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "shared_trail_links_trail_id_fkey";
+            columns: ["trail_id"];
+            isOneToOne: false;
+            referencedRelation: "trails";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       trails: {
         Row: {
           created_at: string;
@@ -683,10 +766,13 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      bump_auth_session_version: {
-        Args: { p_user_id: string };
-        Returns: undefined;
+      bump_share_view_count: { Args: { p_code: string }; Returns: boolean };
+      create_share_link: {
+        Args: { p_snapshot: Json; p_trail_id: string };
+        Returns: Json;
       };
+      get_shared_trail: { Args: { p_code: string }; Returns: Json };
+      import_shared_trail: { Args: { p_code: string }; Returns: Json };
       insert_wishlist_lead: {
         Args: {
           p_email: string;
@@ -699,7 +785,22 @@ export type Database = {
         };
         Returns: string;
       };
+      list_my_share_links: {
+        Args: never;
+        Returns: {
+          code: string;
+          created_at: string;
+          label: string;
+          node_count: number;
+          revoked_at: string;
+          root_title: string;
+          root_url: string;
+          trail_id: string;
+          view_count: number;
+        }[];
+      };
       request_account_deletion: { Args: never; Returns: string };
+      revoke_share_link: { Args: { p_code: string }; Returns: boolean };
       sync_public_user_from_auth: {
         Args: { p_user_id: string };
         Returns: undefined;
