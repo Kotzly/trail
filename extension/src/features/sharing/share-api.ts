@@ -4,6 +4,8 @@ import { MARKETING_ORIGIN } from "@shared/config/marketing-urls.js";
 import type { NavigationTreeJSON } from "@shared/types/tree.js";
 import { sanitizeTreeForShare } from "./sanitize.js";
 
+export type ShareVisibility = "public" | "restricted";
+
 export type ShareLinkRow = {
   code: string;
   trail_id: string;
@@ -14,6 +16,13 @@ export type ShareLinkRow = {
   created_at: string;
   revoked_at: string | null;
   view_count: number;
+  visibility: ShareVisibility;
+  acl_count: number;
+};
+
+export type ShareAclEntry = {
+  email: string;
+  created_at: string;
 };
 
 export type CreateShareResult = {
@@ -102,6 +111,62 @@ export async function listMyShareLinks(): Promise<ShareLinkRow[]> {
 }
 
 /**
+ * Flip a share between `public` and `restricted`. Owner-only —
+ * `share_not_owner` errors map to a thrown Error here so callers can
+ * toast it.
+ */
+export async function setShareVisibility(
+  code: string,
+  visibility: ShareVisibility,
+): Promise<boolean> {
+  const supabase = getSupabaseClient();
+  if (!supabase) throw new Error("Supabase client not available");
+  const { data, error } = await supabase.rpc("set_share_visibility", {
+    p_code: code,
+    p_visibility: visibility,
+  });
+  if (error) {
+    captureError(error, { kind: "share_set_visibility" });
+    throw new Error(error.message);
+  }
+  return data === true;
+}
+
+/**
+ * Replace the email allowlist for a share. The RPC normalizes
+ * (trim + lowercase + dedup), filters obvious garbage, and caps the
+ * list at 100 entries; returns the accepted count.
+ */
+export async function setShareAcl(code: string, emails: readonly string[]): Promise<number> {
+  const supabase = getSupabaseClient();
+  if (!supabase) throw new Error("Supabase client not available");
+  const { data, error } = await supabase.rpc("set_share_acl", {
+    p_code: code,
+    p_emails: [...emails],
+  });
+  if (error) {
+    captureError(error, { kind: "share_set_acl" });
+    throw new Error(error.message);
+  }
+  return typeof data === "number" ? data : 0;
+}
+
+/**
+ * Enumerate the ACL entries for one of the caller's shares.
+ * Returns an empty array for shares the caller doesn't own.
+ */
+export async function listShareAcl(code: string): Promise<ShareAclEntry[]> {
+  const supabase = getSupabaseClient();
+  if (!supabase) throw new Error("Supabase client not available");
+  const { data, error } = await supabase.rpc("list_share_acl", { p_code: code });
+  if (error) {
+    captureError(error, { kind: "share_list_acl" });
+    throw new Error(error.message);
+  }
+  return (data ?? []) as ShareAclEntry[];
+}
+
+/**
  * Soft-revoke a share. Idempotent. Returns true on first revoke,
  * false if the code was already revoked or never owned by the caller.
  */
@@ -116,29 +181,32 @@ export async function revokeShareLink(code: string): Promise<boolean> {
   return data === true;
 }
 
+export type FetchSharedTrailResult =
+  | { access: "missing" }
+  | { access: "restricted"; authenticated: boolean }
+  | {
+      access: "granted";
+      code: string;
+      label: string;
+      rootUrl: string | null;
+      rootTitle: string | null;
+      nodeCount: number;
+      snapshot: NavigationTreeJSON;
+      createdAt: string;
+      viewCount: number;
+      visibility: ShareVisibility;
+    };
+
 /**
- * Pull a shared trail's snapshot anonymously (no auth required, the
- * RPC is granted to `anon`). Returns null on revoked/missing codes.
+ * Pull a shared trail's snapshot via `get_shared_trail`. Three terminal
+ * shapes:
+ *   * `missing`     — code revoked / not found.
+ *   * `restricted`  — share is private and caller isn't on the ACL.
+ *   * `granted`     — full snapshot returned.
  *
- * Side-effect free: as of migration 021 the RPC no longer bumps
- * `view_count` (the anon UPDATE-per-call was a write-contention DoS
- * vector). Callers that want to record a view should call
- * `bumpSharedTrailViewCount` after the fetch — it is rate-limited
- * server-side and best-effort.
- *
- * Mostly used by the marketing share-viewer page; included here for
- * completeness so callers from the extension can also fetch by code.
+ * Side-effect free: bump_share_view_count is called separately.
  */
-export async function fetchSharedTrail(code: string): Promise<{
-  code: string;
-  label: string;
-  rootUrl: string | null;
-  rootTitle: string | null;
-  nodeCount: number;
-  snapshot: NavigationTreeJSON;
-  createdAt: string;
-  viewCount: number;
-} | null> {
+export async function fetchSharedTrail(code: string): Promise<FetchSharedTrailResult> {
   const supabase = getSupabaseClient();
   if (!supabase) throw new Error("Supabase client not available");
   const { data, error } = await supabase.rpc("get_shared_trail", { p_code: code });
@@ -146,8 +214,15 @@ export async function fetchSharedTrail(code: string): Promise<{
     captureError(error, { kind: "share_get" });
     throw new Error(error.message);
   }
-  if (!data) return null;
-  const row = data as {
+  if (!data) return { access: "missing" };
+  const row = data as Record<string, unknown>;
+  if (row.access === "restricted") {
+    return {
+      access: "restricted",
+      authenticated: Boolean(row.authenticated),
+    };
+  }
+  const granted = row as {
     code: string;
     label: string;
     root_url: string | null;
@@ -156,16 +231,19 @@ export async function fetchSharedTrail(code: string): Promise<{
     snapshot: NavigationTreeJSON;
     created_at: string;
     view_count: number;
+    visibility?: ShareVisibility;
   };
   return {
-    code: row.code,
-    label: row.label,
-    rootUrl: row.root_url,
-    rootTitle: row.root_title,
-    nodeCount: row.node_count,
-    snapshot: row.snapshot,
-    createdAt: row.created_at,
-    viewCount: row.view_count,
+    access: "granted",
+    code: granted.code,
+    label: granted.label,
+    rootUrl: granted.root_url,
+    rootTitle: granted.root_title,
+    nodeCount: granted.node_count,
+    snapshot: granted.snapshot,
+    createdAt: granted.created_at,
+    viewCount: granted.view_count,
+    visibility: granted.visibility ?? "public",
   };
 }
 
