@@ -2,15 +2,30 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { after } from "next/server";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import {
   bumpSharedTrailViewCount,
   fetchSharedTrail,
 } from "@/lib/shared-trail-api";
-import { Button } from "@/app/components/ui/button";
-import { INSTALL_URL } from "@/lib/install-url";
 import { ImportTrailButton } from "./import-button";
 import { SharedTrailTree } from "./shared-trail-tree";
+import { SharedTrailAttribution } from "./shared-trail-attribution";
+import { RestrictedShareGate } from "./restricted-share-gate";
 import type { SharedTrailDetail } from "@/lib/shared-trail-types";
+
+// Code-split the graph: ~80 KB gz of `@xyflow/react` + `d3-hierarchy`
+// only ship on `/s/<code>`, not the marketing landing or legal pages.
+const SharedTrailGraph = dynamic(
+  () =>
+    import("./graph/shared-trail-graph").then((m) => ({
+      default: m.SharedTrailGraph,
+    })),
+  {
+    loading: () => (
+      <div className="h-[640px] w-full animate-pulse rounded-lg border bg-muted/30" />
+    ),
+  },
+);
 
 type PageParams = Promise<{ code: string }>;
 
@@ -43,65 +58,52 @@ export async function generateMetadata({
   };
 }
 
-const SHARE_IMPORT_ENABLED =
-  process.env.NEXT_PUBLIC_SHARE_IMPORT_ENABLED === "true";
-
 export default async function SharedTrailPage({
   params,
 }: {
   params: PageParams;
 }) {
   const { code } = await params;
-  const detail = await fetchSharedTrail(code);
-  if (!detail) notFound();
+  const result = await fetchSharedTrail(code);
+  if (result.access === "missing") notFound();
+  if (result.access === "restricted") {
+    return (
+      <RestrictedShareGate code={code} authenticated={result.authenticated} />
+    );
+  }
   // Record the view AFTER the response is sent so TTFB stays fast.
   // The bump is rate-limited server-side (one bump per code per hour)
   // and swallows its own errors — analytics-grade, not critical path.
   after(() => bumpSharedTrailViewCount(code));
-  return (
-    <SharedTrailView detail={detail} importEnabled={SHARE_IMPORT_ENABLED} />
-  );
+  return <SharedTrailView detail={result.detail} />;
 }
 
-function SharedTrailView({
-  detail,
-  importEnabled,
-}: {
-  detail: SharedTrailDetail;
-  importEnabled: boolean;
-}) {
+function SharedTrailView({ detail }: { detail: SharedTrailDetail }) {
   return (
-    <main className="mx-auto flex min-h-screen max-w-4xl flex-col px-6 py-10">
-      <header className="flex flex-col gap-1 border-b pb-6">
+    <main className="mx-auto flex min-h-screen max-w-6xl flex-col px-6 py-10">
+      <header className="flex flex-col gap-4 border-b pb-6">
         <Link
           href="/"
           className="text-sm text-muted-foreground hover:underline"
         >
           ← Trail
         </Link>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {detail.label}
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          {detail.nodeCount} {detail.nodeCount === 1 ? "node" : "nodes"} ·{" "}
-          {new Date(detail.createdAt).toLocaleDateString(undefined, {
-            year: "numeric",
-            month: "short",
-            day: "numeric",
-          })}
-        </p>
+        <SharedTrailAttribution
+          owner={detail.owner}
+          createdAt={detail.createdAt}
+        />
+        <div className="flex flex-col gap-1">
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {detail.label}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            {detail.nodeCount} {detail.nodeCount === 1 ? "node" : "nodes"}
+          </p>
+        </div>
       </header>
 
       <section className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
-        {importEnabled ? (
-          <ImportTrailButton code={detail.code} />
-        ) : (
-          <Button asChild variant="outline">
-            <a href={INSTALL_URL} target="_blank" rel="noopener noreferrer">
-              Install Trail to import
-            </a>
-          </Button>
-        )}
+        <ImportTrailButton code={detail.code} />
         <p className="text-xs text-muted-foreground">
           Imports a copy into your own Trail. The owner can revoke the link
           anytime; your imported copy is unaffected.
@@ -110,7 +112,17 @@ function SharedTrailView({
 
       <section className="mt-8">
         {detail.snapshot.root ? (
-          <SharedTrailTree root={detail.snapshot.root} />
+          <>
+            <SharedTrailGraph root={detail.snapshot.root} />
+            <noscript>
+              <p className="mt-3 text-xs text-muted-foreground">
+                JavaScript is disabled. Falling back to a flat list view.
+              </p>
+              <div className="mt-2">
+                <SharedTrailTree root={detail.snapshot.root} />
+              </div>
+            </noscript>
+          </>
         ) : (
           <p className="text-sm text-muted-foreground">
             This trail has no nodes.

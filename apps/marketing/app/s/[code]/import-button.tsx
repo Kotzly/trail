@@ -3,52 +3,24 @@
 import { useCallback, useState } from "react";
 import { Button } from "@/app/components/ui/button";
 import { INSTALL_URL } from "@/lib/install-url";
+import { sendBridgeMessage } from "@/lib/bridge/messaging";
+import {
+  WEBSITE_MESSAGE,
+  type ImportSharedTrailReply,
+  type WebsitePingReply,
+} from "@/lib/bridge/protocol";
 
-const BRIDGE_NAMESPACE = "trail-bridge-v1";
-const IMPORT_MESSAGE = "site/import-shared-trail";
-const PING_MESSAGE = "site/ping";
-const REQUEST_KEY = "REQUEST";
-const RESPONSE_KEY = "RESPONSE";
-const TIMEOUT_MS = 3500;
-
-type ImportResult =
-  | { ok: true; trailId: string; label: string; nodeCount: number }
-  | {
-      ok: false;
-      error:
-        | "needs-signin"
-        | "share-unavailable"
-        | "share-self-import"
-        | "share-no-device"
-        | "unknown";
-      message?: string;
-    };
-
-type PingResult = {
-  version: string;
-  authenticated: boolean;
-  capabilities: string[];
-};
-
-type BridgeReply<T> = {
-  type: string;
-  message: T;
-};
+const PING_TIMEOUT_MS = 1500;
+const IMPORT_TIMEOUT_MS = 8000;
 
 /**
- * "Import to my Trail" button on /s/<code>. Uses the existing
- * `trail-bridge-v1` window-postMessage namespace to talk to the
- * extension's content-script bridge — the same namespace already used
- * for `site/ping` and `site/open-panel`. No `externally_connectable`,
- * no hardcoded extension id in the marketing build.
- *
- * Falls back gracefully when:
- *   * The extension isn't installed (no PING reply within timeout).
- *   * The extension is installed but pre-share-import (no
- *     `share_import` capability in PING reply).
- *   * The user is signed-out (extension returns `needs-signin`; UI
- *     copy explains the sidepanel will open and complete the import
- *     after sign-in).
+ * "Import to my Trail" button on /s/<code>. Talks to the extension
+ * content script via the `trail-bridge-v1` window-postMessage protocol
+ * (see `extension/src/content/bridge/`). Both sides use
+ * `@webext-core/messaging`'s window transport so the envelope shape
+ * stays in sync; a previous hand-rolled wrapper sent the wrong `type`
+ * field and silently dropped every reply, which is why "Install Trail"
+ * showed for users who already had the extension.
  */
 export function ImportTrailButton({ code }: { code: string }) {
   const [status, setStatus] = useState<
@@ -64,16 +36,14 @@ export function ImportTrailButton({ code }: { code: string }) {
 
   const handleClick = useCallback(async () => {
     setStatus({ kind: "checking" });
-    const ping = await sendBridgeMessage<PingResult>(PING_MESSAGE);
+    const ping = await pingExtension();
     if (!ping || !ping.capabilities?.includes("share_import")) {
       setStatus({ kind: "no-extension" });
       return;
     }
 
     setStatus({ kind: "importing" });
-    const result = await sendBridgeMessage<ImportResult>(IMPORT_MESSAGE, {
-      code,
-    });
+    const result = await importViaExtension(code);
     if (!result) {
       setStatus({
         kind: "error",
@@ -189,52 +159,51 @@ export function ImportTrailButton({ code }: { code: string }) {
 }
 
 /**
- * Send a `trail-bridge-v1` postMessage and wait for the reply. The
- * `@webext-core/messaging` window protocol wraps messages with a `type`
- * (the namespace) and an inner envelope; the content script listens on
- * `message` events filtered by namespace and replies in kind. Mirror
- * that envelope here without taking a hard dependency on the package.
+ * `sendBridgeMessage` resolves only when the content-script replies —
+ * with no extension installed it never resolves. Both calls below race
+ * the messaging promise against a timeout so the UI can fall through to
+ * the install CTA / error surface.
  */
-async function sendBridgeMessage<T>(
-  messageType: string,
-  payload?: unknown,
-): Promise<T | null> {
-  if (typeof window === "undefined") return null;
-  return new Promise<T | null>((resolve) => {
-    const id = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-    const requestEnvelope = {
-      type: BRIDGE_NAMESPACE,
-      message: {
-        id,
-        type: messageType,
-        data: payload ?? undefined,
-        timestamp: Date.now(),
-      },
-      _direction: REQUEST_KEY,
-    };
-    const timer = setTimeout(() => {
-      window.removeEventListener("message", handler);
-      resolve(null);
-    }, TIMEOUT_MS);
-    function handler(event: MessageEvent) {
-      if (event.source !== window) return;
-      const data = event.data as unknown;
-      if (!isReplyEnvelope(data, id)) return;
-      window.removeEventListener("message", handler);
-      clearTimeout(timer);
-      const reply = (data as BridgeReply<{ data?: T }>)?.message?.data;
-      resolve((reply ?? null) as T | null);
-    }
-    window.addEventListener("message", handler);
-    window.postMessage(requestEnvelope, window.location.origin);
-  });
+function pingExtension(): Promise<WebsitePingReply | null> {
+  return raceWithTimeout(
+    sendBridgeMessage(WEBSITE_MESSAGE.PING),
+    PING_TIMEOUT_MS,
+  );
 }
 
-function isReplyEnvelope(data: unknown, expectedId: string): boolean {
-  if (!data || typeof data !== "object") return false;
-  const obj = data as Record<string, unknown>;
-  if (obj.type !== BRIDGE_NAMESPACE) return false;
-  if (obj._direction !== RESPONSE_KEY) return false;
-  const msg = obj.message as Record<string, unknown> | undefined;
-  return Boolean(msg && msg.id === expectedId);
+function importViaExtension(
+  code: string,
+): Promise<ImportSharedTrailReply | null> {
+  return raceWithTimeout(
+    sendBridgeMessage(WEBSITE_MESSAGE.IMPORT_SHARED_TRAIL, { code }),
+    IMPORT_TIMEOUT_MS,
+  );
+}
+
+function raceWithTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+): Promise<T | null> {
+  return new Promise<T | null>((resolve) => {
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      resolve(null);
+    }, timeoutMs);
+    promise.then(
+      (value) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve(value);
+      },
+      () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve(null);
+      },
+    );
+  });
 }
