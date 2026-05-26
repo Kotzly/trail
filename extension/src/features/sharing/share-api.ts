@@ -1,5 +1,6 @@
 import { getSupabaseClient } from "@shared/lib/supabase.js";
 import { captureError } from "@shared/lib/observability.js";
+import { uuidv7 } from "@shared/lib/uuid.js";
 import { MARKETING_ORIGIN } from "@shared/config/marketing-urls.js";
 import type { NavigationTreeJSON } from "@shared/types/tree.js";
 import { sanitizeTreeForShare } from "./sanitize.js";
@@ -75,9 +76,13 @@ export async function createShareLink(
   const supabase = getSupabaseClient();
   if (!supabase) throw new Error("Supabase client not available");
   const sanitized = sanitizeTreeForShare(tree);
+  // Mint the share code (the /s/<code> capability secret) client-side
+  // via the single v7 mint path; the RPC validates the v7 shape.
+  const code = uuidv7();
   const { data, error } = await supabase.rpc("create_share_link", {
     p_trail_id: trailId,
     p_snapshot: sanitized,
+    p_code: code,
   });
   if (error) {
     captureError(error, { kind: "share_create" });
@@ -282,7 +287,13 @@ export async function importSharedTrail(code: string): Promise<ImportShareResult
   if (!supabase) {
     return { ok: false, error: "unknown", message: "Supabase client not available" };
   }
-  const { data, error } = await supabase.rpc("import_shared_trail", { p_code: code });
+  // Mint the imported trail's id client-side via the single v7 mint
+  // path, so imported trails carry a v7 id like every other trail.
+  const newTrailId = uuidv7();
+  const { data, error } = await supabase.rpc("import_shared_trail", {
+    p_code: code,
+    p_new_trail_id: newTrailId,
+  });
   if (error) {
     captureError(error, { kind: "share_import" });
     return {

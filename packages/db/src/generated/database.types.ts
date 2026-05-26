@@ -797,11 +797,14 @@ export type Database = {
     Functions: {
       bump_share_view_count: { Args: { p_code: string }; Returns: boolean };
       create_share_link: {
-        Args: { p_snapshot: Json; p_trail_id: string };
+        Args: { p_code: string; p_snapshot: Json; p_trail_id: string };
         Returns: Json;
       };
       get_shared_trail: { Args: { p_code: string }; Returns: Json };
-      import_shared_trail: { Args: { p_code: string }; Returns: Json };
+      import_shared_trail: {
+        Args: { p_code: string; p_new_trail_id: string };
+        Returns: Json;
+      };
       insert_wishlist_lead: {
         Args: {
           p_email: string;
