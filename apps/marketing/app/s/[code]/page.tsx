@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { after } from "next/server";
 import Link from "next/link";
-import dynamic from "next/dynamic";
 import {
   bumpSharedTrailViewCount,
   fetchSharedTrail,
@@ -11,21 +10,9 @@ import { ImportTrailButton } from "./import-button";
 import { SharedTrailTree } from "./shared-trail-tree";
 import { SharedTrailAttribution } from "./shared-trail-attribution";
 import { RestrictedShareGate } from "./restricted-share-gate";
+import { GraphClient } from "./graph/graph-client";
+import { isValidShareCode } from "@/lib/share-code";
 import type { SharedTrailDetail } from "@/lib/shared-trail-types";
-
-// Code-split the graph: ~80 KB gz of `@xyflow/react` + `d3-hierarchy`
-// only ship on `/s/<code>`, not the marketing landing or legal pages.
-const SharedTrailGraph = dynamic(
-  () =>
-    import("./graph/shared-trail-graph").then((m) => ({
-      default: m.SharedTrailGraph,
-    })),
-  {
-    loading: () => (
-      <div className="h-[640px] w-full animate-pulse rounded-lg border bg-muted/30" />
-    ),
-  },
-);
 
 type PageParams = Promise<{ code: string }>;
 
@@ -40,10 +27,16 @@ export async function generateMetadata({
   params: PageParams;
 }): Promise<Metadata> {
   const { code } = await params;
+  // Only echo a well-formed v7 code back into the canonical URL; for a
+  // malformed code the page 404s anyway (see below), so don't reflect
+  // arbitrary path input into a meta tag.
+  const canonical = isValidShareCode(code)
+    ? { alternates: { canonical: `https://gettrail.net/s/${code}` } }
+    : {};
   return {
     title: "A trail on Trail",
     description: "Someone shared a browsing trail with you. View it on Trail.",
-    alternates: { canonical: `https://gettrail.net/s/${code}` },
+    ...canonical,
     openGraph: {
       title: "A trail on Trail",
       description: "Someone shared a browsing trail with you.",
@@ -64,6 +57,10 @@ export default async function SharedTrailPage({
   params: PageParams;
 }) {
   const { code } = await params;
+  // Reject anything that isn't a well-formed UUID v7 before it touches the
+  // DB or gets used in the private-share OAuth redirect. Every live share
+  // code is a v7 (migration 029); old base64 codes 404 by design.
+  if (!isValidShareCode(code)) notFound();
   const result = await fetchSharedTrail(code);
   if (result.access === "missing") notFound();
   if (result.access === "restricted") {
@@ -113,7 +110,7 @@ function SharedTrailView({ detail }: { detail: SharedTrailDetail }) {
       <section className="mt-8">
         {detail.snapshot.root ? (
           <>
-            <SharedTrailGraph
+            <GraphClient
               root={detail.snapshot.root}
               currentNodeId={detail.snapshot.currentNodeId}
             />

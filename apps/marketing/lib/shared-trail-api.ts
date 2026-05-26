@@ -1,5 +1,6 @@
 import "server-only";
 import { createSupabaseServerClient } from "./supabase/server";
+import { isValidShareCode } from "./share-code";
 import type {
   SharedTrailResult,
   SharedTrailSnapshot,
@@ -41,6 +42,10 @@ type RestrictedRow = {
 export async function fetchSharedTrail(
   code: string,
 ): Promise<SharedTrailResult> {
+  // Defensive boundary: only well-formed v7 codes can name a live share, so
+  // reject anything else before spending a DB round-trip. Collapses into the
+  // same "missing" surface as a revoked/nonexistent code.
+  if (!isValidShareCode(code)) return { access: "missing" };
   const supabase = await createSupabaseServerClient();
   // `/s/<code>` is excluded from the next-intl middleware (locale-
   // agnostic short URLs), so the usual @supabase/ssr cookie-refresh

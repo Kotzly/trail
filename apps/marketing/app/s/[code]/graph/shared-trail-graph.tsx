@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -13,6 +13,7 @@ import {
   type Edge,
   type Node,
   type NodeProps,
+  type ReactFlowInstance,
   type ReactFlowState,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
@@ -31,8 +32,18 @@ import {
 
 const proOptions = { hideAttribution: true } as const;
 
-const MIN_ZOOM = 0.1;
+const MIN_ZOOM = 0.05;
 const MAX_ZOOM = 1.5;
+
+// Trails at or below this fit on screen cheaply, so we frame the whole tree
+// (fitView). Above it, fitting everything means thousands of nodes painted
+// at once — instead we open at a readable zoom centered on the current/root
+// node (like the extension's camera) and rely on `onlyRenderVisibleElements`
+// to only mount what's in the viewport; the rest mount as you pan. Nothing
+// is hidden — every rendered node is full-detail; you just see a frame at a
+// time, not the whole tree crushed to a smear.
+const FIT_ALL_LIMIT = 400;
+const INITIAL_ZOOM = 0.6;
 
 // LOD thresholds, ported from extension/src/features/graph/lod.ts. The
 // selectors return a bucket / boolean so subscribers re-render only when
@@ -59,12 +70,10 @@ const defaultEdgeOptions = {
  * Read-only graph view for `/s/<code>`. Renders the extension's exact node
  * card (see extension/src/features/graph/components/TrailNode.tsx) and its
  * Reingold-Tilford tree layout, minus every interaction surface — no drag,
- * rename, selection, or camera follow. The anti-lag techniques the
- * extension proved out on large trees are ported wholesale: per-node CSS
- * containment, a `share-graph--panning` pointer-events kill so sliding
- * nodes don't each toggle `:hover`, CSS-driven LOD, and an isolated
- * background subscriber (see share-graph.css). Imports happen via the
- * extension-bridge button above the canvas.
+ * rename, or selection. Performance comes from rendering only what's in the
+ * frame (`onlyRenderVisibleElements`) and opening on a readable region
+ * rather than the whole tree, exactly like the extension's panel — so a
+ * 2000-node trail mounts a few dozen full-detail nodes, not all of them.
  */
 export function SharedTrailGraph({
   root,
@@ -91,13 +100,36 @@ function SharedTrailGraphInner({
   currentNodeId: string | null;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const { nodes, edges } = useMemo(
+  const { nodes, edges, focus } = useMemo(
     () => buildGraph(root, currentNodeId),
     [root, currentNodeId],
   );
   const nodeTypes = useMemo(() => ({ trail: TrailGraphNode }), []);
 
   useCmdWheelZoom(containerRef);
+
+  // Initial camera: small trails frame the whole tree; large trails open on
+  // a readable region centered on the current/root node so culling only
+  // mounts the visible frame.
+  const handleInit = useCallback(
+    (instance: ReactFlowInstance<Node<TrailNodeData>, Edge>) => {
+      if (nodes.length <= FIT_ALL_LIMIT) {
+        void instance.fitView({ padding: 0.2, maxZoom: 1, duration: 0 });
+      } else if (focus) {
+        // Bias the focus node toward the top of the canvas (≈22% down)
+        // rather than dead-center, so the tree fills the frame downward
+        // instead of leaving the upper half empty.
+        const h = containerRef.current?.getBoundingClientRect().height ?? 640;
+        instance.setCenter(focus.x, focus.y + (h * 0.28) / INITIAL_ZOOM, {
+          zoom: INITIAL_ZOOM,
+          duration: 0,
+        });
+      } else {
+        void instance.fitView({ maxZoom: INITIAL_ZOOM, duration: 0 });
+      }
+    },
+    [nodes.length, focus],
+  );
 
   // Panning kill — see share-graph.css. xyflow debounces the move-end by
   // ~150ms internally, so flipping straight off on onMoveEnd keeps clicks
@@ -122,9 +154,12 @@ function SharedTrailGraphInner({
         edges={edges}
         nodeTypes={nodeTypes}
         proOptions={proOptions}
-        fitView
-        fitViewOptions={{ padding: 0.2, maxZoom: 1.1 }}
         defaultEdgeOptions={defaultEdgeOptions}
+        onInit={handleInit}
+        // Only mount nodes/edges intersecting the viewport. With the camera
+        // opening on a region (above), a huge trail mounts a few dozen nodes
+        // instead of thousands — the fix for the prior fit-everything freeze.
+        onlyRenderVisibleElements
         nodesDraggable={false}
         nodesConnectable={false}
         nodesFocusable={false}
@@ -242,14 +277,20 @@ type TrailNodeData = {
 const hiddenHandle = { opacity: 0, width: 6, height: 6 } as const;
 
 /**
- * Read-only mirror of the extension's TrailNode. Deliberately does NOT
- * fetch favicons: shared snapshots strip favicon URLs at mint time (a
- * hotlinked favicon is a tracker-pixel vector), so we render the same
- * neutral Globe the extension shows for favicon-less nodes — zero network,
- * no domain leak. The current node (at snapshot time) carries the primary
- * ring exactly like the live graph.
+ * Read-only mirror of the extension's TrailNode — same shadcn Card, favicon
+ * slot, title, URL and pin badge. Only nodes in the viewport are mounted
+ * (see `onlyRenderVisibleElements`), so the full card is cheap at any trail
+ * size.
+ *
+ * Deliberately does NOT fetch favicons: shared snapshots strip favicon URLs
+ * at mint time (a hotlinked favicon is a tracker-pixel vector), so we render
+ * the same neutral Globe the extension shows for favicon-less nodes — zero
+ * network, no domain leak. The current node (at snapshot time) carries the
+ * primary ring exactly like the live graph.
  */
-function TrailGraphNode({ data }: NodeProps<Node<TrailNodeData>>) {
+const TrailGraphNode = memo(function TrailGraphNode({
+  data,
+}: NodeProps<Node<TrailNodeData>>) {
   return (
     <>
       {!data.isRoot ? (
@@ -326,19 +367,32 @@ function TrailGraphNode({ data }: NodeProps<Node<TrailNodeData>>) {
       ) : null}
     </>
   );
-}
+});
 
 function buildGraph(
   root: SharedTrailNode,
   currentNodeId: string | null,
-): { nodes: Node<TrailNodeData>[]; edges: Edge[] } {
+): {
+  nodes: Node<TrailNodeData>[];
+  edges: Edge[];
+  focus: { x: number; y: number } | null;
+} {
   const positions = computeTreePositions(root);
   const { flat } = flattenForGraph(root);
   const nodes: Node<TrailNodeData>[] = [];
   const edges: Edge[] = [];
+  let rootCenter: { x: number; y: number } | null = null;
+  let currentCenter: { x: number; y: number } | null = null;
   for (const { node, parentId } of flat) {
     const position = positions.get(node.id) ?? { x: 0, y: 0 };
     const title = node.data.title || displayUrlFor(node.data.url) || "Untitled";
+    const isCurrent = currentNodeId !== null && node.id === currentNodeId;
+    const center = {
+      x: position.x + NODE_WIDTH / 2,
+      y: position.y + NODE_HEIGHT / 2,
+    };
+    if (parentId === null) rootCenter = center;
+    if (isCurrent) currentCenter = center;
     nodes.push({
       id: node.id,
       type: "trail",
@@ -350,10 +404,14 @@ function buildGraph(
         pinned: Boolean(node.data.pinned),
         isLeaf: node.children.length === 0,
         isRoot: parentId === null,
-        isCurrent: currentNodeId !== null && node.id === currentNodeId,
+        isCurrent,
       },
+      // Explicit measured size lets `onlyRenderVisibleElements` decide
+      // visibility without measuring each node's DOM box — that measurement
+      // was the dominant forced-reflow cost on large trails.
       width: NODE_WIDTH,
       height: NODE_HEIGHT,
+      measured: { width: NODE_WIDTH, height: NODE_HEIGHT },
       draggable: false,
       selectable: false,
     });
@@ -365,7 +423,7 @@ function buildGraph(
       });
     }
   }
-  return { nodes, edges };
+  return { nodes, edges, focus: currentCenter ?? rootCenter };
 }
 
 /**
