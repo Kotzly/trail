@@ -167,13 +167,23 @@ function SharedTrailGraphInner({
         elementsSelectable={false}
         onMoveStart={handleMoveStart}
         onMoveEnd={handleMoveEnd}
-        // Embedded in a scrollable page: drag to pan, Cmd/Ctrl-scroll or
-        // pinch to zoom (useCmdWheelZoom). A bare wheel scrolls the page,
-        // never hijacked into the canvas — matches the help text below.
+        // Gesture model: two-finger trackpad swipe pans (panOnScroll), and
+        // click-drag pans for mouse users (safe — selection is off, so drag
+        // has nothing else to do). Zoom has two complementary paths:
+        // useCmdWheelZoom owns trackpad pinch + Cmd/Ctrl-scroll — it captures
+        // the ctrlKey wheel on the container and stopPropagation()s it, so
+        // xyflow's d3-zoom (on the descendant pane) never sees it and can't
+        // double-zoom — while zoomOnPinch handles real touchscreen pinch
+        // (touch events, which the wheel-only useCmdWheelZoom can't catch).
+        // The extension keeps zoomOnPinch off because it's desktop-only; this
+        // is a public page that may open on a touch device. Two-finger scroll
+        // over the canvas pans it rather than scrolling the page — the canvas
+        // is this page's primary surface.
         panOnDrag
-        panOnScroll={false}
+        panOnScroll
+        panOnScrollSpeed={1}
         zoomOnScroll={false}
-        zoomOnPinch={false}
+        zoomOnPinch
         zoomOnDoubleClick={false}
         minZoom={MIN_ZOOM}
         maxZoom={MAX_ZOOM}
@@ -182,7 +192,7 @@ function SharedTrailGraphInner({
         <LodSync targetRef={containerRef} />
       </ReactFlow>
       <p className="pointer-events-none absolute right-3 bottom-2 text-[10px] tracking-wide text-muted-foreground uppercase">
-        Drag to pan · pinch / Ctrl-scroll to zoom
+        Swipe or drag to pan · pinch / Ctrl-scroll to zoom
       </p>
     </div>
   );

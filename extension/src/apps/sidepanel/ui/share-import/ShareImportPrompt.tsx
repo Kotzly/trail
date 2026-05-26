@@ -23,7 +23,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@ui/components/ui/dialog";
-import { useStore } from "../state/store.js";
+import { useAuthState } from "@shared/auth/use-auth-state.js";
 import { confirmShareImport } from "../../api/sharing.js";
 import { showUiToast } from "../notifications/sonner-adapter.js";
 import { captureEvent } from "@shared/lib/observability.js";
@@ -46,7 +46,13 @@ export function ShareImportPrompt() {
   const [pending, setPending] = useState<PendingShareImport | null>(null);
   const [phase, setPhase] = useState<"confirm" | "importing" | "error">("confirm");
   const [errorMessage, setErrorMessage] = useState("");
-  const signedIn = useStore((s) => s.authState.status === "signed-in");
+  // Pull auth from the in-process orchestrator, NOT the sidepanel store's
+  // `authState`. That store field is push-only — hydrated by a one-shot
+  // AUTH_STATE broadcast the panel usually misses on a warm service worker,
+  // so it stays stuck at "unknown" for a signed-in user and this prompt would
+  // wrongly show "Sign in". useAuthState() runs initAuth() itself, the same
+  // source every other sharing surface (TreeDropdown, ShareDialog) uses.
+  const signedIn = useAuthState().status === "signed-in";
 
   useEffect(() => {
     let cancelled = false;
