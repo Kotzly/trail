@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@ui/components/ui/button";
 import {
   Dialog,
@@ -10,7 +10,6 @@ import {
 } from "@ui/components/ui/dialog";
 import { Input } from "@ui/components/ui/input";
 import { Switch } from "@ui/components/ui/switch";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@ui/components/ui/tooltip";
 import { Spinner } from "@ui/components/ui/spinner";
 import { toast } from "sonner";
 import { Icons } from "@ui/components/icons";
@@ -20,8 +19,12 @@ import {
   buildShareUrl,
   createShareLink,
   listMyShareLinks,
+  listShareAcl,
   revokeShareLink,
+  setShareAcl,
+  setShareVisibility,
   type ShareLinkRow,
+  type ShareVisibility,
 } from "../share-api.js";
 
 type ShareDialogProps = {
@@ -42,24 +45,17 @@ type DialogStatus =
   | { kind: "ready"; share: ShareLinkRow | null }
   | { kind: "error"; message: string };
 
+const MAX_ACL_ENTRIES = 100;
+
 /**
  * Map an `ensureTreePushed` outcome to a user-facing error message.
  * Returns null for outcomes the caller should treat as "proceed".
- *
- * The dialog gates the call on `signedIn`, so when `"skipped"` reaches
- * us the user IS signed in — it actually means the active tree is
- * empty or a conflict merge is in flight (see `doPushActive` /
- * `doPushStored` for the underlying branches). Don't claim "sign in"
- * here; surface a truthful "couldn't prepare" message instead.
  */
 function describePushFailure(outcome: string): string | null {
   switch (outcome) {
     case "ok":
       return null;
     case "skipped":
-      // Empty trail (no root) or merge in flight. The dialog already
-      // gates on `signedIn`, so the auth-skipped branch in
-      // `doPushActive` is unreachable here.
       return "This trail can't be shared yet — add at least one page, or wait for an ongoing sync to finish.";
     case "offline":
       return "You're offline. Reconnect and try again.";
@@ -73,18 +69,15 @@ function describePushFailure(outcome: string): string | null {
 }
 
 /**
- * Share dialog for the trail-link feature. Shows the toggle "Available
- * to anyone with your link" (active), a disabled "Only select users
- * (Coming soon)" affordance, and — when sharing is on — the URL with a
- * copy button plus a "Stop sharing" action that explicitly tells the
- * user "people who already imported keep their copy".
+ * Share dialog for the trail-link feature. Toggles:
+ *   * Master "Available with link" switch — creates / revokes the share.
+ *   * "Only invited emails" switch — flips visibility between public
+ *     and restricted, revealing an email allowlist editor.
  *
- * Source of truth for the toggle: the existence of a non-revoked row
- * in `shared_trail_links` for this trail. The dialog reloads the
- * server state on open so multi-device users see a consistent picture.
- *
- * Surface-agnostic: talks to `treeService` directly so both the sidepanel
- * and the Settings → Trees page can mount the same component.
+ * Source of truth: existence + visibility + ACL of the row in
+ * `shared_trail_links` for this trail. Reloads on open so multi-device
+ * users see a consistent picture. ACL writes happen via
+ * `set_share_acl(code, emails[])` which atomically replaces the list.
  */
 export function ShareDialog({
   open,
@@ -99,9 +92,13 @@ export function ShareDialog({
   const [busy, setBusy] = useState(false);
   const [confirmRevoke, setConfirmRevoke] = useState(false);
 
-  // Reload share state every time the dialog opens for this trail.
-  // Defers the RPC until the user is known to be signed in — calling
-  // list_my_share_links as `anon` fails with "permission denied".
+  // ACL editing state — kept separate from `status.share` because the
+  // user can edit the textarea without immediately committing.
+  const [aclEntries, setAclEntries] = useState<string[]>([]);
+  const [aclDraft, setAclDraft] = useState("");
+  const [aclDirty, setAclDirty] = useState(false);
+  const [aclSaving, setAclSaving] = useState(false);
+
   useEffect(() => {
     if (!open) return;
     if (!signedIn) {
@@ -113,6 +110,9 @@ export function ShareDialog({
     }
     setStatus({ kind: "loading" });
     setConfirmRevoke(false);
+    setAclEntries([]);
+    setAclDraft("");
+    setAclDirty(false);
     let cancelled = false;
     (async () => {
       try {
@@ -120,6 +120,13 @@ export function ShareDialog({
         if (cancelled) return;
         const active = rows.find((r) => r.trail_id === treeId && r.revoked_at === null) ?? null;
         setStatus({ kind: "ready", share: active });
+        if (active && active.visibility === "restricted") {
+          const acl = await listShareAcl(active.code);
+          if (cancelled) return;
+          const emails = acl.map((e) => e.email);
+          setAclEntries(emails);
+          setAclDraft(emails.join("\n"));
+        }
       } catch (err) {
         if (cancelled) return;
         setStatus({
@@ -136,10 +143,6 @@ export function ShareDialog({
   const handleEnableShare = useCallback(async () => {
     setBusy(true);
     try {
-      // Ensure the trail row exists server-side before minting the
-      // share. Without this, brand-new local trails fail the RPC's
-      // owner check with `share_create_not_owner` ("tree doesn't
-      // exist" from the caller's perspective).
       const pushOutcome = await treeService.ensureTreePushed({ treeId });
       const pushError = describePushFailure(pushOutcome);
       if (pushError) {
@@ -158,6 +161,8 @@ export function ShareDialog({
         created_at: result.createdAt,
         revoked_at: null,
         view_count: 0,
+        visibility: "public",
+        acl_count: 0,
       };
       setStatus({ kind: "ready", share: row });
       onSharesChanged?.();
@@ -175,6 +180,9 @@ export function ShareDialog({
       try {
         await revokeShareLink(code);
         setStatus({ kind: "ready", share: null });
+        setAclEntries([]);
+        setAclDraft("");
+        setAclDirty(false);
         setConfirmRevoke(false);
         onSharesChanged?.();
         toast.success("Share link revoked");
@@ -209,14 +217,69 @@ export function ShareDialog({
     }
   }, []);
 
+  const handleVisibilityToggle = useCallback(
+    async (restricted: boolean) => {
+      if (status.kind !== "ready" || !status.share || busy) return;
+      const next: ShareVisibility = restricted ? "restricted" : "public";
+      const code = status.share.code;
+      setBusy(true);
+      try {
+        await setShareVisibility(code, next);
+        setStatus({
+          kind: "ready",
+          share: { ...status.share, visibility: next },
+        });
+        if (next === "public") {
+          // Server keeps the ACL rows so flipping back doesn't lose them,
+          // but they're inactive while public.
+          toast.success("Now visible to anyone with the link");
+        } else {
+          toast.success("Now visible only to invited emails");
+        }
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Failed to change visibility");
+      } finally {
+        setBusy(false);
+      }
+    },
+    [busy, status],
+  );
+
+  const handleAclSave = useCallback(async () => {
+    if (status.kind !== "ready" || !status.share) return;
+    const parsed = parseEmails(aclDraft);
+    if (parsed.length > MAX_ACL_ENTRIES) {
+      toast.error(`At most ${MAX_ACL_ENTRIES} emails per share.`);
+      return;
+    }
+    setAclSaving(true);
+    try {
+      const accepted = await setShareAcl(status.share.code, parsed);
+      setAclEntries(parsed);
+      setAclDraft(parsed.join("\n"));
+      setAclDirty(false);
+      setStatus({
+        kind: "ready",
+        share: { ...status.share, acl_count: accepted },
+      });
+      toast.success(`Allowlist updated · ${accepted} ${accepted === 1 ? "email" : "emails"}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update allowlist");
+    } finally {
+      setAclSaving(false);
+    }
+  }, [status, aclDraft]);
+
   const sharing = status.kind === "ready" && status.share !== null;
+  const restricted = sharing && status.share?.visibility === "restricted";
+  const aclEntryCount = useMemo(() => parseEmails(aclDraft).length, [aclDraft]);
 
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Share "{treeLabel}"</DialogTitle>
+            <DialogTitle>Share &ldquo;{treeLabel}&rdquo;</DialogTitle>
             <DialogDescription>
               Create a public link to this trail. The shared snapshot is frozen at the moment you
               turn sharing on.
@@ -234,10 +297,12 @@ export function ShareDialog({
               <div className="flex items-center justify-between gap-3">
                 <div className="flex-1">
                   <label htmlFor="share-public-toggle" className="block text-sm font-medium">
-                    Available to anyone with your link
+                    Available with link
                   </label>
                   <p className="text-muted-foreground text-xs">
-                    Anyone with the URL can view a read-only copy of this trail.
+                    {restricted
+                      ? "Only invited emails can view this trail."
+                      : "Anyone with the URL can view a read-only copy of this trail."}
                   </p>
                 </div>
                 <Switch
@@ -270,24 +335,73 @@ export function ShareDialog({
                   <p className="text-muted-foreground text-[11px]">
                     {status.share.view_count} {status.share.view_count === 1 ? "view" : "views"} ·{" "}
                     {status.share.node_count} {status.share.node_count === 1 ? "node" : "nodes"}
+                    {restricted ? (
+                      <>
+                        {" · "}
+                        {status.share.acl_count}{" "}
+                        {status.share.acl_count === 1 ? "invitee" : "invitees"}
+                      </>
+                    ) : null}
                   </p>
                 </div>
               ) : null}
 
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className="cursor-not-allowed opacity-50">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">Only select users</p>
-                        <p className="text-muted-foreground text-xs">Share with specific emails.</p>
-                      </div>
-                      <Switch checked={false} disabled />
-                    </div>
+              {sharing ? (
+                <div className="flex items-center justify-between gap-3 border-t pt-4">
+                  <div className="flex-1">
+                    <label htmlFor="share-restricted-toggle" className="block text-sm font-medium">
+                      Only invited emails
+                    </label>
+                    <p className="text-muted-foreground text-xs">
+                      Viewers sign in with their email; only addresses you add below can open the
+                      trail.
+                    </p>
                   </div>
-                </TooltipTrigger>
-                <TooltipContent>Coming soon</TooltipContent>
-              </Tooltip>
+                  <Switch
+                    id="share-restricted-toggle"
+                    checked={Boolean(restricted)}
+                    disabled={busy}
+                    onCheckedChange={(next) => void handleVisibilityToggle(next)}
+                  />
+                </div>
+              ) : null}
+
+              {sharing && restricted ? (
+                <div className="space-y-2">
+                  <label htmlFor="share-acl-emails" className="block text-sm font-medium">
+                    Allowlist
+                  </label>
+                  <textarea
+                    id="share-acl-emails"
+                    className="border-input bg-background text-foreground placeholder:text-muted-foreground focus-visible:ring-ring/50 flex min-h-[96px] w-full rounded-md border px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-[3px]"
+                    placeholder={"alice@example.com\nbob@example.com"}
+                    value={aclDraft}
+                    onChange={(e) => {
+                      setAclDraft(e.target.value);
+                      setAclDirty(true);
+                    }}
+                    disabled={aclSaving}
+                  />
+                  <div className="flex items-center justify-between">
+                    <p className="text-muted-foreground text-xs">
+                      {aclEntryCount}/{MAX_ACL_ENTRIES} emails · one per line
+                    </p>
+                    <Button
+                      size="sm"
+                      type="button"
+                      onClick={() => void handleAclSave()}
+                      disabled={aclSaving || !aclDirty}
+                    >
+                      {aclSaving ? "Saving..." : "Save allowlist"}
+                    </Button>
+                  </div>
+                  {aclEntries.length === 0 ? (
+                    <p className="text-muted-foreground bg-muted/40 rounded-md border px-3 py-2 text-xs">
+                      No one can view this trail yet. Add at least one email and save.
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           )}
 
@@ -334,4 +448,18 @@ export function ShareDialog({
       </Dialog>
     </>
   );
+}
+
+/**
+ * Normalize a free-form textarea into a deduped, lowercased,
+ * @-containing list. Mirrors the server-side filter in `set_share_acl`
+ * so the count we show matches what will actually persist.
+ */
+function parseEmails(raw: string): string[] {
+  const out = new Set<string>();
+  for (const line of raw.split(/[\s,;]+/)) {
+    const t = line.trim().toLowerCase();
+    if (t && t.includes("@") && !t.startsWith("@")) out.add(t);
+  }
+  return Array.from(out).sort();
 }

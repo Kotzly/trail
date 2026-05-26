@@ -463,6 +463,32 @@ export type Database = {
           },
         ];
       };
+      shared_trail_acl: {
+        Row: {
+          code: string;
+          created_at: string;
+          email: string;
+        };
+        Insert: {
+          code: string;
+          created_at?: string;
+          email: string;
+        };
+        Update: {
+          code?: string;
+          created_at?: string;
+          email?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "shared_trail_acl_code_fkey";
+            columns: ["code"];
+            isOneToOne: false;
+            referencedRelation: "shared_trail_links";
+            referencedColumns: ["code"];
+          },
+        ];
+      };
       shared_trail_links: {
         Row: {
           code: string;
@@ -477,6 +503,7 @@ export type Database = {
           snapshot_version: number;
           trail_id: string;
           view_count: number;
+          visibility: string;
         };
         Insert: {
           code: string;
@@ -491,6 +518,7 @@ export type Database = {
           snapshot_version?: number;
           trail_id: string;
           view_count?: number;
+          visibility?: string;
         };
         Update: {
           code?: string;
@@ -505,6 +533,7 @@ export type Database = {
           snapshot_version?: number;
           trail_id?: string;
           view_count?: number;
+          visibility?: string;
         };
         Relationships: [
           {
@@ -788,6 +817,7 @@ export type Database = {
       list_my_share_links: {
         Args: never;
         Returns: {
+          acl_count: number;
           code: string;
           created_at: string;
           label: string;
@@ -797,10 +827,26 @@ export type Database = {
           root_url: string;
           trail_id: string;
           view_count: number;
+          visibility: string;
+        }[];
+      };
+      list_share_acl: {
+        Args: { p_code: string };
+        Returns: {
+          created_at: string;
+          email: string;
         }[];
       };
       request_account_deletion: { Args: never; Returns: string };
       revoke_share_link: { Args: { p_code: string }; Returns: boolean };
+      set_share_acl: {
+        Args: { p_code: string; p_emails: string[] };
+        Returns: number;
+      };
+      set_share_visibility: {
+        Args: { p_code: string; p_visibility: string };
+        Returns: boolean;
+      };
       sync_public_user_from_auth: {
         Args: { p_user_id: string };
         Returns: undefined;
