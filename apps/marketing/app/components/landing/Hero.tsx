@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import {
   motion,
   useMotionValueEvent,
@@ -25,35 +31,61 @@ import { LandingHeroStatic } from "./HeroStatic";
 // get just the poster.
 const MOBILE_QUERY = "(max-width: 768px), (hover: none) and (pointer: coarse)";
 
+type HeroMode = "cinematic" | "static";
+
+// Pick cinematic (desktop, motion-OK) vs static (mobile / reduced-motion).
+// Modeled as an external-store read via useSyncExternalStore rather than a
+// setState-in-effect: getServerSnapshot returns "static", so SSR and the
+// first hydration render both emit the static hero (identical DOM, no
+// hydration mismatch), then the client re-reads the live snapshot and
+// upgrades to cinematic on capable desktops. This is the pattern the
+// react-hooks/set-state-in-effect rule points to for external systems.
+function subscribeHeroMode(onStoreChange: () => void): () => void {
+  if (
+    typeof window === "undefined" ||
+    typeof window.matchMedia !== "function"
+  ) {
+    return () => {};
+  }
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const mobile = window.matchMedia(MOBILE_QUERY);
+  reduce.addEventListener("change", onStoreChange);
+  mobile.addEventListener("change", onStoreChange);
+  return () => {
+    reduce.removeEventListener("change", onStoreChange);
+    mobile.removeEventListener("change", onStoreChange);
+  };
+}
+
+function getHeroModeSnapshot(): HeroMode {
+  // No matchMedia (ancient/edge runtimes): keep the prior default of cinematic.
+  if (
+    typeof window === "undefined" ||
+    typeof window.matchMedia !== "function"
+  ) {
+    return "cinematic";
+  }
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const mobile = window.matchMedia(MOBILE_QUERY).matches;
+  return reduce || mobile ? "static" : "cinematic";
+}
+
+// SSR + first hydration render always resolve to the static hero.
+function getHeroModeServerSnapshot(): HeroMode {
+  return "static";
+}
+
 export function LandingHero() {
-  // null = SSR / before mount. Decide between cinematic (desktop wheel
-  // scroll handles scroll-driven video well) and the static one-shot
-  // (everything else).
-  const [mode, setMode] = useState<"cinematic" | "static" | null>(null);
+  const mode = useSyncExternalStore(
+    subscribeHeroMode,
+    getHeroModeSnapshot,
+    getHeroModeServerSnapshot,
+  );
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (typeof window.matchMedia !== "function") {
-      setMode("cinematic");
-      return;
-    }
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const mobile = window.matchMedia(MOBILE_QUERY);
-    const update = () => {
-      setMode(reduce.matches || mobile.matches ? "static" : "cinematic");
-    };
-    update();
-    reduce.addEventListener("change", update);
-    mobile.addEventListener("change", update);
-    return () => {
-      reduce.removeEventListener("change", update);
-      mobile.removeEventListener("change", update);
-    };
-  }, []);
-
-  // First paint (SSR + before-mount): render the static hero. Same DOM
-  // shape as its mounted form — no hydration mismatch, no layout jump.
-  if (mode === null || mode === "static") return <LandingHeroStatic />;
+  // First paint (SSR + hydration) is the static hero — same DOM shape as
+  // its mounted form, no hydration mismatch. The client upgrades to
+  // cinematic after hydration on capable desktops.
+  if (mode === "static") return <LandingHeroStatic />;
   return <LandingHeroCinematic />;
 }
 

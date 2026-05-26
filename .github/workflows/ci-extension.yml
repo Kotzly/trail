@@ -38,6 +38,12 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
+      # Generate WXT's .wxt/types (incl. the `#i18n` virtual module from
+      # @wxt-dev/i18n) so `tsc` can resolve them. wxt build runs this
+      # internally, but the standalone typecheck step does not.
+      - name: Prepare (WXT types)
+        run: pnpm exec wxt prepare
+
       - name: Lint
         run: pnpm lint
 
