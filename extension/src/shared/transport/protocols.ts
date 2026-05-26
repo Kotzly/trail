@@ -25,25 +25,21 @@ export const EXTENSION_MESSAGE = {
 
 export type ImportSharedTrailFromSiteData = {
   code: string;
+  /** Optional display hints forwarded to the sidepanel import prompt. */
+  label?: string;
+  nodeCount?: number;
 };
 
+/**
+ * The bridge no longer imports inline — it queues the code and opens the
+ * sidepanel, where the user confirms. So the reply only reports whether
+ * the request was accepted (queued + panel opened) or rejected. The real
+ * import outcome (success, self-import, unavailable…) surfaces in the
+ * sidepanel prompt, which has the user's identity.
+ */
 export type ImportSharedTrailFromSiteReply =
-  | {
-      ok: true;
-      trailId: string;
-      label: string;
-      nodeCount: number;
-    }
-  | {
-      ok: false;
-      error:
-        | "needs-signin"
-        | "share-unavailable"
-        | "share-self-import"
-        | "share-no-device"
-        | "unknown";
-      message?: string;
-    };
+  | { ok: true }
+  | { ok: false; error: "unknown"; message?: string };
 
 export type ContentBridgeErrorEvent = {
   message: string;
@@ -122,29 +118,21 @@ export type WebsitePingReply = {
 
 export type ImportSharedTrailRequest = {
   code: string;
+  /** Optional display hints so the sidepanel prompt can name the trail. */
+  label?: string;
+  nodeCount?: number;
 };
 
+/**
+ * Reply to a `site/import-shared-trail`. The extension queues the code and
+ * opens the sidepanel for an explicit confirmation rather than importing
+ * inline, so the page only learns whether the request was accepted. `ok:
+ * true` → "we opened the extension, confirm there." The import result
+ * itself is shown in the sidepanel.
+ */
 export type ImportSharedTrailReply =
-  | {
-      ok: true;
-      trailId: string;
-      label: string;
-      nodeCount: number;
-    }
-  | {
-      ok: false;
-      /**
-       * Stable error code for the marketing page to switch on. UI copy
-       * lives in the page, not the extension.
-       */
-      error:
-        | "needs-signin"
-        | "share-unavailable"
-        | "share-self-import"
-        | "share-no-device"
-        | "unknown";
-      message?: string;
-    };
+  | { ok: true }
+  | { ok: false; error: "unknown"; message?: string };
 
 export interface WebsiteProtocolMap {
   [WEBSITE_MESSAGE.PING](): WebsitePingReply;

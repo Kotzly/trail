@@ -23,8 +23,29 @@
   --color-ember-subtle: var(--ember-subtle);
   --color-ember-focus: var(--ember-focus);
 
-  --color-primary: var(--text-primary);
-  --color-primary-foreground: var(--background);
+  /* shadcn token surface — mapped onto the ember palette (raw values in
+     :root below) so every shadcn primitive (Card, Badge, Button, Input,
+     Avatar…) renders on-brand. Without these, Tailwind v4 never emits
+     `bg-card` / `text-muted-foreground` / `ring-ring` etc. and shadcn UI
+     renders unstyled — which is exactly why the /s/<code> graph looked
+     flat. */
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -60,6 +81,29 @@
   --ember-glow: rgba(248, 211, 100, 0.18);
   --ember-subtle: rgba(248, 211, 100, 0.08);
   --ember-focus: rgba(248, 211, 100, 0.5);
+
+  /* shadcn semantic tokens, all derived from the ember palette so the
+     standard primitives match the editorial brand. `--border` points at
+     `--border-subtle` — the same source as the `* { @apply
+     border-border-subtle }` base rule below — so wiring shadcn changes
+     nothing on the landing. */
+  --primary: var(--text-primary);
+  --primary-foreground: var(--background);
+  --card: var(--surface);
+  --card-foreground: var(--text-primary);
+  --popover: var(--surface);
+  --popover-foreground: var(--text-primary);
+  --muted: var(--elevated);
+  --muted-foreground: var(--text-tertiary);
+  --accent: var(--elevated);
+  --accent-foreground: var(--text-primary);
+  --secondary: var(--elevated);
+  --secondary-foreground: var(--text-primary);
+  --destructive: var(--ember-deep);
+  --destructive-foreground: var(--text-primary);
+  --border: var(--border-subtle);
+  --input: var(--border-strong);
+  --ring: var(--ember-focus);
 
   /* Aliases so existing landing/* code paths keep working unchanged. */
   --landing-bg: var(--background);

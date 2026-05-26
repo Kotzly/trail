@@ -1,0 +1,82 @@
+/*
+ * Performance + LOD rules for the read-only shared-trail graph, ported
+ * from extension/src/features/graph/pane.css. These target ReactFlow's
+ * internal `.react-flow__*` DOM, which Tailwind utilities can't reach, so
+ * they live in CSS — same pattern the extension uses.
+ */
+
+/* Edges aren't interactive in the viewer — let pointerdown fall through
+ * to the pane so drag-to-pan starts even when it begins over an edge. */
+.react-flow__edge,
+.react-flow__edge.selectable {
+  pointer-events: none;
+  cursor: default;
+}
+
+/* Per-node containment: hover / LOD repaints stay scoped to the node's
+ * own subtree instead of invalidating the whole nodes layer. `paint` is
+ * intentionally omitted so the hover shadow isn't clipped. */
+.react-flow__node {
+  contain: layout style;
+}
+
+.react-flow__edge-path {
+  transition:
+    stroke 80ms ease-out,
+    opacity 200ms ease-out;
+}
+
+/*
+ * Pan lag fix. While panning, the cursor stays put while nodes slide
+ * underneath it — every node passing the cursor toggles `:hover`, which
+ * on a large tree is N × (box-shadow + transform transition) per frame,
+ * the dominant pan cost. Killing pointer-events on the nodes layer for
+ * the duration of the move means `:hover` never matches. The pane below
+ * still receives the drag, so panning itself is unaffected.
+ */
+.share-graph--panning .react-flow__nodes {
+  pointer-events: none;
+}
+
+/*
+ * Level-of-detail. `LodSync` writes `data-lod="far|mid|near"` onto the
+ * container from the zoom level; these ancestor selectors hide
+ * non-essential chrome (favicon, URL, pin) at mid/far zoom so the title
+ * stays identifiable without a per-node React subscription.
+ */
+[data-lod="far"] [data-trail-card] [data-lod-detail],
+[data-lod="mid"] [data-trail-card] [data-lod-detail] {
+  display: none;
+}
+
+/* The hover lift is invisible at far zoom and gratuitous compositor work
+ * across dozens of cards — suppress it. */
+[data-lod="far"] [data-trail-card] {
+  transition: none;
+}
+[data-lod="far"] [data-trail-card]:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+/* Far zoom: nodes are a few screen px wide — kill hit-testing across the
+ * whole layer (pan/zoom still work via the pane underneath) and take the
+ * cheapest text-layout path for the title. */
+[data-lod="far"] .react-flow__nodes {
+  pointer-events: none;
+}
+[data-lod="far"] [data-lod-title] > a {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  -webkit-line-clamp: unset;
+}
+[data-lod="far"] .react-flow__edge-path {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .react-flow__edge-path {
+    transition: none;
+  }
+}

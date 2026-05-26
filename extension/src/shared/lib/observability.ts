@@ -116,10 +116,9 @@ export type AnalyticsEvent =
   | "share_create_succeeded"
   | "share_create_failed"
   | "share_revoked"
-  | "share_import_needs_signin"
+  | "share_import_prompt_queued"
   | "share_import_success"
-  | "share_import_failed"
-  | "share_import_pending_consumed";
+  | "share_import_failed";
 
 export type AnalyticsProperties = Record<string, string | number | boolean | null | undefined>;
 

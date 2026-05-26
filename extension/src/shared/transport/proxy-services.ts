@@ -23,6 +23,7 @@ import type {
   CompressedConflictPreview,
   ConflictPreviewError,
 } from "@shared/types/tree-diff.js";
+import type { ImportShareResult } from "@features/sharing/share-api.js";
 
 export interface TreeService {
   navigateTo(input: { nodeId: NodeId; url?: Url }): Promise<void>;
@@ -60,6 +61,7 @@ export interface TreeService {
   setNodeLayoutBatch(input: { layouts: NodeLayoutInput[] }): Promise<void>;
   resetNodeLayouts(): Promise<void>;
   importTrail(input: { bundle: TrailExportBundle }): Promise<{ treeId: string }>;
+  importSharedTrail(input: { code: string }): Promise<ImportShareResult>;
   reparentNode(input: { nodeId: NodeId; newParentId: NodeId }): Promise<void>;
   renameNode(input: { nodeId: NodeId; title: string }): Promise<void>;
   fetchConflictPreview(input: {

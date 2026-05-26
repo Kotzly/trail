@@ -26,25 +26,21 @@ export type WebsitePingReply = {
 
 export type ImportSharedTrailRequest = {
   code: string;
+  /** Optional display hints so the extension's import prompt can name the
+   * trail before it runs the import. Cosmetic only. */
+  label?: string;
+  nodeCount?: number;
 };
 
+/**
+ * The extension no longer imports inline from the page — it queues the code
+ * and opens the sidepanel, where the user confirms. So this reply only says
+ * whether the request was accepted (`ok: true` → "we opened the extension,
+ * confirm there"). The real import outcome surfaces in the sidepanel prompt.
+ */
 export type ImportSharedTrailReply =
-  | {
-      ok: true;
-      trailId: string;
-      label: string;
-      nodeCount: number;
-    }
-  | {
-      ok: false;
-      error:
-        | "needs-signin"
-        | "share-unavailable"
-        | "share-self-import"
-        | "share-no-device"
-        | "unknown";
-      message?: string;
-    };
+  | { ok: true }
+  | { ok: false; error: "unknown"; message?: string };
 
 export interface WebsiteProtocolMap {
   [WEBSITE_MESSAGE.PING](): WebsitePingReply;

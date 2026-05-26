@@ -102,18 +102,21 @@ function SharedTrailView({ detail }: { detail: SharedTrailDetail }) {
         </div>
       </header>
 
-      <section className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
-        <ImportTrailButton code={detail.code} />
-        <p className="text-xs text-muted-foreground">
-          Imports a copy into your own Trail. The owner can revoke the link
-          anytime; your imported copy is unaffected.
-        </p>
+      <section className="mt-6">
+        <ImportTrailButton
+          code={detail.code}
+          label={detail.label}
+          nodeCount={detail.nodeCount}
+        />
       </section>
 
       <section className="mt-8">
         {detail.snapshot.root ? (
           <>
-            <SharedTrailGraph root={detail.snapshot.root} />
+            <SharedTrailGraph
+              root={detail.snapshot.root}
+              currentNodeId={detail.snapshot.currentNodeId}
+            />
             <noscript>
               <p className="mt-3 text-xs text-muted-foreground">
                 JavaScript is disabled. Falling back to a flat list view.

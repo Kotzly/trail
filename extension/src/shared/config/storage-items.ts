@@ -255,18 +255,24 @@ export const layoutPositionsCacheItem = storage.defineItem<
 
 // ── Pending share-link import (session-scoped) ──────────────────────
 //
-// Set when a marketing page sends `site/import-shared-trail` while the
-// extension is signed-out. The background handler stores the share
-// code here, opens the sidepanel, and lets the login flow complete the
-// import on first sign-in. Cleared on consumption AND on the per-user
-// wipe so account switches don't carry the previous viewer's pending
-// import into a different account (premortem #5).
+// Set when a marketing page sends `site/import-shared-trail`. The
+// background handler stores the share code here and opens the sidepanel,
+// where `ShareImportPrompt` reads it and asks the user to confirm the
+// import — we never import a shared trail without an explicit in-extension
+// confirmation. Cleared on confirm/dismiss AND on the per-user wipe so
+// account switches don't carry the previous viewer's pending import into
+// a different account (premortem #5).
 
 export type PendingShareImport = {
   /** Share code received from the bridge. */
   code: string;
   /** Unix-ms when the bridge call was received; used for staleness checks. */
   queuedAt: number;
+  /** Optional display hints from the share page so the prompt can name the
+   * trail before the import runs. Cosmetic only — the import is keyed on
+   * `code` server-side. */
+  label?: string;
+  nodeCount?: number;
 };
 
 export const pendingShareImportItem = storage.defineItem<PendingShareImport | null>(

@@ -674,6 +674,22 @@
       "useServerFailed": "Не удалось взять серверную версию: $1",
       "useServerSuccess": "Загрузили серверную версию."
     },
+    "shareImport": {
+      "title": "Импортировать общий трейл?",
+      "description": "Добавить копию этого общего трейла в ваш Trail.",
+      "descriptionNamed": "Добавить копию «$1» в ваш Trail.",
+      "descriptionNamedCount": "Добавить копию «$1» · $2 страниц в ваш Trail.",
+      "confirm": "Импортировать",
+      "signIn": "Войдите, чтобы импортировать",
+      "importing": "Импортируем…",
+      "dismiss": "Отмена",
+      "close": "Закрыть",
+      "successToast": "Импортировано: «$1»",
+      "errorSelfImport": "Это ваш собственный трейл — он уже в вашем списке.",
+      "errorUnavailable": "Этот трейл больше недоступен. Возможно, владелец отозвал ссылку.",
+      "errorNoDevice": "Откройте Trail ещё раз и повторите импорт.",
+      "errorGeneric": "Не удалось импортировать. Попробуйте ещё раз."
+    },
     "deleteTreeConfirm": {
       "fallbackLabel": "это дерево",
       "createNewTree": "Создать новое дерево",

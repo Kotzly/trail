@@ -14,8 +14,10 @@
 import { hierarchy, tree as d3tree } from "d3-hierarchy";
 import type { SharedTrailNode } from "@/lib/shared-trail-types";
 
-export const NODE_WIDTH = 200;
-export const NODE_HEIGHT = 64;
+// Match the extension's node geometry (extension/src/features/graph/
+// layout.ts) so the rendered 160×60 Card centers on its layout slot.
+export const NODE_WIDTH = 160;
+export const NODE_HEIGHT = 60;
 
 const NODE_SPACING = 28;
 const LAYER_SPACING = 56;

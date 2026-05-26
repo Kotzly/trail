@@ -674,6 +674,22 @@
       "useServerFailed": "Couldn't use server version: $1",
       "useServerSuccess": "Loaded the server version."
     },
+    "shareImport": {
+      "title": "Import shared trail?",
+      "description": "Add a copy of this shared trail to your own Trail.",
+      "descriptionNamed": "Add a copy of \"$1\" to your own Trail.",
+      "descriptionNamedCount": "Add a copy of \"$1\" · $2 pages to your own Trail.",
+      "confirm": "Import",
+      "signIn": "Sign in to import",
+      "importing": "Importing…",
+      "dismiss": "Cancel",
+      "close": "Close",
+      "successToast": "Imported \"$1\"",
+      "errorSelfImport": "That's your own trail — it's already in your list.",
+      "errorUnavailable": "This trail isn't available anymore. The owner may have revoked the link.",
+      "errorNoDevice": "Open Trail once more, then try the import again.",
+      "errorGeneric": "Import failed. Please try again."
+    },
     "deleteTreeConfirm": {
       "fallbackLabel": "this tree",
       "createNewTree": "Create new tree",

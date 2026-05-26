@@ -5,6 +5,7 @@ import SelectionActionBar from "./components/SelectionActionBar.js";
 import SyncConflictToastMount from "./components/SyncConflictToast.js";
 import OnboardingWizard from "./onboarding/OnboardingWizard.js";
 import WelcomeBackDialog from "./welcome-back/WelcomeBackDialog.js";
+import ShareImportPrompt from "./share-import/ShareImportPrompt.js";
 import ContextMenus from "./components/ContextMenus.js";
 import TrailLogo from "@ui/components/trail-logo";
 import { Toaster } from "@ui/components/ui/sonner.js";
@@ -218,6 +219,7 @@ export default function App() {
         )}
         <OnboardingWizard />
         <WelcomeBackDialog />
+        <ShareImportPrompt />
         <ContextMenus />
       </div>
     </TooltipProvider>

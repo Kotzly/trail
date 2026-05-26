@@ -29,6 +29,8 @@ import { tabHandlers } from "@background/messaging/handlers/tab-handlers.js";
 import { pinHandlers } from "@background/messaging/handlers/pin-handlers.js";
 import { mutationHandlers } from "@background/messaging/handlers/mutation-handlers.js";
 import { syncConflictHandlers } from "@background/messaging/handlers/sync-conflict-handlers.js";
+import { importSharedTrail as runSharedTrailImport } from "@features/sharing/share-api.js";
+import { periodicPull } from "@background/sync/sync-engine.js";
 import type { RuntimeMessageSender } from "@shared/platform/webext.js";
 
 const EMPTY_SENDER = {} as RuntimeMessageSender;
@@ -131,6 +133,17 @@ const treeService: TreeService = {
     call(treeHandlers[RPC_METHOD.RESET_NODE_LAYOUTS], { type: RPC_METHOD.RESET_NODE_LAYOUTS }),
   importTrail: (input) =>
     call(treeHandlers[RPC_METHOD.IMPORT_TRAIL], { type: RPC_METHOD.IMPORT_TRAIL, ...input }),
+  importSharedTrail: async (input) => {
+    const result = await runSharedTrailImport(input.code);
+    // Surface the imported trail in the index immediately instead of
+    // waiting for the next sync alarm.
+    if (result.ok) {
+      void periodicPull().catch(() => {
+        // Non-fatal — the periodic alarm will pick it up.
+      });
+    }
+    return result;
+  },
   reparentNode: (input) =>
     call(mutationHandlers[RPC_METHOD.REPARENT_NODE], { type: RPC_METHOD.REPARENT_NODE, ...input }),
   renameNode: (input) =>
