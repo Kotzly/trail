@@ -420,6 +420,10 @@
       "signIn": "Sign in",
       "termsPrefix": "By clicking continue, you agree to our"
     },
+    "oauth": {
+      "connecting": "Opening the $1 sign-in window — finish signing in there.",
+      "finalizing": "Almost done — securing your session…"
+    },
     "passwordRequired": "Password is required.",
     "signupOtpSent": "We sent a 6-digit code to your email. Enter it below to finish.",
     "recoveryOtpSent": "We sent a recovery code to your email. Enter it below, then choose a new password.",
@@ -739,7 +743,6 @@
   },
   "accountFooter": {
     "signIn": "Sign in",
-    "accountSettings": "Account settings",
     "signOut": "Sign out",
     "notSignedIn": "Not signed in",
     "signedIn": "Signed in",

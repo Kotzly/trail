@@ -16,6 +16,7 @@ import {
 import { Icons } from "@ui/components/icons";
 import { LoginForm } from "@ui/components/login-form";
 import { SignUpForm } from "@ui/components/signup-form";
+import type { OAuthInFlight } from "@ui/components/oauth-button";
 import TrailLogo from "@ui/components/trail-logo";
 import { useLockFn } from "@ui/hooks/use-lock-fn";
 import { useMount } from "@ui/hooks/use-mount";
@@ -59,6 +60,7 @@ export default function LoginApp() {
   const [formError, setFormError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [oauth, setOauth] = useState<OAuthInFlight | null>(null);
 
   useMount(() => {
     let active = true;
@@ -149,12 +151,15 @@ export default function LoginApp() {
 
   const handleGoogle = useLockFn(async () => {
     clearMessages();
+    setOauth({ provider: "google", stage: "connecting" });
     await withPending(async () => {
       try {
-        await signInWithGoogle();
+        await signInWithGoogle(() => setOauth({ provider: "google", stage: "finalizing" }));
       } catch (err) {
         captureError(err, { kind: "login_google" });
         setFormError(err instanceof Error ? err.message : String(err));
+      } finally {
+        setOauth(null);
       }
     });
   });
@@ -163,12 +168,15 @@ export default function LoginApp() {
 
   const handleGithub = useLockFn(async () => {
     clearMessages();
+    setOauth({ provider: "github", stage: "connecting" });
     await withPending(async () => {
       try {
-        await signInWithGitHub();
+        await signInWithGitHub(() => setOauth({ provider: "github", stage: "finalizing" }));
       } catch (err) {
         captureError(err, { kind: "login_github" });
         setFormError(err instanceof Error ? err.message : String(err));
+      } finally {
+        setOauth(null);
       }
     });
   });
@@ -393,6 +401,7 @@ export default function LoginApp() {
             email={email}
             password={password}
             pending={pending}
+            oauth={oauth}
             onEmailChange={setEmail}
             onPasswordChange={setPassword}
             onSubmit={handleSignUp}
@@ -411,6 +420,7 @@ export default function LoginApp() {
           email={email}
           password={password}
           pending={pending}
+          oauth={oauth}
           onEmailChange={setEmail}
           onPasswordChange={setPassword}
           onSubmit={handleSignIn}

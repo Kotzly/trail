@@ -15,10 +15,6 @@ import { useLockFn } from "@ui/hooks/use-lock-fn";
 import { initAuth, signOut, subscribeAuthState, type AuthState } from "@shared/auth/index.js";
 import { toast } from "sonner";
 
-type Props = {
-  onOpenAccount: () => void;
-};
-
 function deriveDisplay(state: AuthState): {
   email: string | null;
   displayName: string | null;
@@ -34,7 +30,17 @@ function deriveDisplay(state: AuthState): {
   return { email: null, displayName: null, avatarUrl: null, initial: "?" };
 }
 
-export function AccountFooterChip({ onOpenAccount }: Props) {
+function openLogin() {
+  const url = chrome.runtime.getURL("/login.html");
+  void chrome.tabs.create({ url });
+}
+
+/**
+ * Bottom-of-sidebar account switcher. It only ever does two things: show the
+ * signed-in account, or — when signed out — get you signed in in one click.
+ * Account *settings* live in the sidebar nav (the "Account" page), not here.
+ */
+export function AccountFooterChip() {
   const [state, setState] = useState<AuthState>({ status: "signed-out" });
   const { isMobile } = useSidebar();
 
@@ -60,14 +66,34 @@ export function AccountFooterChip({ onOpenAccount }: Props) {
     }
   });
 
-  const isSignedIn = state.status === "signed-in";
+  // Signed out: a single, instant tap that opens the sign-in page — no menu.
+  if (state.status !== "signed-in") {
+    return (
+      <SidebarMenuButton
+        size="lg"
+        tooltip={i18n.t("accountFooter.signIn")}
+        onClick={openLogin}
+        className="press-feedback"
+      >
+        <Avatar>
+          <AvatarFallback className="text-xs">
+            <Icons.User className="size-4" aria-hidden />
+          </AvatarFallback>
+        </Avatar>
+        <div className="grid flex-1 text-left text-sm leading-tight">
+          <span className="truncate font-medium">{i18n.t("accountFooter.signIn")}</span>
+          <span className="text-muted-foreground truncate text-xs">
+            {i18n.t("accountFooter.notSignedIn")}
+          </span>
+        </div>
+        <Icons.ExternalLink className="ml-auto size-4 opacity-70" />
+      </SidebarMenuButton>
+    );
+  }
+
   const { email, displayName, avatarUrl, initial } = deriveDisplay(state);
-  const primaryLabel = isSignedIn
-    ? (displayName ?? email ?? i18n.t("accountFooter.signedIn"))
-    : i18n.t("accountFooter.signIn");
-  const secondaryLabel = isSignedIn
-    ? (email ?? i18n.t("accountFooter.account"))
-    : i18n.t("accountFooter.notSignedIn");
+  const primaryLabel = displayName ?? email ?? i18n.t("accountFooter.signedIn");
+  const secondaryLabel = email ?? i18n.t("accountFooter.account");
 
   return (
     <DropdownMenu>
@@ -107,19 +133,10 @@ export function AccountFooterChip({ onOpenAccount }: Props) {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={onOpenAccount}>
-          <Icons.Settings />
-          {isSignedIn ? i18n.t("accountFooter.accountSettings") : i18n.t("accountFooter.signIn")}
+        <DropdownMenuItem onSelect={() => void handleSignOut()}>
+          <Icons.X />
+          {i18n.t("accountFooter.signOut")}
         </DropdownMenuItem>
-        {isSignedIn ? (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => void handleSignOut()}>
-              <Icons.X />
-              {i18n.t("accountFooter.signOut")}
-            </DropdownMenuItem>
-          </>
-        ) : null}
       </DropdownMenuContent>
     </DropdownMenu>
   );

@@ -89,7 +89,7 @@ export default function ResetPasswordPage() {
           return false;
         }
         setStep("code");
-        setNotice(`We sent a 6-digit code to ${target}. Enter it below.`);
+        setNotice(`We sent a 6-digit code to ${target}. Enter it above.`);
         return true;
       } catch (err) {
         setError(

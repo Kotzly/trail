@@ -401,7 +401,10 @@ const PROVIDER_LABEL: Record<OAuthProvider, string> = {
  * `chrome.identity.launchWebAuthFlow`. Must be called from a UI surface
  * (sidepanel or settings) — the service worker cannot launch the popup.
  */
-async function signInWithSupabaseOAuth(provider: OAuthProvider): Promise<AuthState> {
+async function signInWithSupabaseOAuth(
+  provider: OAuthProvider,
+  onFinalize?: () => void,
+): Promise<AuthState> {
   const supabase = requireClient();
   if (!chrome.identity?.launchWebAuthFlow) {
     throw new Error("Sign-in isn't available from this page — open Settings in the full tab view.");
@@ -464,6 +467,11 @@ async function signInWithSupabaseOAuth(provider: OAuthProvider): Promise<AuthSta
     });
   });
 
+  // The popup has closed; what's left (code exchange + provisioning) runs on
+  // this surface and can take a few seconds — let the UI say "finishing up"
+  // so it doesn't read as a freeze.
+  onFinalize?.();
+
   const parsedResponse = new URL(responseUrl);
   const code = parsedResponse.searchParams.get("code");
   const oauthError =
@@ -505,12 +513,12 @@ async function signInWithSupabaseOAuth(provider: OAuthProvider): Promise<AuthSta
   return { status: "signed-in", identity };
 }
 
-export function signInWithGoogle(): Promise<AuthState> {
-  return signInWithSupabaseOAuth("google");
+export function signInWithGoogle(onFinalize?: () => void): Promise<AuthState> {
+  return signInWithSupabaseOAuth("google", onFinalize);
 }
 
-export function signInWithGitHub(): Promise<AuthState> {
-  return signInWithSupabaseOAuth("github");
+export function signInWithGitHub(onFinalize?: () => void): Promise<AuthState> {
+  return signInWithSupabaseOAuth("github", onFinalize);
 }
 
 // ---------------------------------------------------------------------------

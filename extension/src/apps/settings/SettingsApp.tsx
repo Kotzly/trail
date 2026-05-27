@@ -39,12 +39,13 @@ import { showUiToast } from "@apps/sidepanel/ui/notifications/sonner-adapter.js"
 type Page = "account" | "trees" | "appearance" | "behavior" | "shortcuts" | "privacy" | "about";
 
 type NavItem = {
-  id: Exclude<Page, "account">;
+  id: Page;
   label: string;
   Icon: ComponentType<IconProps>;
 };
 
 const NAV_ITEMS: NavItem[] = [
+  { id: "account", label: "Account", Icon: Icons.User },
   { id: "trees", label: "Trees", Icon: Icons.ListTree },
   { id: "appearance", label: "Appearance", Icon: Icons.Palette },
   { id: "behavior", label: "Behavior", Icon: Icons.SlidersHorizontal },
@@ -181,7 +182,7 @@ export default function SettingsApp() {
           <SidebarFooter>
             <SidebarMenu>
               <SidebarMenuItem>
-                <AccountFooterChip onOpenAccount={() => handleSelect("account")} />
+                <AccountFooterChip />
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarFooter>
