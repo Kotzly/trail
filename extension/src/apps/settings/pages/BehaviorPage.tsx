@@ -229,7 +229,8 @@ export function BehaviorPage({ settings, onUpdate }: BehaviorPageProps) {
             <FieldLabel>{i18n.t("settings.behavior.schemesLabel")}</FieldLabel>
             <FieldDescription>
               {i18n.t("settings.behavior.schemesDescriptionPart1")} <code>file:</code>{" "}
-              {i18n.t("settings.behavior.schemesDescriptionPart2")} <code>chrome-extension:</code>{" "}
+              {i18n.t("settings.behavior.schemesDescriptionPart2")}{" "}
+              <code>{import.meta.env.FIREFOX ? "moz-extension:" : "chrome-extension:"}</code>{" "}
               {i18n.t("settings.behavior.schemesDescriptionPart3")}
             </FieldDescription>
             <PatternListEditor
