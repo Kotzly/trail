@@ -29,11 +29,6 @@ export default defineConfig({
       jsx: "automatic",
       jsxImportSource: "react",
     },
-    // TEMP: unminified + sourcemaps for JS profiler readability. Revert before shipping.
-    build: {
-      minify: false,
-      sourcemap: true,
-    },
     // optimizeDeps is a dev-time Vite concern only; gate so it doesn't
     // leak into `wxt build` evaluation.
     ...(env.command === "serve"
