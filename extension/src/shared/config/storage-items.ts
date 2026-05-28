@@ -126,10 +126,11 @@ export const onboardingStateItem = storage.defineItem<OnboardingState>("local:tr
 });
 
 /**
- * Set by the SW's onInstalled handler when an existing 0.9.x install is
- * upgraded to 1.0.x. The sidepanel reads this on mount and shows a
- * one-time welcome-back dialog, then clears it. Null at all other times
- * (fresh installs, regular version bumps within the 1.0.x series).
+ * Set by the SW's onInstalled handler when an existing install is
+ * upgraded into the 1.1 line from any earlier release. The sidepanel
+ * reads this on mount and shows a one-time "what's new" dialog, then
+ * clears it. Null at all other times (fresh installs, patch bumps
+ * within the 1.1.x series).
  */
 export const pendingWelcomeBackVersionItem = storage.defineItem<string | null>(
   "local:trail_pending_welcome_back",

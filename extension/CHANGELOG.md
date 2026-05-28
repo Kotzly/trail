@@ -5,8 +5,15 @@ and semver (via `chrome-v<semver>` git tags).
 
 ## [Unreleased]
 
+## [1.1.0] — 2026-05-28
+
 ### Added
 
+- Trail sharing. Open a trail's menu and choose "Share trail" to mint a
+  `/s/<code>` link. Links are public by default or can be restricted to
+  a specific email allowlist; owners can list, re-scope, and revoke their
+  shares. Recipients import a copy into their own account. A one-time
+  "what's new" dialog announces the feature to upgrading users.
 - Firefox support. `pnpm build:firefox` / `pnpm zip:firefox` produce an
   AMO-ready Manifest V3 add-on (`trail@gettrail.net`, min Firefox 115).
   Toolbar icon toggles the sidebar via `sidebarAction.toggle`; the

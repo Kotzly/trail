@@ -758,11 +758,10 @@
   },
   "whatsNew": {
     "upgraded": {
-      "title": "Trail is now 1.0",
-      "body": "You now have an account, cloud sync across devices, and a permanent home for your trees. Your local data is intact — sign in to back it up.",
+      "title": "You can now share trails",
+      "body": "Trail 1.1 lets you share any trail as a link. Open a trail's menu and choose \"Share trail\" — keep the link public or restrict it to specific people.",
       "cta": {
-        "signin": "Sign in",
-        "dismiss": "Later"
+        "dismiss": "Got it"
       }
     }
   }

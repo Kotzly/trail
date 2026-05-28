@@ -1,9 +1,9 @@
 /**
- * One-time welcome-back surface for users upgrading from 0.9.x to 1.0.x.
- * The SW's onInstalled handler stamps `pendingWelcomeBackVersionItem`
- * with the current version on a qualifying upgrade; this dialog reads
- * the flag on mount, opens, and clears it on dismiss/CTA so it never
- * returns.
+ * One-time "what's new" surface for users upgrading into the 1.1 line
+ * (sharing landed in 1.1.0). The SW's onInstalled handler stamps
+ * `pendingWelcomeBackVersionItem` with the current version on a
+ * qualifying upgrade; this dialog reads the flag on mount, opens, and
+ * clears it on dismiss so it never returns.
  *
  * Fresh installs never see this — `reason: "install"` skips the flag.
  */
@@ -22,15 +22,6 @@ import {
 } from "@ui/components/ui/dialog";
 
 type I18nArg = Parameters<typeof i18n.t>[0];
-
-function openLoginInNewTab(): void {
-  try {
-    const url = chrome.runtime.getURL("/login.html");
-    void chrome.tabs.create({ url });
-  } catch {
-    // Best-effort. If tabs.create fails the dialog still closes below.
-  }
-}
 
 export function WelcomeBackDialog() {
   const [open, setOpen] = useState(false);
@@ -54,11 +45,6 @@ export function WelcomeBackDialog() {
     await pendingWelcomeBackVersionItem.removeValue();
   };
 
-  const handleSignIn = async (): Promise<void> => {
-    openLoginInNewTab();
-    await dismiss();
-  };
-
   const handleOpenChange = (next: boolean): void => {
     if (!next) void dismiss();
   };
@@ -71,11 +57,8 @@ export function WelcomeBackDialog() {
           <DialogDescription>{i18n.t("whatsNew.upgraded.body" as I18nArg)}</DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button variant="ghost" onClick={() => void dismiss()}>
+          <Button onClick={() => void dismiss()}>
             {i18n.t("whatsNew.upgraded.cta.dismiss" as I18nArg)}
-          </Button>
-          <Button onClick={() => void handleSignIn()}>
-            {i18n.t("whatsNew.upgraded.cta.signin" as I18nArg)}
           </Button>
         </DialogFooter>
       </DialogContent>

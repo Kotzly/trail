@@ -87,11 +87,16 @@ chrome.runtime.onInstalled.addListener((details) => {
   } else if (details.reason === "update") {
     const previousVersion = details.previousVersion ?? null;
     captureEvent("update", { version: currentVersion, previousVersion });
-    // The 0.9.x line was the last pre-Supabase release. Surface a
-    // one-time welcome-back dialog in the sidepanel so those users
-    // know to sign in and that their local trees are intact. Cleared
-    // by the dialog itself on dismiss/CTA.
-    if (previousVersion?.startsWith("0.9.") && currentVersion.startsWith("1.0.")) {
+    // Surface a one-time "what's new" dialog in the sidepanel for anyone
+    // arriving at the 1.1 line from an earlier release (sharing landed in
+    // 1.1.0). Fires for every prior-line upgrader, never re-fires on
+    // 1.1.x patch bumps, and only on a real update. Cleared by the dialog
+    // itself on dismiss.
+    if (
+      previousVersion &&
+      !previousVersion.startsWith("1.1.") &&
+      currentVersion.startsWith("1.1.")
+    ) {
       void pendingWelcomeBackVersionItem.setValue(currentVersion);
     }
   }
