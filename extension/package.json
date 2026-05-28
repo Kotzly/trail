@@ -28,7 +28,7 @@
   },
   "keywords": [],
   "author": "Trail",
-  "license": "ISC",
+  "license": "UNLICENSED",
   "packageManager": "pnpm@10.29.3",
   "pnpm": {
     "onlyBuiltDependencies": [

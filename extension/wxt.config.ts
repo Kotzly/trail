@@ -123,7 +123,7 @@ export default defineConfig({
           }),
       // Firefox AMO requires a stable add-on ID and a minimum version.
       // 115.0 is the oldest ESR line that ships sidebarAction.toggle in
-      // its current shape and matches the Manifest V2 path we ride.
+      // its current shape and matches the Manifest V3 path we ride.
       //
       // `data_collection_permissions`: required for new AMO submissions.
       // - `required: ["none"]` — by default nothing leaves the device:

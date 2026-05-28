@@ -7,16 +7,23 @@ export { getFaviconUrl };
 export { isNewTabUrl };
 
 /**
- * True iff `url` is one of OUR extension's own pages
- * (`chrome-extension://${runtime.id}/...`). These are the extension's
- * internal UI — settings, sidepanel, popup, onboarding — not user
- * navigation, so they must never appear in the tree, must never get a
- * tab→node mapping, and must never be promoted to "current".
+ * True iff `url` is one of OUR extension's own pages — Chromium's
+ * `chrome-extension://<id>/...` or Firefox's `moz-extension://<uuid>/...`.
+ * These are the extension's internal UI — settings, sidepanel, popup,
+ * onboarding — not user navigation, so they must never appear in the
+ * tree, must never get a tab→node mapping, and must never be promoted
+ * to "current".
  *
  * This is a stronger filter than `shouldTrackUrl` (which is gated by
  * the user-configured scheme allowlist). Users can opt into tracking
- * `chrome-extension:` for OTHER extensions' pages without our own
- * leaking through.
+ * `chrome-extension:` / `moz-extension:` for OTHER extensions' pages
+ * without our own leaking through.
+ *
+ * The prefix is derived from `browser.runtime.getURL("/")` rather than
+ * interpolated from `runtime.id` because Firefox's `runtime.id` returns
+ * the gecko id (`trail@gettrail.net`), not the per-install UUID that
+ * appears in `moz-extension://` URLs — so string-building the prefix
+ * would silently never match on Firefox.
  *
  * Also used to interpret transient tab states where Chrome reports an
  * empty `tab.url` but a `tab.pendingUrl` that already targets our
@@ -25,9 +32,9 @@ export { isNewTabUrl };
  */
 export function isOwnExtensionUrl(url: string | undefined | null): boolean {
   if (!url) return false;
-  const id = browser.runtime?.id;
-  if (!id) return false;
-  return url.startsWith(`chrome-extension://${id}/`);
+  const prefix = browser.runtime?.getURL?.("/");
+  if (!prefix) return false;
+  return url.startsWith(prefix);
 }
 
 const blockedFaviconUrlPatterns: RegExp[] = [
