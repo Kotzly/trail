@@ -18,7 +18,7 @@ in a tree you can revisit, organize, and pick up where you left off.
 
 ### Firefox
 
-Trail ships as a Manifest V3 Firefox add-on (`trail@gettrail.net`,
+Trail ships as a Manifest V3 Firefox add-on (`extension@gettrail.net`,
 minimum Firefox 115). The sidebar opens from Firefox's built-in sidebar
 toggle or from clicking the Trail toolbar icon. `pnpm build:firefox`
 produces `.output/firefox-mv3/`; `pnpm zip:firefox` packages it for AMO.

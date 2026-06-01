@@ -21,7 +21,7 @@ export { isNewTabUrl };
  *
  * The prefix is derived from `browser.runtime.getURL("/")` rather than
  * interpolated from `runtime.id` because Firefox's `runtime.id` returns
- * the gecko id (`trail@gettrail.net`), not the per-install UUID that
+ * the gecko id (`extension@gettrail.net`), not the per-install UUID that
  * appears in `moz-extension://` URLs — so string-building the prefix
  * would silently never match on Firefox.
  *

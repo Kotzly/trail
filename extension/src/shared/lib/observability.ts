@@ -29,6 +29,7 @@ import {
   hasTelemetryPermission,
   onTelemetryPermissionRemoved,
   requestTelemetryPermission,
+  setObservabilityReporter,
 } from "./firefox-data-permissions.js";
 
 export type { ObservabilitySurface };
@@ -295,6 +296,11 @@ export async function initObservability(surface: ObservabilitySurface): Promise<
   if (initialized) return;
   initialized = true;
   currentSurface = surface;
+
+  // Register the reporter for permission-check failures. Doing this
+  // here (instead of at module init) keeps `firefox-data-permissions.ts`
+  // standalone for the unit-test runtime — see that module's docstring.
+  setObservabilityReporter((err, ctx) => captureError(err, ctx));
 
   try {
     cachedConsent = await telemetryConsentItem.getValue();

@@ -29,6 +29,14 @@ export default defineConfig({
       jsx: "automatic",
       jsxImportSource: "react",
     },
+    build: {
+      // `react-vendor` lands at ~640 kB after our manualChunks split —
+      // splitting further would break Radix's circular re-exports of
+      // React internals (see hooks.vite:build:extendConfig below). The
+      // bundle is loaded locally from the extension, not over the wire,
+      // so the default 500 kB advisory limit doesn't apply.
+      chunkSizeWarningLimit: 700,
+    },
     // optimizeDeps is a dev-time Vite concern only; gate so it doesn't
     // leak into `wxt build` evaluation.
     ...(env.command === "serve"
@@ -98,6 +106,65 @@ export default defineConfig({
     chromiumProfile: chromeProfileDir,
     keepProfileChanges: true,
   },
+  // AMO requires a source ZIP reviewers can rebuild from. We root it at the
+  // monorepo parent so `pnpm-lock.yaml` and `pnpm-workspace.yaml` are
+  // included — without them, `pnpm install` resolves different versions and
+  // the build is no longer byte-reproducible. Everything below excludeSources
+  // is junk the reviewer doesn't need (and shouldn't see): sibling workspace
+  // packages, agent/tool artefacts, internal planning notes, build caches.
+  zip: {
+    sourcesRoot: resolve(".."),
+    excludeSources: [
+      // Sibling workspace packages — extension imports zero @trail/* so
+      // none of these are required to build the XPI.
+      "apps/**",
+      "packages/**",
+      // Repo-level tooling and infra not relevant to the extension build.
+      "supabase/**",
+      "sanity/**",
+      "scripts/**",
+      "logo/**",
+      "graphify-out/**",
+      "docker-compose.yml",
+      "Makefile",
+      "squirrel.toml",
+      // Agent/AI tool artefacts at the repo root.
+      ".claude/**",
+      ".conductor/**",
+      ".gstack/**",
+      ".graphifyignore",
+      ".impeccable.md",
+      "AGENTS.md",
+      "CLAUDE.md",
+      "skills-lock.json",
+      // Internal docs and scratch files.
+      "tasks/**",
+      "logs/**",
+      "onboarding_notes.txt",
+      "sidepanel-check.png",
+      "trail_privacy_policy_terms_of_service.md",
+      "1224",
+      // Build outputs and caches anywhere (defaults catch some; be explicit).
+      "**/node_modules/**",
+      "**/dist/**",
+      "**/.next/**",
+      "**/.vercel/**",
+      "**/.turbo/**",
+      "**/*.tsbuildinfo",
+      // Inside extension/: build outputs, caches, internal notes.
+      "extension/.output/**",
+      "extension/.wxt/**",
+      "extension/logs/**",
+      "extension/tasks/**",
+      "extension/CLAUDE.md",
+      "extension/skills-lock.json",
+      // Local env files (the committed .env.example stays).
+      "**/.env.local",
+      "**/.env.*.local",
+      // OS junk.
+      "**/.DS_Store",
+    ],
+  },
   manifest: ({ mode, browser }) => {
     const isFirefox = browser === "firefox";
     // Chrome-only permissions: `sidePanel` (sidepanel manifest namespace) and
@@ -143,7 +210,7 @@ export default defineConfig({
         ? {
             browser_specific_settings: {
               gecko: {
-                id: "trail@gettrail.net",
+                id: "extension@gettrail.net",
                 strict_min_version: "115.0",
                 data_collection_permissions: {
                   required: ["none"],

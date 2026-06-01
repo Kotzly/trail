@@ -27,15 +27,33 @@
  * not granted". A privacy gate must never grant telemetry on the
  * strength of an error.
  *
- * Observability is imported dynamically inside the catch path so the
- * module loads cleanly under `node --import tsx` (the unit-test runtime
- * doesn't polyfill the Vite virtual modules `observability.ts` pulls
- * in). It also keeps `observability.ts` → `firefox-data-permissions.ts`
- * cycle one-way at module-init time.
+ * Observability is injected via `setObservabilityReporter` rather than
+ * statically imported so the module loads cleanly under `node --import
+ * tsx` (the unit-test runtime doesn't polyfill the Vite virtual modules
+ * `observability.ts` pulls in). It also keeps `observability.ts` →
+ * `firefox-data-permissions.ts` the only static direction — observability
+ * registers itself at `initObservability()` time.
  */
 import { browser } from "@shared/platform/webext.js";
 
 const TELEMETRY_PERMISSION = "technicalAndInteraction";
+
+type ObservabilityReporter = (err: unknown, ctx: { tag: string; op: string }) => void;
+
+// Default no-op so the module is standalone — observability registers a
+// real reporter at `initObservability()` time. Unit tests that don't
+// initialize observability still load this module without pulling in
+// `observability.ts` (which depends on Vite virtuals).
+let observabilityReporter: ObservabilityReporter = () => {};
+
+/**
+ * Register the function used to report permission-check failures.
+ * Called once per surface from `observability.initObservability()` —
+ * see the docstring at the top of this module for the rationale.
+ */
+export function setObservabilityReporter(reporter: ObservabilityReporter): void {
+  observabilityReporter = reporter;
+}
 
 type DataCollectionPermissions = { data_collection?: string[] };
 
@@ -54,16 +72,14 @@ function getPermissionsAPI(): PermissionsAPI | null {
 }
 
 /**
- * Report a permission-check failure to observability without forcing a
- * static dependency on `observability.ts` (which transitively pulls in
- * Vite virtual modules unavailable in the unit-test runtime). Any
- * failure inside the report path is swallowed — the privacy decision is
+ * Report a permission-check failure to the injected observability
+ * reporter (no-op until `setObservabilityReporter` is called). Any
+ * failure inside the reporter is swallowed — the privacy decision is
  * already made by the caller's fail-closed return.
  */
-async function reportPermissionError(err: unknown, op: "contains" | "request"): Promise<void> {
+function reportPermissionError(err: unknown, op: "contains" | "request"): void {
   try {
-    const obs = await import("@shared/lib/observability.js");
-    obs.captureError(err, { tag: "firefox-data-permissions", op });
+    observabilityReporter(err, { tag: "firefox-data-permissions", op });
   } catch {
     // Reporting itself failed — nothing more to do; the caller already
     // returned `false` so the gate is closed regardless.
@@ -84,7 +100,7 @@ export async function probeTelemetryPermission(
   try {
     return await contains({ data_collection: [TELEMETRY_PERMISSION] });
   } catch (err) {
-    await reportPermissionError(err, "contains");
+    reportPermissionError(err, "contains");
     return false;
   }
 }
@@ -101,7 +117,7 @@ export async function askForTelemetryPermission(
   try {
     return await request({ data_collection: [TELEMETRY_PERMISSION] });
   } catch (err) {
-    await reportPermissionError(err, "request");
+    reportPermissionError(err, "request");
     return false;
   }
 }

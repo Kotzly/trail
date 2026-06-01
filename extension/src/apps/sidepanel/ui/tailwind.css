@@ -3,7 +3,9 @@
 @import "tailwindcss/utilities" layer(utilities);
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@fontsource-variable/geist";
+/* Fonts are JS-imported via shared/styles/fonts.ts — CSS @import here
+ * would be silently broken (Tailwind v4 + Vite + WXT doesn't rewrite
+ * @import URLs, so woff2 files never reach the build). See fonts.ts. */
 
 /* Scan extension source for Tailwind class usage */
 @source "../../../apps/**/*.{ts,tsx}";

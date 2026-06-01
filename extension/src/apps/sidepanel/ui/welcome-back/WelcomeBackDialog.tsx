@@ -20,6 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@ui/components/ui/dialog";
+import { Icons } from "@ui/components/icons";
 
 type I18nArg = Parameters<typeof i18n.t>[0];
 
@@ -51,7 +52,20 @@ export function WelcomeBackDialog() {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent>
+      {/* Cap at 70% of the side panel width — the side panel is the dialog's
+       * viewport, so 70vw maps directly to "70% of the panel". Overrides
+       * shadcn's `max-w-[calc(100%-2rem)]` / `sm:max-w-md` defaults. */}
+      <DialogContent className="max-w-[70vw] sm:max-w-[70vw]">
+        {/* Decorative icon badge. Per-dialog only by icon choice; sizing,
+         * tint, and entry animation match across all prompts so the variation
+         * reads as semantic, not decorative slop. Pattern mirrors
+         * onboarding/wizard/HookScreen.tsx (tw-animate-css, no custom CSS). */}
+        <div
+          aria-hidden
+          className="bg-primary/10 text-primary animate-in fade-in-0 zoom-in-95 -mt-1 flex size-12 items-center justify-center justify-self-start rounded-full duration-300 ease-(--ease-out)"
+        >
+          <Icons.Sparkles className="size-6" aria-hidden />
+        </div>
         <DialogHeader>
           <DialogTitle>{i18n.t("whatsNew.upgraded.title" as I18nArg)}</DialogTitle>
           <DialogDescription>{i18n.t("whatsNew.upgraded.body" as I18nArg)}</DialogDescription>

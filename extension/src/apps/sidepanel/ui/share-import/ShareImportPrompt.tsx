@@ -27,6 +27,7 @@ import { useAuthState } from "@shared/auth/use-auth-state.js";
 import { confirmShareImport } from "../../api/sharing.js";
 import { showUiToast } from "../notifications/sonner-adapter.js";
 import { captureEvent } from "@shared/lib/observability.js";
+import { Icons } from "@ui/components/icons";
 
 // Drop codes queued more than an hour ago so a long-forgotten click doesn't
 // pop a prompt during an unrelated later session.
@@ -113,7 +114,15 @@ export function ShareImportPrompt() {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent>
+      {/* Cap at 70% of the side panel width — see WelcomeBackDialog for rationale. */}
+      <DialogContent className="max-w-[70vw] sm:max-w-[70vw]">
+        {/* Decorative icon badge — see WelcomeBackDialog for the pattern. */}
+        <div
+          aria-hidden
+          className="bg-primary/10 text-primary animate-in fade-in-0 zoom-in-95 -mt-1 flex size-12 items-center justify-center justify-self-start rounded-full duration-300 ease-(--ease-out)"
+        >
+          <Icons.Share2 className="size-6" aria-hidden />
+        </div>
         <DialogHeader>
           <DialogTitle>{i18n.t("sidepanel.shareImport.title")}</DialogTitle>
           <DialogDescription>
