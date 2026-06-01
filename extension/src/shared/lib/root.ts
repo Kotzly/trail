@@ -26,8 +26,15 @@
 import type { NodeData } from "../types/node.js";
 import type { Url, Title } from "../types/ids.js";
 
-/** Canonical URL used for synthesised New Tab roots. */
-export const NEW_TAB_ROOT_URL = "chrome://newtab/" as Url;
+/**
+ * Canonical URL used for synthesised New Tab roots. Build-conditional:
+ * `chrome://newtab/` on Chromium, `about:blank` on Firefox (where `chrome://`
+ * is Chromium-only and would render as a meaningless host). Both shapes match
+ * `isNewTabUrl`, so the "root is always NTP" invariant holds either way.
+ */
+export const NEW_TAB_ROOT_URL = (
+  import.meta.env.FIREFOX ? "about:blank" : "chrome://newtab/"
+) as Url;
 
 /** Canonical title for a synthesised New Tab root. */
 export const NEW_TAB_ROOT_TITLE = "New Tab" as Title;

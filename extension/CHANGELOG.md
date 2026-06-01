@@ -7,6 +7,13 @@ and semver (via `chrome-v<semver>` git tags).
 
 ## [1.1.1] — 2026-06-01
 
+### Added
+
+- Zen "Transparent background" setting (Firefox/Zen only) — opt-in toggle
+  that makes the side panel's backdrop transparent so Zen's themed sidebar /
+  workspace gradient shows through behind the tree. No Chrome-facing changes
+  in this release.
+
 ## [1.1.0] — 2026-05-28
 
 ### Added
