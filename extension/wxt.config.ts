@@ -176,7 +176,7 @@ export default defineConfig({
       name: "__MSG_extName__",
       description: "__MSG_extDescription__",
       default_locale: "en",
-      version: "1.1.0",
+      version: "1.1.1",
       homepage_url: "https://gettrail.net",
       // Pins dev unpacked build to the CWS extension ID
       // (pginmdonnghdkcmnhjkniphopcfapodc) so OAuth redirect URLs,

@@ -5,6 +5,8 @@ and semver (via `chrome-v<semver>` git tags).
 
 ## [Unreleased]
 
+## [1.1.1] — 2026-06-01
+
 ## [1.1.0] — 2026-05-28
 
 ### Added
