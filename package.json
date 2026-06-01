@@ -19,19 +19,6 @@
     "db:types": "npx supabase gen types typescript --project-id tevskvkyhenzqxkcgbbm > packages/db/src/generated/database.types.ts",
     "prepare": "husky"
   },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "cypress",
-      "esbuild",
-      "sharp",
-      "unrs-resolver"
-    ],
-    "overrides": {
-      "picomatch": ">=4.0.4",
-      "follow-redirects": ">=1.16.0",
-      "postcss": ">=8.5.10"
-    }
-  },
   "devDependencies": {
     "@supabase/supabase-js": "^2.103.3",
     "@types/node": "^25.6.0",

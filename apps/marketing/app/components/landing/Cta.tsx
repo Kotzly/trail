@@ -5,10 +5,17 @@ import { useTranslations } from "next-intl";
 
 const easeOut = [0.23, 1, 0.32, 1] as const;
 
-export function LandingCta({ ctaHref = "#" }: { ctaHref?: string }) {
+export function LandingCta({
+  ctaHref = "#",
+  firefoxHref,
+}: {
+  ctaHref?: string;
+  firefoxHref?: string;
+}) {
   const reduce = useReducedMotion();
   const t = useTranslations("landing.cta");
   const isExternal = /^https?:\/\//.test(ctaHref);
+  const firefoxIsExternal = !!firefoxHref && /^https?:\/\//.test(firefoxHref);
   return (
     <section
       id="cta"
@@ -122,6 +129,43 @@ export function LandingCta({ ctaHref = "#" }: { ctaHref?: string }) {
             </svg>
             {t("button")}
           </a>
+          {firefoxHref ? (
+            <a
+              href={firefoxHref}
+              {...(firefoxIsExternal
+                ? { target: "_blank", rel: "noopener noreferrer" }
+                : {})}
+              className="group inline-flex items-center gap-2.5 rounded-full border border-[var(--landing-line)] px-7 py-4 font-semibold text-[var(--landing-ink)] transition-transform duration-200 ease-out hover:-translate-y-0.5 hover:border-[rgba(246,239,225,0.22)] active:scale-[0.97]"
+              style={{
+                fontSize: 15,
+                letterSpacing: "-0.005em",
+              }}
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden="true"
+              >
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                />
+                <path
+                  d="M21 8H12L8 14M3 12L8 14M16.5 18.5L12 12"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              {t("firefoxButton")}
+            </a>
+          ) : null}
         </div>
         <div
           className="font-mono uppercase"

@@ -28,7 +28,7 @@ export function LandingNav({
     { label: tNav("features"), href: "/#features" },
     { label: tNav("tryIt"), href: "/#try" },
   ];
-  const resolvedCtaText = ctaText ?? tNav("addToChrome");
+  const resolvedCtaText = ctaText ?? tNav("install");
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const reduce = useReducedMotion();

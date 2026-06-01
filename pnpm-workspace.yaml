@@ -2,3 +2,16 @@ packages:
   - "apps/*"
   - "packages/*"
   - "extension"
+
+# pnpm 10.x reads these from the workspace file, not the `pnpm` field in
+# package.json (which it now ignores with a warning).
+onlyBuiltDependencies:
+  - cypress
+  - esbuild
+  - sharp
+  - unrs-resolver
+
+overrides:
+  picomatch: ">=4.0.4"
+  follow-redirects: ">=1.16.0"
+  postcss: ">=8.5.10"

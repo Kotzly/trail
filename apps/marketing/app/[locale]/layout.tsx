@@ -140,7 +140,9 @@ export default async function RootLayout({
     ? settings.nav
     : undefined;
   const ctaText = settings?.navCta?.text;
-  const ctaHref = settings?.navCta?.href ?? INSTALL_URL;
+  // Default the header button to the on-page install section (which offers
+  // both Chrome and Firefox) rather than jumping straight to one store.
+  const ctaHref = settings?.navCta?.href ?? "/#cta";
 
   return (
     <html

@@ -19,7 +19,8 @@
     "openMenu": "Открыть меню",
     "closeMenu": "Закрыть меню",
     "primary": "Основное",
-    "addToChrome": "Установить в Chrome"
+    "addToChrome": "Установить в Chrome",
+    "install": "Установить"
   },
   "landing": {
     "srHeading": "Trail — расширение Chrome, которое превращает ваш браузинг в живое дерево.",
@@ -122,7 +123,8 @@
       "headingSuffix": ".",
       "subheading": "Установите Trail в Chrome. Откройте новую вкладку. Смотрите, как появляется дерево.",
       "button": "Установить в Chrome — бесплатно",
-      "browsers": "Chrome · Brave · Edge · Скоро в Firefox"
+      "firefoxButton": "Установить в Firefox",
+      "browsers": "Chrome · Brave · Edge · Firefox"
     }
   },
   "footer": {

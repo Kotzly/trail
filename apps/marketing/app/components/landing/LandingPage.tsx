@@ -3,7 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { LandingHero } from "./Hero";
 import { LandingFeatures } from "./Features";
 import { LandingCta } from "./Cta";
-import { INSTALL_URL } from "@/lib/install-url";
+import { INSTALL_URL, FIREFOX_INSTALL_URL } from "@/lib/install-url";
 
 // Below-the-fold, motion-heavy interactive demo: ship as its own
 // chunk so it doesn't block the hero on slow networks.
@@ -31,7 +31,7 @@ export async function LandingPage() {
       <LandingHero />
       <LandingFeatures />
       <LandingDemo />
-      <LandingCta ctaHref={INSTALL_URL} />
+      <LandingCta ctaHref={INSTALL_URL} firefoxHref={FIREFOX_INSTALL_URL} />
     </div>
   );
 }

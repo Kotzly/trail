@@ -19,7 +19,8 @@
     "openMenu": "Open menu",
     "closeMenu": "Close menu",
     "primary": "Primary",
-    "addToChrome": "Add to Chrome"
+    "addToChrome": "Add to Chrome",
+    "install": "Install"
   },
   "landing": {
     "srHeading": "Trail — a Chrome extension that turns your browsing into a living tree.",
@@ -122,7 +123,8 @@
       "headingSuffix": ".",
       "subheading": "Add Trail to Chrome. Open a new tab. Watch the tree appear.",
       "button": "Add to Chrome — it's free",
-      "browsers": "Chrome · Brave · Edge · Coming to Firefox"
+      "firefoxButton": "Add to Firefox",
+      "browsers": "Chrome · Brave · Edge · Firefox"
     }
   },
   "footer": {

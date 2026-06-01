@@ -30,12 +30,6 @@
   "author": "Trail",
   "license": "UNLICENSED",
   "packageManager": "pnpm@10.29.3",
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild",
-      "sharp"
-    ]
-  },
   "type": "commonjs",
   "devDependencies": {
     "@playwright/test": "^1.59.1",
