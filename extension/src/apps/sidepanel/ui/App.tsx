@@ -17,6 +17,7 @@ import { useRuntimeMessages } from "./hooks/useRuntimeMessages.js";
 import { useShortcuts } from "./hooks/useShortcuts.js";
 import { useThemeSync } from "./hooks/useThemeSync.js";
 import { useThemePresetSync } from "./hooks/useThemePresetSync.js";
+import { useTransparentBackground } from "./hooks/useTransparentBackground.js";
 import { useStore } from "./state/store.js";
 import { Button } from "@ui/components/ui/button";
 import {
@@ -76,6 +77,7 @@ export default function App() {
   useRuntimeMessages();
   useThemeSync(settings?.theme);
   useThemePresetSync(settings?.themePreset);
+  useTransparentBackground(settings?.transparentBackground);
   useShortcuts();
   useAuthTransitionToast();
   useAuthReset();

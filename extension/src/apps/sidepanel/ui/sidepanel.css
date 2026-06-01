@@ -1,2 +1,18 @@
 @import "./tailwind.css";
 @import "./theme-presets.css";
+
+/* ── Zen glass mode ──────────────────────────────────────────────────────
+ * Opt-in: active when the "Transparent background" setting is on
+ * (data-zen-glass, set by useTransparentBackground). Makes ONLY the panel
+ * backdrop transparent so Zen's themed sidebar / workspace gradient shows
+ * through behind the tree. The graph canvas/ReactFlow pane are already
+ * transparent; node cards, panels, dialogs and toasts keep their own
+ * (--card/--popover/--background) surfaces and still follow the active
+ * light/dark theme — so content stays readable and themed while the empty
+ * background is see-through. `!important` beats the inline background-color
+ * apply-theme-early.js writes on <html> for FOUC prevention.
+ */
+:root[data-zen-glass],
+:root[data-zen-glass] body {
+  background: transparent !important;
+}

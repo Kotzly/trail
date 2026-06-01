@@ -7,7 +7,13 @@ import type {
 } from "@shared/types/settings.js";
 import type { ThemeId } from "@shared/types/theme.js";
 import { THEME_PRESETS } from "@shared/styles/theme-presets.js";
-import { Field, FieldContent, FieldGroup, FieldLabel } from "@ui/components/ui/field";
+import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+} from "@ui/components/ui/field";
 import { PageHeader, SectionHeader } from "../components/PageHeader.js";
 import { Switch } from "@ui/components/ui/switch";
 import {
@@ -91,6 +97,23 @@ export function AppearancePage({ settings, onUpdate }: AppearancePageProps) {
             </Select>
           </Field>
         </div>
+        {import.meta.env.FIREFOX && (
+          <Field orientation="horizontal">
+            <FieldContent>
+              <FieldLabel htmlFor="transparent-bg">
+                {i18n.t("settings.appearance.transparentBgLabel")}
+              </FieldLabel>
+              <FieldDescription>
+                {i18n.t("settings.appearance.transparentBgDescription")}
+              </FieldDescription>
+            </FieldContent>
+            <Switch
+              id="transparent-bg"
+              checked={settings.transparentBackground}
+              onCheckedChange={(v) => onUpdate({ transparentBackground: v })}
+            />
+          </Field>
+        )}
       </section>
 
       <section className="flex flex-col gap-4">

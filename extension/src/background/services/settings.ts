@@ -10,6 +10,7 @@ const log = createLogger("settings");
 export const defaultSettings: Settings = {
   theme: THEME_IDS.SYSTEM,
   themePreset: "default",
+  transparentBackground: false,
   layout: {
     mode: DEFAULT_LAYOUT_SETTINGS.mode,
     tree: { ...DEFAULT_LAYOUT_SETTINGS.tree },
@@ -94,6 +95,7 @@ function mergeDefaults(raw: unknown): Settings {
     themePreset: isKnownPresetId(sanitized.themePreset)
       ? sanitized.themePreset
       : DEFAULT_THEME_PRESET,
+    transparentBackground: sanitized.transparentBackground ?? defaultSettings.transparentBackground,
     titleTruncation: sanitized.titleTruncation ?? defaultSettings.titleTruncation,
     graphDensity: sanitized.graphDensity ?? defaultSettings.graphDensity,
     showFavicons: sanitized.showFavicons ?? defaultSettings.showFavicons,

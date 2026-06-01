@@ -74,6 +74,13 @@ export type CleanupSettings = {
 export type Settings = {
   theme: ThemeId;
   themePreset: string;
+  /**
+   * Firefox/Zen only. When true, the side panel's backdrop is transparent so
+   * Zen's themed sidebar / workspace gradient shows through behind the tree.
+   * Off by default and decoupled from the theme preset — transparency is never
+   * forced. Content (cards/text) keeps following the active light/dark theme.
+   */
+  transparentBackground: boolean;
   layout: LayoutSettings;
   titleTruncation: TitleTruncation;
   graphDensity: GraphDensity;

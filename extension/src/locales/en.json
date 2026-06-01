@@ -519,6 +519,8 @@
       "modeDark": "Dark",
       "modeSystem": "System",
       "themePresetLabel": "Color theme",
+      "transparentBgLabel": "Transparent background",
+      "transparentBgDescription": "Make the panel backdrop see-through so Zen's background shows behind the tree. Needs a Zen mod that transparents the sidebar.",
       "displayTitle": "Display",
       "displayDescription": "Decide how much detail each node shows.",
       "layoutLabel": "Layout mode",

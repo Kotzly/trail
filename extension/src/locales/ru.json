@@ -519,6 +519,8 @@
       "modeDark": "Тёмный",
       "modeSystem": "Системный",
       "themePresetLabel": "Цветовая тема",
+      "transparentBgLabel": "Прозрачный фон",
+      "transparentBgDescription": "Сделать фон панели сквозным, чтобы за деревом был виден фон Zen. Нужен мод Zen, делающий боковую панель прозрачной.",
       "displayTitle": "Отображение",
       "displayDescription": "Выбери, сколько подробностей показывает каждый узел.",
       "layoutLabel": "Раскладка",
