@@ -35,7 +35,7 @@ export function JsonLd({
       name,
       url,
       applicationCategory: "BrowserApplication",
-      operatingSystem: "Chrome, Edge, Brave, Arc",
+      operatingSystem: "Chrome, Edge, Brave, Arc, Firefox, Zen",
       offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
       ...(installUrl ? { installUrl } : {}),
       description: desc,
