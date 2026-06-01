@@ -25,7 +25,7 @@ Or run them all: `pnpm check && pnpm build && pnpm test && pnpm e2e`.
 
 ## 3. Manifest verification
 
-Produced at `.output/chrome-mv3/manifest.json` after build.
+Produced at `dist/chrome-mv3/manifest.json` after build.
 
 - [ ] `"manifest_version": 3`
 - [ ] `"version"` matches the `chrome-v*` git tag
@@ -36,7 +36,7 @@ Produced at `.output/chrome-mv3/manifest.json` after build.
 - [ ] `"host_permissions"` is exactly:
       `https://gettrail.net/*`, `https://app.gettrail.net/*`
 - [ ] No `http://` or `localhost` URLs in the production manifest
-      (`grep -E 'localhost|127\.0\.0\.1|http://' .output/chrome-mv3/manifest.json`
+      (`grep -E 'localhost|127\.0\.0\.1|http://' dist/chrome-mv3/manifest.json`
       returns nothing)
 - [ ] CSP has no `unsafe-eval` / `unsafe-inline`
       (default MV3 strict CSP; see `CSP-RATIONALE.md`)

@@ -22,6 +22,7 @@ mkdirSync(chromeProfileDir, { recursive: true });
 
 export default defineConfig({
   srcDir: "src",
+  outDir: "dist",
   modules: ["@wxt-dev/i18n/module"],
   vite: (env) => ({
     plugins: [react()],
@@ -152,7 +153,7 @@ export default defineConfig({
       "**/.turbo/**",
       "**/*.tsbuildinfo",
       // Inside extension/: build outputs, caches, internal notes.
-      "extension/.output/**",
+      "extension/dist/**",
       "extension/.wxt/**",
       "extension/logs/**",
       "extension/tasks/**",

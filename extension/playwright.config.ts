@@ -5,7 +5,7 @@ import { resolve } from "node:path";
  * Playwright config for MV3 extension smoke tests.
  *
  * The extension is loaded through a persistent context (see
- * `tests/e2e/fixtures.ts`) using the built `.output/chrome-mv3`
+ * `tests/e2e/fixtures.ts`) using the built `dist/chrome-mv3`
  * directory. `pnpm build` must run before `pnpm e2e`.
  */
 export default defineConfig({

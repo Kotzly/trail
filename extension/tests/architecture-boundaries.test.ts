@@ -77,7 +77,7 @@ function listSourceFiles(dir: string): string[] {
   for (const entry of entries) {
     const abs = join(dir, entry.name);
     if (entry.isDirectory()) {
-      if (entry.name === 'node_modules' || entry.name === '.output' || entry.name === '.wxt') continue;
+      if (entry.name === 'node_modules' || entry.name === 'dist' || entry.name === '.wxt') continue;
       files.push(...listSourceFiles(abs));
       continue;
     }
@@ -167,7 +167,7 @@ function testSidepanelBackgroundBoundary(): void {
 }
 
 function testProdManifestNoDev(): void {
-  const manifestPath = join(ROOT, '.output', 'chrome-mv3', 'manifest.json');
+  const manifestPath = join(ROOT, 'dist', 'chrome-mv3', 'manifest.json');
 
   if (!existsSync(manifestPath)) {
     console.log('  prod manifest no-dev: SKIPPED (not built)');

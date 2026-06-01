@@ -10,7 +10,6 @@ export default [
   {
     ignores: [
       ".wxt/",
-      ".output/",
       "dist/",
       "node_modules/",
       "*.cjs",

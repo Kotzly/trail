@@ -1,7 +1,7 @@
 import { test as base, chromium, type BrowserContext, type Worker } from "@playwright/test";
 import { resolve } from "node:path";
 
-const EXTENSION_PATH = resolve(__dirname, "../../.output/chrome-mv3");
+const EXTENSION_PATH = resolve(__dirname, "../../dist/chrome-mv3");
 
 export type Fixtures = {
   context: BrowserContext;
