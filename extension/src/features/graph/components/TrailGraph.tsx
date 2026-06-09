@@ -377,26 +377,23 @@ function TrailGraphInner(props: TrailGraphProps) {
           // callback, swallowing the event before tinykeys sees it. Disable
           // entirely so our keyboard handler in useShortcuts owns delete.
           deleteKeyCode={null}
-          // Cull is OFF (xyflow default). Earlier this was ON to avoid
-          // always-mounted DOM cost on huge trees, but a 2026-05-22
-          // far-LOD pan trace (Trace-20260522T214936.json.gz, 345
-          // wheels) showed the cull was the per-frame bottleneck:
-          // each wheel cost ~11.7 `commitHostMount` and ~14.8
-          // `setAttribute` samples because nodes at the viewport
-          // edge mounted/unmounted on every tick. Each mount paid
-          // for xyflow's ResizeObserver firing `updateNodeInternals`
-          // + a store `set({})` waking every subscriber, plus three
-          // forced layouts (`getBoundingClientRect`,
-          // `getComputedStyle`, `getDimensions`).
+          // Cull is ON. Trades a per-pan mount-churn cost for bounded
+          // always-mounted React work on huge trees: xyflow unmounts
+          // off-viewport NodeWrappers entirely (NOT visibility:hidden),
+          // so the mounted set scales with the viewport, not the tree.
           //
-          // Off-viewport nodes always-mounted are cheap during pure
-          // pan: xyflow gives them `visibility: hidden` so paint
-          // skips them, `useStore` subscriptions shallow-bail
-          // because `internals.positionAbsolute` doesn't change on
-          // pan (only the viewport transform mutates), and per-node
-          // `contain: layout style` (pane.css) caps style-recalc
-          // scope. Layout/style cost is bounded; mount-churn cost
-          // is not.
+          // The cost: each node crossing the viewport edge during a pan
+          // remounts, firing xyflow's ResizeObserver →
+          // `updateNodeInternals` (forced reflow:
+          // `getBoundingClientRect` + `getComputedStyle` +
+          // `getHandleBounds`) + an unconditional store `set({})` that
+          // wakes every subscriber. The churn RATE scales with how
+          // densely nodes pack along the pan axis — which is why
+          // mindmap (tight vertical sibling pitch, swept along the long
+          // panel edge) churned multiples more than tree and felt
+          // laggy. Mitigated layout-side via MINDMAP_MIN_SIBLING_PITCH
+          // (tree-layout.ts), which spaces mindmap siblings out so
+          // fewer cross the edge per frame.
           onlyRenderVisibleElements
           nodesDraggable
           nodeDragThreshold={5}

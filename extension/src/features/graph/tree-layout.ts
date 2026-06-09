@@ -18,6 +18,29 @@ import { type ChainFoldInfo, EMPTY_FOLD_INFO } from "./fold-chains.js";
 const NODE_WIDTH = 160;
 const NODE_HEIGHT = 60;
 
+// Minimum sibling-axis pitch for mindmap (LR) mode, in px.
+//
+// Mindmap siblings stack along the *vertical* axis, the same axis the
+// camera sweeps when following a deep navigation chain (depth runs
+// horizontally). At the natural pitch (NODE_HEIGHT 60 + nodeSpacing
+// 16–32 ≈ 76–92px) siblings sit ~2× tighter than tree mode's
+// horizontal pitch (NODE_WIDTH 160 + nodeSpacing ≈ 176–192px).
+//
+// That density matters because `onlyRenderVisibleElements` (the
+// viewport cull, ON — see TrailGraph) mounts/unmounts each node as it
+// crosses the viewport edge, and every remount pays for xyflow's
+// ResizeObserver → updateNodeInternals → forced reflow + store
+// broadcast. The number of nodes crossing the edge per pan frame is
+// inversely proportional to this pitch, so mindmap's tight packing
+// churned multiples more remounts than tree and read as pan lag.
+//
+// Flooring the mindmap sibling pitch at one node-height of clearance
+// (2 × NODE_HEIGHT) roughly halves the per-frame boundary-crossing
+// rate, bringing churn toward tree levels. The trade-off is a taller
+// mindmap (more vertical pan to traverse a subtree). Tune here:
+// higher = smoother pan, sparser layout. Tree mode is unaffected.
+const MINDMAP_MIN_SIBLING_PITCH = 2 * NODE_HEIGHT; // 120px
+
 // ── Tree → d3-hierarchy layout ──────────────────────────────────────
 
 export type LayoutGraphInput = {
@@ -75,7 +98,11 @@ export function computeTreePositions(
   // Tree (TB): x = horizontal across siblings, y = vertical depth.
   // Mindmap (LR): we rotate afterwards, so the sibling axis carries node heights.
   const isMindmap = mode === "mindmap";
-  const siblingSize = (isMindmap ? NODE_HEIGHT : NODE_WIDTH) + nodeSpacing;
+  // Mindmap floors the sibling pitch to cap viewport-cull remount churn
+  // (see MINDMAP_MIN_SIBLING_PITCH). Tree uses its natural pitch.
+  const siblingSize = isMindmap
+    ? Math.max(NODE_HEIGHT + nodeSpacing, MINDMAP_MIN_SIBLING_PITCH)
+    : NODE_WIDTH + nodeSpacing;
   const layerSize = (isMindmap ? NODE_WIDTH : NODE_HEIGHT) + layerSpacing;
 
   const layout = d3tree<NavigationNodeJSON>()
