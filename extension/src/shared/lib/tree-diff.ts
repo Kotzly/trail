@@ -12,8 +12,6 @@
  * All three functions are pure: no Date.now(), no randomUUID(), no
  * network, no storage. `applyMerge` accepts a `Clock` capability so
  * tests can pin timestamps.
- *
- * See /Users/iv/.claude/plans/sync-wiggly-hellman.md for context.
  */
 
 import { isEqual } from "es-toolkit";

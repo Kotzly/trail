@@ -26,8 +26,6 @@ packages/
   db/               generated Supabase Database types + thin client
 sanity/studio-trail/Sanity CMS studio
 supabase/           migrations, seed (CI-only), pgTAP tests
-docs/               project documentation
-tasks/              ephemeral planning, lessons, review artefacts
 ```
 
 > Note: the legacy `apps/account` app (formerly served at `app.gettrail.net`)
@@ -107,8 +105,6 @@ pgTAP tests in `supabase/tests/` run only in CI (`.github/workflows/ci-supabase.
 
 See [`extension/README.md`](extension/README.md) for MV3 service-worker model, sync engine, sidepanel architecture, and dev/release flows.
 
-## Documentation
+## License
 
-See [`docs/README.md`](docs/README.md) for the full documentation index.
-
-For the latest project audit and remediation status, see [`tasks/review/`](tasks/review/).
+Licensed under the [Apache License 2.0](LICENSE).

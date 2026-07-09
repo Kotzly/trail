@@ -61,6 +61,14 @@ pens/
 .cursor/
 .omc/
 .wxt/
+.agents/
+.augment/
+.codebuddy/
+.continue/
+.junie/
+.planning/
+.playwright-mcp/
+.meta/
 extension/public/backend-preset.json
 .output/
 extension/.meta/logs/
@@ -71,9 +79,9 @@ backend-preset.json
 runtime-debug.json
 graphify-out/
 
-# Task-tracking / agent reports (local state)
-tasks/cache/
-tasks/reports/
+# Task-tracking / agent notes & reports (local-only, never published)
+tasks/
+onboarding_notes.txt
 
 # Playwright artifacts
 extension/test-results/

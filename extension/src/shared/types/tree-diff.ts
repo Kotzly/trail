@@ -5,8 +5,6 @@
  * `applyMerge` consumes the diff plus a `ConflictPickState` (user's
  * per-node cherry-picks) and emits a merged `NavigationTreeJSON` that
  * satisfies the same invariants as any other tree payload.
- *
- * See /Users/iv/.claude/plans/sync-wiggly-hellman.md for the full spec.
  */
 
 import type { NodeId } from "./ids.js";

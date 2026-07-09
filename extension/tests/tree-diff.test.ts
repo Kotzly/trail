@@ -1,8 +1,7 @@
 /**
  * Unit tests for the pure sync-conflict diff primitives.
  *
- * Covers the 19 cases listed in /Users/iv/.claude/plans/sync-wiggly-hellman.md
- * §Verification → Unit tests.
+ * Covers the 19 cases in the sync-conflict diff verification spec.
  */
 
 import assert from "node:assert/strict";
