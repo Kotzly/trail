@@ -89,6 +89,10 @@ graphify-out/
 tasks/
 onboarding_notes.txt
 
+# Brand working files & one-off scripts (local-only, not shipped)
+/logo/
+/scripts/
+
 # Playwright artifacts
 extension/test-results/
 extension/playwright-report/
