@@ -69,6 +69,12 @@ pens/
 .planning/
 .playwright-mcp/
 .meta/
+# Agent/tooling config & scratch files (local-only, not product code)
+.impeccable.md
+.graphifyignore
+squirrel.toml
+skills-lock.json
+sidepanel-check.png
 extension/public/backend-preset.json
 .output/
 extension/.meta/logs/
