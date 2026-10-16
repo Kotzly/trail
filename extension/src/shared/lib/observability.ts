@@ -305,7 +305,7 @@ export async function initObservability(surface: ObservabilitySurface): Promise<
   try {
     cachedConsent = await telemetryConsentItem.getValue();
   } catch {
-    cachedConsent = { errors: true, analytics: true, decidedAt: null };
+    cachedConsent = { errors: false, analytics: false, decidedAt: null };
   }
 
   // Firefox: the AMO manifest declares `technicalAndInteraction` as
@@ -442,8 +442,8 @@ export async function setTelemetryConsent(next: Partial<TelemetryConsent>): Prom
   }
 
   const current = (await telemetryConsentItem.getValue()) ?? {
-    errors: true,
-    analytics: true,
+    errors: false,
+    analytics: false,
     decidedAt: null,
   };
   const merged: TelemetryConsent = {

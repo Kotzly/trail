@@ -31,17 +31,6 @@ function extractDomain(url: string): string | null {
 }
 
 /**
- * Создает Google Favicon API URL для домена.
- * Формат: https://www.google.com/s2/favicons?domain=<domain>&sz=32
- */
-function createGoogleFaviconUrl(domain: string): FaviconUrl {
-  const url = new URL("https://www.google.com/s2/favicons");
-  url.searchParams.set("domain", domain);
-  url.searchParams.set("sz", "32");
-  return url.toString() as FaviconUrl;
-}
-
-/**
  * Рекурсивно обходит узел дерева и собирает информацию о доменах.
  */
 function traverseNode(node: NavigationNodeJSON, domainMap: Map<string, DomainInfo>): void {
@@ -86,7 +75,7 @@ function traverseNode(node: NavigationNodeJSON, domainMap: Map<string, DomainInf
  * 2. Группирует по домену и считает частоту
  * 3. Для каждого домена запоминает публичный favicon (если есть)
  * 4. Возвращает публичный favicon самого частого домена
- * 5. Если ни у одного домена нет публичного favicon -- использует Google Favicon API для самого частого домена
+ * 5. Если ни у одного домена нет публичного favicon -- возвращает null (без внешних запросов)
  *
  * @param tree JSON представление дерева навигации
  * @returns Favicon URL (публичный) или null если дерево пустое
@@ -109,9 +98,8 @@ export function findBestTrailFavicon(tree: NavigationTreeJSON): FaviconUrl | nul
     }
   }
 
-  // Если ни у одного домена нет публичного favicon, используем Google Favicon API
-  // для самого частого домена
-  const mostFrequentDomain = domains[0];
-  if (!mostFrequentDomain) return null;
-  return createGoogleFaviconUrl(mostFrequentDomain.domain);
+  // No public favicon: return null so callers fall back to the page's own
+  // favicon. (Upstream queried Google's favicon API here, which leaked the
+  // visited domain to Google.)
+  return null;
 }

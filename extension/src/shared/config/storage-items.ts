@@ -222,14 +222,14 @@ export const pendingSyncOpsItem = storage.defineItem<PendingSyncOp[]>(
 // ── Telemetry ───────────────────────────────────────────────────────
 
 export type TelemetryConsent = {
-  errors: boolean; // Sentry error reporting (defaults on)
-  analytics: boolean; // PostHog product analytics (defaults on)
+  errors: boolean; // Sentry error reporting (defaults off in this fork)
+  analytics: boolean; // PostHog product analytics (defaults off in this fork)
   decidedAt: number | null; // timestamp user explicitly set consent
 };
 
 export const telemetryConsentItem = storage.defineItem<TelemetryConsent>(
   "local:trail_telemetry_consent",
-  { fallback: { errors: true, analytics: true, decidedAt: null } },
+  { fallback: { errors: false, analytics: false, decidedAt: null } },
 );
 
 export const telemetryAnonIdItem = storage.defineItem<string | null>(
